@@ -1,0 +1,121 @@
+from flask import Blueprint, jsonify, request
+from database.operations.sqlite_handler import SQLitePortfolioDB
+from database.portsummary.PortSummaryReportHandler import PortSummaryReportHandler
+from logs.logger import get_logger
+from datetime import datetime
+from actions.DexscrennerAction import DexScreenerAction
+import time
+
+logger = get_logger(__name__)
+
+port_summary_report_bp = Blueprint('port_summary_report', __name__)
+
+@port_summary_report_bp.route('/api/reports/portsummary', methods=['GET', 'OPTIONS'])
+def get_port_summary():
+    if request.method == 'OPTIONS':
+        response = jsonify({})
+        response.headers.add('Access-Control-Allow-Origin', 'http://localhost:3000')
+        response.headers.add('Access-Control-Allow-Methods', 'GET, OPTIONS')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type, Accept')
+        return response, 200
+        
+    try:
+        # Get query parameters with defaults
+        tokenId = request.args.get('token_id', '')
+        name = request.args.get('name', '')
+        chainName = request.args.get('chain_name', '')
+        minMarketCap = request.args.get('min_market_cap', type=float)
+        maxMarketCap = request.args.get('max_market_cap', type=float)
+        minTokenAge = request.args.get('min_token_age', type=float)
+        maxTokenAge = request.args.get('max_token_age', type=float)
+        sortBy = request.args.get('sort_by', 'smartbalance')
+        sortOrder = request.args.get('sort_order', 'desc')
+
+        # Use the handler to get the data
+        with SQLitePortfolioDB() as db:
+            handler = PortSummaryReportHandler(db)
+            
+            # Check if handler is None
+            if handler is None:
+                logger.error("Handler 'port_summary_report' not found")
+                response = jsonify({
+                    'error': 'Configuration error',
+                    'message': "Handler 'port_summary_report' not found"
+                })
+                response.headers.add('Access-Control-Allow-Origin', 'http://localhost:3000')
+                return response, 500
+                
+            portSummaryData = handler.getPortSummaryReport(
+                tokenId=tokenId,
+                name=name,
+                chainName=chainName,
+                minMarketCap=minMarketCap,
+                maxMarketCap=maxMarketCap,
+                minTokenAge=minTokenAge,
+                maxTokenAge=maxTokenAge,
+                sortBy=sortBy,
+                sortOrder=sortOrder
+            )
+            
+            # Initialize DexScreener action to fetch current prices
+            dexScreener = DexScreenerAction()
+            
+            # Extract all token IDs for batch processing
+            tokenIds = [record.get('tokenid') for record in portSummaryData if record.get('tokenid')]
+            
+            try:
+                logger.info(f"Starting batch price fetching for {len(tokenIds)} tokens")
+                startTime = time.time()
+                
+                # Fetch current prices for all tokens in batches
+                tokenPrices = dexScreener.getBatchTokenPrices(tokenIds)
+                
+                endTime = time.time()
+                logger.info(f"Completed batch price fetching in {endTime - startTime:.2f} seconds")
+                
+                # Update each record with the price data
+                for record in portSummaryData:
+                    tokenId = record.get('tokenid')
+                    avgPrice = record.get('avgprice')
+                    
+                    if tokenId and tokenId in tokenPrices and tokenPrices[tokenId]:
+                        priceData = tokenPrices[tokenId]
+                        
+                        # Add current price to the record
+                        record['currentprice'] = priceData.price
+                        
+                        # Calculate percentage change if avg_price exists
+                        if avgPrice and avgPrice > 0:
+                            pctChange = ((priceData.price - avgPrice) / avgPrice) * 100
+                            record['pricechange'] = round(pctChange, 2)
+                    else:
+                        # Set default values if price data is not available
+                        record['currentprice'] = None
+                        record['pricechange'] = None
+            except Exception as e:
+                logger.error(f"Error during batch price fetching: {str(e)}")
+                # Set default values for all records if batch fetching fails
+                for record in portSummaryData:
+                    record['currentprice'] = None
+                    record['pricechange'] = None
+            
+            # Log the first record to debug tags
+            if portSummaryData and len(portSummaryData) > 0:
+                logger.info(f"First record tags: {portSummaryData[0].get('tags', 'No tags field')}")
+                # Log the type of tags for the first few records
+                for i, record in enumerate(portSummaryData[:3]):
+                    tags = record.get('tags', [])
+                    logger.info(f"Record {i+1} tags type: {type(tags)}, value: {tags}")
+
+        response = jsonify(portSummaryData)
+        response.headers.add('Access-Control-Allow-Origin', 'http://localhost:3000')
+        return response
+
+    except Exception as e:
+        logger.error(f"Error in port summary report API: {str(e)}")
+        response = jsonify({
+            'error': 'Internal server error',
+            'message': str(e)
+        })
+        response.headers.add('Access-Control-Allow-Origin', 'http://localhost:3000')
+        return response, 500

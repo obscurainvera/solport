@@ -1,0 +1,1338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SOL Port | Premium Analytics</title>
+    
+    <!-- External CSS Dependencies -->
+    <!-- Bootstrap for responsive grid and components -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts: Syncopate for headers, Montserrat for body text -->
+    <link href="https://fonts.googleapis.com/css2?family=Syncopate:wght@400;700&family=Montserrat:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <!-- Three.js for 3D background animations -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+    <style>
+        /* CSS Variables for consistent theming */
+        :root {
+            --black: #000000;
+            --white: #ffffff;
+            --gold: #D4AF37;
+            --accent: #1a1a1a;
+        }
+
+        /* Reset default styles */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        /* Base body styling */
+        body {
+            background-color: var(--black);
+            color: var(--white);
+            font-family: 'Montserrat', sans-serif;
+            overflow-x: hidden;
+            line-height: 1.6;
+            overflow-y: auto;
+            min-height: 100vh;
+        }
+
+        /* Three.js canvas container */
+        #canvas-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        /* Main content container */
+        .premium-container {
+            position: relative;
+            z-index: 1;
+            height: auto;
+            overflow-y: visible;
+            padding-top: 80px;
+        }
+
+        /* Fixed header with gradient background */
+        .luxury-header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            padding: 1.5rem 2rem;
+            z-index: 100;
+            background: linear-gradient(180deg, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0) 100%);
+            margin-bottom: 1.5rem;
+        }
+
+        /* Brand logo styling */
+        .brand {
+            font-family: 'Syncopate', sans-serif;
+            font-size: 2rem;
+            font-weight: 700;
+            letter-spacing: 0.5em;
+            color: var(--white);
+            text-transform: uppercase;
+        }
+
+        /* Section styling */
+        .section {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            padding: 6rem 0;
+            position: relative;
+            z-index: 1;
+            opacity: 1;
+            transform: none;
+            transition: all 1s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        /* Container width constraints */
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 2rem;
+        }
+
+        /* Title styling for sections */
+        .premium-title {
+            margin-bottom: 2rem;
+            font-size: 2.5rem;
+        }
+
+        /* Subtitle styling */
+        .premium-subtitle {
+            font-size: 1.1rem;
+            line-height: 1.8;
+            opacity: 0.9;
+        }
+
+        /* Card styling with animations */
+        .luxury-card {
+            margin-top: 0;
+            width: 100%;
+            min-height: 200px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        /* Animated border effect for cards */
+        .luxury-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--gold), transparent);
+            animation: luxuryBorder 3s linear infinite;
+        }
+
+        /* Border animation keyframes */
+        @keyframes luxuryBorder {
+            0% { left: -100%; }
+            100% { left: 100%; }
+        }
+
+        /* Button styling */
+        .luxury-button {
+            background: transparent;
+            border: 1px solid var(--gold);
+            color: var(--gold);
+            padding: 1rem 2rem;
+            font-family: 'Syncopate', sans-serif;
+            font-size: 0.8rem;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Button hover effect */
+        .luxury-button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(212, 175, 55, 0.2), transparent);
+            transition: 0.5s;
+        }
+
+        .luxury-button:hover::before {
+            left: 100%;
+        }
+
+        .luxury-button:hover {
+            background: var(--gold);
+            color: var(--black);
+        }
+
+        /* Wave animation container */
+        .wave-container {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            pointer-events: none;
+            opacity: 0.5;
+        }
+
+        /* Wave animation styling */
+        .wave {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(45deg, var(--gold), transparent);
+            opacity: 0.1;
+            animation: waveAnimation 8s infinite linear;
+        }
+
+        @keyframes waveAnimation {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Custom scrollbar styling */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--black);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--gold);
+            border-radius: 4px;
+        }
+
+        /* Input field styling */
+        .luxury-input {
+            width: 100%;
+            background: rgba(26, 26, 26, 0.9);
+            border: 1px solid rgba(212, 175, 55, 0.2);
+            color: var(--white);
+            padding: 0.75rem 1rem;
+            border-radius: 6px;
+            transition: all 0.3s ease;
+            font-family: 'Montserrat', sans-serif;
+        }
+
+        .luxury-input:focus {
+            border-color: var(--gold);
+            outline: none;
+        }
+
+        .luxury-input option {
+            background: rgba(26, 26, 26, 0.9);
+            color: var(--white);
+            padding: 0.5rem;
+        }
+
+        /* Status message styling */
+        .status-message {
+            margin-top: 1rem;
+            padding: 1rem;
+            border-radius: 8px;
+            font-family: 'Montserrat', sans-serif;
+            display: none;
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid var(--gold);
+            color: var(--white);
+        }
+
+        /* Loading spinner animation */
+        .loading-spinner {
+            display: none;
+            width: 20px;
+            height: 20px;
+            border: 2px solid var(--gold);
+            border-top: 2px solid transparent;
+            border-radius: 50%;
+            margin-left: 10px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Grid system utilities */
+        .row {
+            width: 100%;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 991px) {
+            .section {
+                padding: 4rem 0;
+            }
+            
+            .col-lg-5 {
+                margin-bottom: 2rem;
+            }
+            
+            .luxury-card {
+                margin-top: 2rem;
+            }
+        }
+
+        /* Smooth scroll behavior */
+        html {
+            scroll-behavior: smooth;
+            scroll-padding-top: 140px;
+        }
+
+        /* Section spacing */
+        #portfolio-section {
+            margin-top: 0;
+        }
+
+        /* Visibility helper */
+        .section.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* Navigation styling */
+        .luxury-nav {
+            position: sticky;
+            top: 80px;
+            margin-bottom: 2rem;
+            z-index: 100;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            padding: 1rem 0;
+            border-bottom: 1px solid rgba(212, 175, 55, 0.2);
+        }
+
+        .nav-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 1rem;
+        }
+
+        .nav-tiles {
+            display: flex;
+            gap: 1rem;
+            overflow-x: auto;
+            padding: 0.5rem 0;
+            -ms-overflow-style: none;  /* Hide scrollbar IE and Edge */
+            scrollbar-width: none;     /* Hide scrollbar Firefox */
+        }
+
+        /* Hide scrollbar for Chrome, Safari and Opera */
+        .nav-tiles::-webkit-scrollbar {
+            display: none;
+        }
+
+        .nav-tile {
+            flex: 0 0 auto;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 0.75rem 1.25rem;
+            background: rgba(26, 26, 26, 0.9);
+            border: 1px solid rgba(212, 175, 55, 0.2);
+            border-radius: 8px;
+            color: var(--white);
+            text-decoration: none;
+            transition: all 0.3s ease;
+            position: relative;
+            margin: 0.25rem;
+            min-width: 140px;  /* Set minimum width for tiles */
+            text-align: center;  /* Center text */
+        }
+
+        .nav-tile:hover {
+            background: rgba(212, 175, 55, 0.1);
+            border-color: var(--gold);
+            transform: translateY(-2px);
+            color: var(--gold);
+            z-index: 1;
+        }
+
+        .nav-tile i {
+            font-size: 1.25rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .nav-tile span {
+            font-size: 0.875rem;
+            font-family: 'Montserrat', sans-serif;
+            line-height: 1.2;  /* Improve text readability */
+        }
+
+        /* Active tile state */
+        .nav-tile.active {
+            background: rgba(212, 175, 55, 0.1);
+            border-color: var(--gold);
+            color: var(--gold);
+        }
+
+        /* Add tooltip for timing value format */
+        #timing-value {
+            position: relative;
+        }
+
+        #timing-value:hover::after {
+            content: "Format examples:\n*/30 (every 30 units)\n15 (at 15)\n1-5 (from 1 to 5)";
+            position: absolute;
+            bottom: 100%;
+            left: 0;
+            background: rgba(0, 0, 0, 0.9);
+            padding: 0.5rem;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            white-space: pre;
+            z-index: 1000;
+        }
+    </style>
+</head>
+<body>
+    <!-- Three.js background container -->
+    <div id="canvas-container"></div>
+    
+    <!-- Fixed header with brand logo -->
+    <header class="luxury-header">
+        <div class="brand">SOL PORT</div>
+    </header>
+
+    <!-- Add this after the header and before the main content -->
+    <nav class="luxury-nav">
+        <div class="nav-container">
+            <div class="nav-tiles">
+                <a href="/analytics" class="nav-tile">
+                    <i class="fas fa-chart-bar"></i>
+                    <span>Strategy Creation</span>
+                </a>
+                <a href="/strategy" class="nav-tile">
+                    <i class="fas fa-robot"></i>
+                    <span>Strategy Operations</span>
+                </a>
+                <a href="#portfolio-section" class="nav-tile">
+                    <i class="fas fa-chart-line"></i>
+                    <span>Port Summary</span>
+                </a>
+                <a href="#wallet-invested-section" class="nav-tile">
+                    <i class="fas fa-coins"></i>
+                    <span>Wallets Invested</span>
+                </a>
+                <a href="#wallets-investement-details-section" class="nav-tile">
+                    <i class="fas fa-chart-line"></i>
+                    <span>Wallets Investment Details</span>
+                </a>
+                <a href="#smart-money-wallets-section" class="nav-tile">
+                    <i class="fas fa-wallet"></i>
+                    <span>Smart Money Wallets</span>
+                </a>
+                <a href="#smwallet-toppnltoken-section" class="nav-tile">
+                    <i class="fas fa-trophy"></i>
+                    <span>SM Wallets - Top PNL Tokens</span>
+                </a>
+                <a href="#smwallet-toppnltoken-investment-details-section" class="nav-tile">
+                    <i class="fas fa-sync"></i>
+                    <span>SM wallets - Top PNL Token Investment Analysis</span>
+                </a>
+                <a href="#volume-bot-section" class="nav-tile">
+                    <i class="fas fa-robot"></i>
+                    <span>Volume Bot</span>
+                </a>
+                <a href="#pumpfun-section" class="nav-tile">
+                    <i class="fas fa-rocket"></i>
+                    <span>Pump Fun</span>
+                </a>
+                <a href="#attention-section" class="nav-tile">
+                    <i class="fas fa-eye"></i>
+                    <span>Attention</span>
+                </a>
+                <a href="#scheduler-section" class="nav-tile">
+                    <i class="fas fa-clock"></i>
+                    <span>Scheduler</span>
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main content container -->
+    <div class="premium-container">
+        <div class="container">
+            <!-- Portfolio Section -->
+            <section class="section" id="portfolio-section">
+                <div class="row align-items-center justify-content-between">
+                    <div class="col-lg-5">
+                        <h1 class="premium-title">PORTFOLIO ANALYTICS</h1>
+                        <p class="premium-subtitle">Persist data from portfolio summary</p>
+                    </div>
+                    <div class="col-lg-5">
+                        <div class="luxury-card">
+                            <div class="wave-container">
+                                <div class="wave"></div>
+                            </div>
+                            <button class="luxury-button" onclick="updatePortfolio()">
+                                ANALYZE PORTFOLIO
+                                <div class="loading-spinner"></div>
+                            </button>
+                            <div id="portfolio-status" class="status-message"></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Wallet Invested Section -->
+            <section class="section" id="wallet-invested-section">
+                <div class="row align-items-center justify-content-between">
+                    <div class="col-lg-5">
+                        <h1 class="premium-title">WALLET INVESTMENT DETAILS</h1>
+                        <p class="premium-subtitle">Persist Investment Details of wallets invested in SM tokens</p>
+                    </div>
+                    <div class="col-lg-5">
+                        <div class="luxury-card">
+                            <div class="wave-container">
+                                <div class="wave"></div>
+                            </div>
+                            <!-- Analyze All Tokens Button -->
+                            <button class="luxury-button mb-3" onclick="persistAllSMWalletsInvestedInAnyPortSummaryToken()">
+                                ANALYZE ALL TOKENS
+                                <div class="loading-spinner"></div>
+                            </button>
+                            <!-- Single Token Analysis -->
+                            <input type="text" class="luxury-input" id="token-id" placeholder="Token ID">
+                            <button class="luxury-button" onclick="persistAllSMWalletsInvestedInASpecificToken()">
+                                PERSIST ALL SM WALLETS IN A SPECIFIC TOKEN
+                                <div class="loading-spinner"></div>
+                            </button>
+                            <div id="token-analysis-status" class="status-message"></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Transaction Analysis Section: For analyzing specific wallet/token combinations -->
+            <section class="section" id="wallets-investement-details-section">
+                <div class="row align-items-center justify-content-between">
+                    <div class="col-lg-5">
+                        <h1 class="premium-title">WALLETS INVESTMENT DETAILS</h1>
+                        <p class="premium-subtitle">Analyze investment details and patterns for wallets</p>
+                    </div>
+                    <div class="col-lg-5">
+                        <div class="luxury-card">
+                            <div class="wave-container">
+                                <div class="wave"></div>
+                            </div>
+                            <!-- Single Wallet-Token Analysis -->
+                            <h3 class="luxury-subtitle mb-3">Single Wallet Analysis</h3>
+                            <input type="text" class="luxury-input mb-3" id="wallet-address" placeholder="Wallet Address">
+                            <input type="text" class="luxury-input mb-3" id="trans-token-id" placeholder="Token ID">
+                            <button class="luxury-button mb-4" onclick="analyzeInvestmentForSpecificWalletAndToken()">
+                                ANALYZE TRANSACTIONS
+                                <div class="loading-spinner"></div>
+                            </button>
+                            <div id="transaction-status" class="status-message"></div>
+
+                            <!-- Smart Wallet Analysis -->
+                            <h3 class="luxury-subtitle mb-3 mt-4">Smart Wallet Analysis</h3>
+                            <input type="number" class="luxury-input mb-3" id="min-smart-holding" 
+                                   placeholder="Minimum Smart Holding (Default: 10000)">
+                            <button class="luxury-button mb-4" onclick="analyzeAllWalletsAboveCertainHoldings()">
+                                ANALYZE SMART WALLETS
+                                <div class="loading-spinner"></div>
+                            </button>
+                            <div id="smart-wallet-status" class="status-message"></div>
+
+                            <!-- Token Smart Wallet Analysis -->
+                            <h3 class="luxury-subtitle mb-3 mt-4">Token Smart Wallet Analysis</h3>
+                            <input type="text" class="luxury-input mb-3" id="token-address" placeholder="Token Address">
+                            <input type="number" class="luxury-input mb-3" id="token-min-holding" 
+                                   placeholder="Minimum Smart Holding (Default: 10000)">
+                            <button class="luxury-button" onclick="analyzeInvestmentsOfAllWalletsForASpecificToken()">
+                                ANALYZE TOKEN WALLETS
+                                <div class="loading-spinner"></div>
+                            </button>
+                            <div id="token-smart-wallet-status" class="status-message"></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Wallet Behaviour Section: For analyzing high PNL wallets -->
+            <section class="section" id="smart-money-wallets-section">
+                <div class="row align-items-center justify-content-between">
+                    <div class="col-lg-5">
+                        <h1 class="premium-title">SMART MONEY WALLETS</h1>
+                        <p class="premium-subtitle">Take all the Smart Money Wallets and store them in the database</p>
+                    </div>
+                    <div class="col-lg-5">
+                        <div class="luxury-card">
+                            <div class="wave-container">
+                                <div class="wave"></div>
+                            </div>
+                            <button class="luxury-button" onclick="persistAllSmartMoneyWallets()">
+                                PERSIST SMART MONEY WALLETS
+                                <div class="loading-spinner"></div>
+                            </button>
+                            <div id="wallet-behaviour-status" class="status-message"></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Smart Money Wallet Top PNL Token Analysis Section -->
+            <section class="section" id="smwallet-toppnltoken-section">
+                <div class="row align-items-center justify-content-between">
+                    <div class="col-lg-5">
+                        <h1 class="premium-title">SM WALLETS - TOP PNL TOKEN ANALYSIS</h1>
+                        <p class="premium-subtitle">Analyze investments of SM wallets in top PNL tokens</p>
+                    </div>
+                    <div class="col-lg-5">
+                        <div class="luxury-card">
+                            <div class="wave-container">
+                                <div class="wave"></div>
+                            </div>
+                            <button class="luxury-button mb-3" onclick="analyzeAllTopPnlTokensForAllHighPNLSMWallets()">
+                                ANALYZE ALL HIGH PNL SM WALLETS
+                                <div class="loading-spinner"></div>
+                            </button>
+                            <input type="text" class="luxury-input mb-3" id="pnl-wallet-address" placeholder="Wallet Address">
+                            <button class="luxury-button" onclick="analyzeAllTopPNLTokensForASpecificWallet()">
+                                ANALYZE ALL TOP PNL TOKENS FOR A SPECIFIC SM WALLET
+                                <div class="loading-spinner"></div>
+                            </button>
+                            <div id="top-pnl-token-status" class="status-message"></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Add this section after the Top PNL Token Analysis Section -->
+            <section class="section" id="smwallet-toppnltoken-investment-details-section">
+                <div class="row align-items-center justify-content-between">
+                    <div class="col-lg-5">
+                        <h1 class="premium-title">INVESTMENT DETAILS OF SM WALLETS IN TOP PNL TOKENS</h1>
+                        <p class="premium-subtitle">Investment details of top PNL tokens by smart money wallets</p>
+                    </div>
+                    <div class="col-lg-5">
+                        <div class="luxury-card">
+                            <div class="wave-container">
+                                <div class="wave"></div>
+                            </div>
+                            <!-- Update All Tokens Button -->
+                            <button class="luxury-button mb-3" onclick="persistInvestementDataForAllTopPNLTokens()">
+                                UPDATE ALL TOKENS
+                                <div class="loading-spinner"></div>
+                            </button>
+                            <!-- Update Wallet Tokens -->
+                            <input type="text" class="luxury-input mb-3" id="update-wallet-address" placeholder="Wallet Address">
+                            <button class="luxury-button mb-3" onclick="persistInvestmentDataForAllTopPNLForASpecficWallet()">
+                                UPDATE WALLET TOKENS
+                                <div class="loading-spinner"></div>
+                            </button>
+                            <!-- Update Specific Token -->
+                            <input type="text" class="luxury-input mb-3" id="update-token-wallet" placeholder="Wallet Address">
+                            <input type="text" class="luxury-input mb-3" id="update-token-address" placeholder="Token Address">
+                            <button class="luxury-button" onclick="updateSpecificToken()">
+                                UPDATE SPECIFIC TOKEN
+                                <div class="loading-spinner"></div>
+                            </button>
+                            <div id="top-pnl-token-update-status" class="status-message"></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Add this section after the Top PNL Token Updates Section -->
+            <section class="section" id="volume-bot-section">
+                <div class="row align-items-center justify-content-between">
+                    <div class="col-lg-5">
+                        <h1 class="premium-title">VOLUME BOT</h1>
+                        <p class="premium-subtitle">Track and analyze token volume signals for backtesting</p>
+                    </div>
+                    <div class="col-lg-5">
+                        <div class="luxury-card">
+                            <div class="wave-container">
+                                <div class="wave"></div>
+                            </div>
+                            <!-- Scheduled Fetch Button -->
+                            <button class="luxury-button" onclick="scheduleVolumeFetch()">
+                                FETCH VOLUME TOKENS
+                                <div class="loading-spinner"></div>
+                            </button>
+                            <div id="volume-bot-status" class="status-message"></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Add this section after the Volume Bot Section -->
+            <section class="section" id="pumpfun-section">
+                <div class="row align-items-center justify-content-between">
+                    <div class="col-lg-5">
+                        <h1 class="premium-title">PUMP FUN BOT</h1>
+                        <p class="premium-subtitle">Track and analyze pump fun signals for backtesting</p>
+                    </div>
+                    <div class="col-lg-5">
+                        <div class="luxury-card">
+                            <div class="wave-container">
+                                <div class="wave"></div>
+                            </div>
+                            <!-- Scheduled Fetch Button -->
+                            <button class="luxury-button" onclick="schedulePumpFunFetch()">
+                                FETCH PUMP FUN TOKENS
+                                <div class="loading-spinner"></div>
+                            </button>
+                            <div id="pumpfun-status" class="status-message"></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Attention Analysis Section -->
+            <section class="section" id="attention-section">
+                <div class="row align-items-center justify-content-between">
+                    <div class="col-lg-5">
+                        <h1 class="premium-title">ATTENTION ANALYSIS</h1>
+                        <p class="premium-subtitle">Analyze token attention patterns</p>
+                    </div>
+                    <div class="col-lg-5">
+                        <div class="luxury-card">
+                            <div class="wave-container">
+                                <div class="wave"></div>
+                            </div>
+                            <button class="luxury-button mb-3" onclick="analyzeAttention()">
+                                ANALYZE ATTENTION
+                                <div class="loading-spinner"></div>
+                            </button>
+                            <div id="attention-status" class="status-message"></div>
+                            <div id="attention-data" class="mt-3">
+                                <!-- Status data will be inserted here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Add this section after the Attention Analysis Section -->
+            <section class="section" id="scheduler-section">
+                <div class="row align-items-center justify-content-between">
+                    <div class="col-lg-5">
+                        <h1 class="premium-title">SCHEDULER MANAGEMENT</h1>
+                        <p class="premium-subtitle">Modify job schedules and timings</p>
+                    </div>
+                    <div class="col-lg-5">
+                        <div class="luxury-card">
+                            <div class="wave-container">
+                                <div class="wave"></div>
+                            </div>
+                            <!-- Job Schedule Controls -->
+                            <select class="luxury-input mb-3" id="job-id-select">
+                                <option value="">Select Job</option>
+                                <option value="portfolio_summary_analysis">Portfolio Summary Analysis</option>
+                                <option value="wallets_invested_in_a_token">Wallets Invested Analysis</option>
+                                <option value="attention_analysis">Attention Analysis</option>
+                                <option value="daily_token_deactivation">Token Deactivation</option>
+                                <option value="volume_bot_analysis">Volume Bot Analysis</option>
+                                <option value="pump_fun_analysis">Pump Fun Analysis</option>
+                            </select>
+
+                            <select class="luxury-input mb-3" id="timing-type-select">
+                                <option value="">Select Timing Type</option>
+                                <option value="second">Second</option>
+                                <option value="minute">Minute</option>
+                                <option value="hour">Hour</option>
+                                <option value="day">Day</option>
+                                <option value="month">Month</option>
+                                <option value="year">Year</option>
+                            </select>
+
+                            <input type="text" class="luxury-input mb-3" id="timing-value" 
+                                   placeholder="Timing Value (e.g., */30, 15, 1-5)">
+
+                            <button class="luxury-button" onclick="updateJobSchedule()">
+                                UPDATE SCHEDULE
+                                <div class="loading-spinner"></div>
+                            </button>
+                            <div id="scheduler-status" class="status-message"></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <script>
+        // Three.js Animation Setup
+        const container = document.getElementById('canvas-container');
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        container.appendChild(renderer.domElement);
+
+        // Create particle system for background
+        const geometry = new THREE.BufferGeometry();
+        const vertices = [];
+        
+        for (let i = 0; i < 5000; i++) {
+            vertices.push(
+                Math.random() * 2000 - 1000,
+                Math.random() * 2000 - 1000,
+                Math.random() * 2000 - 1000
+            );
+        }
+        
+        geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+        
+        const material = new THREE.PointsMaterial({
+            color: 0xD4AF37,
+            size: 2,
+            transparent: true,
+            opacity: 0.8
+        });
+        
+        const particles = new THREE.Points(geometry, material);
+        scene.add(particles);
+        
+        camera.position.z = 1000;
+
+        // Animation loop for particles
+        function animate() {
+            requestAnimationFrame(animate);
+            particles.rotation.x += 0.0005;
+            particles.rotation.y += 0.0005;
+            renderer.render(scene, camera);
+        }
+
+        animate();
+
+        // Intersection Observer for section animations
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                }
+            });
+        }, { 
+            threshold: 0.1,
+            rootMargin: '0px'
+        });
+
+        // Initialize sections on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            document.querySelectorAll('.section').forEach(section => {
+                section.style.opacity = '1';
+                section.style.transform = 'none';
+                observer.observe(section);
+            });     
+        });
+
+        // Utility function to show loading state
+        function showLoading(buttonElement) {
+            const button = buttonElement;
+            const spinner = button.querySelector('.loading-spinner');
+            button.disabled = true;
+            spinner.style.display = 'inline-block';
+        }
+
+        // Utility function to hide loading state
+        function hideLoading(buttonElement) {
+            const button = buttonElement;
+            const spinner = button.querySelector('.loading-spinner');
+            button.disabled = false;
+            spinner.style.display = 'none';
+        }
+
+        // Utility function to show status messages
+        function showStatus(elementId, message, isError = false) {
+            const statusElement = document.getElementById(elementId);
+            statusElement.style.display = 'block';
+            statusElement.style.color = isError ? '#ff4444' : '#00C851';
+            statusElement.textContent = message;
+            setTimeout(() => {
+                statusElement.style.display = 'none';
+            }, 3000);
+        }
+
+        // Portfolio Update Handler
+        function updatePortfolio() {
+            const button = document.querySelector('#portfolio-section .luxury-button');
+            showLoading(button);
+            
+            $.ajax({
+                url: '/portsummary/update',
+                method: 'POST',
+                success: function(response) {
+                    showStatus('portfolio-status', 'Portfolio updated successfully!');
+                    hideLoading(button);
+                },
+                error: function(xhr) {
+                    showStatus('portfolio-status', 'Error updating portfolio', true);
+                    hideLoading(button);
+                }
+            });
+        }
+
+        // Transaction Analysis Handler
+        function analyzeInvestmentForSpecificWalletAndToken() {
+            const button = document.querySelector('#wallets-investement-details-section .luxury-button');
+            const walletAddress = document.getElementById('wallet-address').value;
+            const tokenId = document.getElementById('trans-token-id').value;
+
+            if (!walletAddress || !tokenId) {
+                showStatus('transaction-status', 'Please enter both Wallet Address and Token ID', true);
+                return;
+            }
+
+            showLoading(button);
+            
+            $.ajax({
+                url: '/api/walletinvestement/investmentdetails/token/wallet',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({
+                    wallet_address: walletAddress,
+                    token_id: tokenId
+                }),
+                success: function(response) {
+                    showStatus('transaction-status', 'Transaction analysis completed!');
+                    hideLoading(button);
+                },
+                error: function(xhr) {
+                    let errorMessage = 'Error analyzing transactions';
+                    try {
+                        // Try to parse error message from response
+                        const response = JSON.parse(xhr.responseText);
+                        errorMessage = response.message || response.error || errorMessage;
+                    } catch (e) {
+                        // If parsing fails, use status text
+                        errorMessage = xhr.statusText || errorMessage;
+                    }
+                    showStatus('transaction-status', errorMessage, true);
+                    hideLoading(button);
+                }
+            });
+        }
+
+        // Wallet Behaviour Analysis Handler
+        function persistAllSmartMoneyWallets() {
+            const button = document.querySelector('#smart-money-wallets-section .luxury-button');
+            showLoading(button);
+            
+            $.ajax({
+                url: '/api/smartmoneywallets/persist',
+                method: 'POST',
+                success: function(response) {
+                    showStatus('smart-money-wallets-status', 'Smart Money Wallets analysis completed!');
+                    hideLoading(button);
+                },
+                error: function(xhr) {
+                    showStatus('smart-money-wallets-status', 'Error analyzing smart money wallets', true);
+                    hideLoading(button);
+                }
+            });
+        }
+
+    
+        function persistAllSMWalletsInvestedInASpecificToken() {
+            const button = document.querySelector('#wallet-invested-section .luxury-button');
+            const tokenId = document.getElementById('token-id').value;
+
+            if (!tokenId) {
+                showStatus('token-analysis-status', 'Please enter a Token ID', true);
+                return;
+            }
+
+            showLoading(button);
+            
+            $.ajax({
+                url: '/api/walletsinvested/token/persist',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({
+                    token_id: tokenId
+                }),
+                success: function(response) {
+                    showStatus('token-analysis-status', 'Token analysis completed!');
+                    hideLoading(button);
+                },
+                error: function(xhr) {
+                    showStatus('token-analysis-status', 'Error analyzing token', true);
+                    hideLoading(button);
+                }
+            });
+        }
+
+        // Smart Money Wallet Top PNL Token Analysis - All Wallets Handler
+        function analyzeAllTopPnlTokensForAllHighPNLSMWallets() {
+            const button = document.querySelector('#smwallet-toppnltoken-section .luxury-button');
+            showLoading(button);
+            
+            $.ajax({
+                url: '/api/smwallettoppnltoken/persist',
+                method: 'POST',
+                success: function(response) {
+                    showStatus('smwallet-toppnl-status', 'Smart Money Wallet Top PNL token analysis completed for all wallets!');
+                    showLoading(button);
+                },
+                error: function(xhr) {
+                    showStatus('smwallet-toppnl-status', 'Error analyzing smart money wallet top PNL tokens', true);
+                    showLoading(button);
+                }
+            });
+        }
+
+        // Top PNL Token Analysis - Single Wallet Handler
+        function analyzeAllTopPNLTokensForASpecificWallet() {
+            const button = document.querySelector('#smwallet-toppnltoken-section button:last-of-type');
+            const walletAddress = document.getElementById('pnl-wallet-address').value;
+
+            if (!walletAddress) {
+                showStatus('smwallet-toppnl-status', 'Please enter a wallet address', true);
+                return;
+            }
+
+            showLoading(button);
+            
+            $.ajax({
+                url: '/api/smwallettoppnltoken/wallet/persist',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({ wallet_address: walletAddress }),
+                success: function(response) {
+                    showStatus('smwallet-toppnl-status', 'Smart Money Wallet Top PNL token analysis completed for wallet!');
+                    hideLoading(button);
+                },
+                error: function(xhr) {
+                    showStatus('smwallet-toppnl-status', 'Error analyzing wallet tokens', true);
+                    hideLoading(button);
+                }
+            });
+        }
+
+        // Update All Top PNL Tokens
+        function persistInvestementDataForAllTopPNLTokens() {
+            const button = document.querySelector('#smwallet-toppnltoken-investment-details-section .luxury-button');
+            showLoading(button);
+            
+            $.ajax({
+                url: '/api/smwallettoppnltokeninvestment/persist',
+                method: 'POST',
+                success: function(response) {
+                    showStatus('top-pnl-token-update-status', 'Successfully updated all top PNL tokens!');
+                    hideLoading(button);
+                },
+                error: function(xhr) {
+                    showStatus('top-pnl-token-update-status', 'Error updating top PNL tokens', true);
+                    hideLoading(button);
+                }
+            });
+        }
+
+        function persistInvestmentDataForAllTopPNLForASpecficWallet() {
+            const button = document.querySelector('#smwallet-toppnltoken-investment-details-section button:nth-of-type(2)');
+            const walletAddress = document.getElementById('update-wallet-address').value;
+
+            if (!walletAddress) {
+                showStatus('top-pnl-token-update-status', 'Please enter a wallet address', true);
+                return;
+            }
+
+            showLoading(button);
+            
+            $.ajax({
+                url: '/api/smwallettoppnltokeninvestment/wallet/persist',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({
+                    wallet_address: walletAddress
+                }),
+                success: function(response) {
+                    showStatus('top-pnl-token-update-status', `Successfully updated tokens for wallet ${walletAddress}!`);
+                    hideLoading(button);
+                },
+                error: function(xhr) {
+                    showStatus('top-pnl-token-update-status', 'Error updating wallet tokens', true);
+                    hideLoading(button);
+                }
+            });
+        }
+
+        // Update Specific Token
+        function updateSpecificToken() {
+            const button = document.querySelector('#smwallet-toppnltoken-investment-details-section .luxury-button:last-of-type');
+            const walletAddress = document.getElementById('update-token-wallet').value;
+            const tokenAddress = document.getElementById('update-token-address').value;
+
+            if (!walletAddress || !tokenAddress) {
+                showStatus('top-pnl-token-update-status', 'Please enter both wallet and token addresses', true);
+                return;
+            }
+
+            showLoading(button);
+            
+            $.ajax({
+                url: '/api/smwallettoppnltokeninvestment/wallet/token/persist',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({
+                    wallet_address: walletAddress,
+                    token_address: tokenAddress
+                }),
+                success: function(response) {
+                    showStatus('top-pnl-token-update-status', `Successfully updated token ${tokenAddress} for wallet ${walletAddress}!`);
+                    hideLoading(button);
+                },
+                error: function(xhr) {
+                    showStatus('top-pnl-token-update-status', 'Error updating specific token', true);
+                    hideLoading(button);
+                }
+            });
+        }
+
+        // Attention Analysis Handler
+        function analyzeAttention() {
+            const button = document.querySelector('#attention-section .luxury-button');
+            showLoading(button);
+            
+            $.ajax({
+                url: '/api/attention/analyze',
+                method: 'POST',
+                success: function(response) {
+                    showStatus('attention-status', `Attention analysis completed in ${response.execution_time}!`);
+                    hideLoading(button);
+                },
+                error: function(xhr) {
+                    showStatus('attention-status', 'Error analyzing attention patterns', true);
+                    hideLoading(button);
+                }
+            });
+        }
+
+        // Volume Bot - Scheduled Fetch Handler
+        function scheduleVolumeFetch() {
+            const button = document.querySelector('#volume-bot-section .luxury-button:last-of-type');
+            showLoading(button);
+            
+            $.ajax({
+                url: '/api/volumebot/fetch-tokens-scheduled',
+                method: 'POST',
+                success: function(response) {
+                    showStatus('volume-bot-status', 'Successfully scheduled volume token fetch!');
+                    hideLoading(button);
+                },
+                error: function(xhr) {
+                    showStatus('volume-bot-status', 'Error scheduling volume token fetch', true);
+                    hideLoading(button);
+                }
+            });
+        }
+
+        // Pump Fun Bot - Scheduled Fetch Handler
+        function schedulePumpFunFetch() {
+            const button = document.querySelector('#pumpfun-section .luxury-button');
+            showLoading(button);
+            
+            $.ajax({
+                url: '/api/pumpfun/fetch-tokens-scheduled',
+                method: 'POST',
+                success: function(response) {
+                    showStatus('pumpfun-status', 'Successfully scheduled pump fun token fetch!');
+                    hideLoading(button);
+                },
+                error: function(xhr) {
+                    showStatus('pumpfun-status', 'Error scheduling pump fun token fetch', true);
+                    hideLoading(button);
+                }
+            });
+        }
+
+        // Highlight active section in navigation
+        const sections = document.querySelectorAll('.section');
+        const navTiles = document.querySelectorAll('.nav-tile');
+
+        function setActiveNavTile() {
+            const scrollPosition = window.scrollY + 200; // Adjust offset as needed
+
+            sections.forEach((section) => {
+                const sectionTop = section.offsetTop;
+                const sectionHeight = section.clientHeight;
+                const sectionId = section.getAttribute('id');
+
+                if (scrollPosition >= sectionTop && scrollPosition < sectionTop + sectionHeight) {
+                    navTiles.forEach((tile) => {
+                        tile.classList.remove('active');
+                        if (tile.getAttribute('href') === `#${sectionId}`) {
+                            tile.classList.add('active');
+                        }
+                    });
+                }
+            });
+        }
+
+        // Update active tile on scroll
+        window.addEventListener('scroll', setActiveNavTile);
+        // Set initial active tile
+        setActiveNavTile();
+
+        // Update Job Schedule Handler
+        function updateJobSchedule() {
+            const button = document.querySelector('#scheduler-section .luxury-button');
+            const jobId = document.getElementById('job-id-select').value;
+            const timingType = document.getElementById('timing-type-select').value;
+            const value = document.getElementById('timing-value').value;
+
+            if (!jobId || !timingType || !value) {
+                showStatus('scheduler-status', 'Please fill in all fields', true);
+                return;
+            }
+
+            showLoading(button);
+            
+            $.ajax({
+                url: '/api/scheduler/update-timing',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({
+                    job_id: jobId,
+                    timing_type: timingType,
+                    value: value
+                }),
+                success: function(response) {
+                    showStatus('scheduler-status', `Successfully updated ${timingType} for ${jobId}!`);
+                    hideLoading(button);
+                },
+                error: function(xhr) {
+                    showStatus('scheduler-status', 'Error updating job schedule', true);
+                    hideLoading(button);
+                }
+            });
+        }
+
+        // Function to update job list dynamically
+        function updateJobList(jobs) {
+            const select = document.getElementById('job-id-select');
+            select.innerHTML = '<option value="">Select Job</option>';
+            
+            jobs.forEach(job => {
+                const option = document.createElement('option');
+                option.value = job.id;
+                option.textContent = job.name;
+                select.appendChild(option);
+            });
+        }
+
+        // Optional: Fetch current jobs when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            $.ajax({
+                url: '/api/scheduler/jobs',
+                method: 'GET',
+                success: function(response) {
+                    if (response.jobs) {
+                        updateJobList(response.jobs);
+                    }
+                },
+                error: function(xhr) {
+                    console.error('Error fetching job list');
+                }
+            });
+        });
+
+        // Add this with the other JavaScript functions
+        function persistAllSMWalletsInvestedInAnyPortSummaryToken() {
+            const button = document.querySelector('#wallet-invested-section .luxury-button:first-of-type');
+            showLoading(button);
+            
+            $.ajax({
+                url: '/api/walletsinvested/persist/all',
+                method: 'POST',
+                success: function(response) {
+                    showStatus('token-analysis-status', 'Successfully initiated analysis for all active tokens!');
+                    hideLoading(button);
+                },
+                error: function(xhr) {
+                    const errorMsg = xhr.responseJSON?.message || 'Error analyzing tokens';
+                    showStatus('token-analysis-status', errorMsg, true);
+                    hideLoading(button);
+                }
+            });
+        }
+
+        // Add these functions with the other JavaScript functions
+        function analyzeAllWalletsAboveCertainHoldings() {
+            const button = document.querySelector('#wallets-investement-details-section .luxury-button:nth-of-type(2)');
+            const minHolding = document.getElementById('min-smart-holding').value;
+            showLoading(button);
+            
+            $.ajax({
+                url: '/api/walletinvestement/investmentdetails/all',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({
+                    min_smart_holding: minHolding || undefined
+                }),
+                success: function(response) {
+                    showStatus('smart-wallet-status', 'Successfully initiated smart wallet analysis!');
+                    hideLoading(button);
+                },
+                error: function(xhr) {
+                    const errorMsg = xhr.responseJSON?.message || 'Error analyzing smart wallets';
+                    showStatus('smart-wallet-status', errorMsg, true);
+                    hideLoading(button);
+                }
+            });
+        }
+
+        function analyzeInvestmentsOfAllWalletsForASpecificToken() {
+            const button = document.querySelector('#wallets-investement-details-section .luxury-button:nth-of-type(3)');
+            const tokenAddress = document.getElementById('token-address').value;
+            const minHolding = document.getElementById('token-min-holding').value;
+            
+            if (!tokenAddress) {
+                showStatus('token-smart-wallet-status', 'Token address is required', true);
+                return;
+            }
+            
+            showLoading(button);
+            
+            $.ajax({
+                url: '/api/walletinvestement/investmentdetails/token/all',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({
+                    token_id: tokenAddress,
+                    min_holding: minHolding || undefined
+                }),
+                success: function(response) {
+                    const msg = `Successfully analyzed ${response.data.successful} wallets (${response.data.failed} failed)`;
+                    showStatus('token-smart-wallet-status', msg);
+                    hideLoading(button);
+                },
+                error: function(xhr) {
+                    const errorMsg = xhr.responseJSON?.message || 'Error analyzing token wallets';
+                    showStatus('token-smart-wallet-status', errorMsg, true);
+                    hideLoading(button);
+                }
+            });
+        }
+    </script>
+
+    <!-- jQuery for AJAX requests -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</body>
+</html> 

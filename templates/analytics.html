@@ -1,0 +1,1096 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SOL Port | Strategy Analytics</title>
+    
+    <!-- External CSS Dependencies -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Syncopate:wght@400;700&family=Montserrat:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+    <style>
+        /* CSS Variables for consistent theming */
+        :root {
+            --black: #000000;
+            --white: #ffffff;
+            --gold: #D4AF37;
+            --accent: #1a1a1a;
+        }
+
+        /* Reset default styles */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        /* Base body styling */
+        body {
+            background-color: var(--black);
+            color: var(--white);
+            font-family: 'Montserrat', sans-serif;
+            overflow-x: hidden;
+            line-height: 1.6;
+            overflow-y: auto;
+            min-height: 100vh;
+        }
+
+        /* Three.js canvas container */
+        #canvas-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        /* Main content container */
+        .premium-container {
+            position: relative;
+            z-index: 1;
+            height: auto;
+            overflow-y: visible;
+            padding-top: 80px;
+        }
+
+        /* Fixed header with gradient background */
+        .luxury-header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            padding: 1.5rem 2rem;
+            z-index: 100;
+            background: linear-gradient(180deg, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0) 100%);
+            margin-bottom: 1.5rem;
+        }
+
+         /* Brand logo styling */
+         .brand {
+            font-family: 'Syncopate', sans-serif;
+            font-size: 2rem;
+            font-weight: 700;
+            letter-spacing: 0.5em;
+            color: var(--white);
+            text-transform: uppercase;
+        }
+
+        /* Section styling */
+        .section {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            padding: 6rem 0;
+            position: relative;
+            z-index: 1;
+            opacity: 1;
+            transform: none;
+            transition: all 1s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        /* Container width constraints */
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 2rem;
+        }
+
+        /* Title styling for sections */
+        .premium-title {
+            margin-bottom: 2rem;
+            font-size: 2.5rem;
+        }
+
+        /* Subtitle styling */
+        .premium-subtitle {
+            font-size: 1.1rem;
+            line-height: 1.8;
+            opacity: 0.9;
+        }
+
+        /* Card styling with animations */
+        .luxury-card {
+            margin-top: 0;
+            width: 100%;
+            min-height: 200px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        /* Animated border effect for cards */
+        .luxury-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--gold), transparent);
+            animation: luxuryBorder 3s linear infinite;
+        }
+
+        /* Border animation keyframes */
+        @keyframes luxuryBorder {
+            0% { left: -100%; }
+            100% { left: 100%; }
+        }
+
+        /* Button styling */
+        .luxury-button {
+            background: transparent;
+            border: 1px solid var(--gold);
+            color: var(--gold);
+            padding: 1rem 2rem;
+            font-family: 'Syncopate', sans-serif;
+            font-size: 0.8rem;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Button hover effect */
+        .luxury-button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(212, 175, 55, 0.2), transparent);
+            transition: 0.5s;
+        }
+
+        .luxury-button:hover::before {
+            left: 100%;
+        }
+
+        .luxury-button:hover {
+            background: var(--gold);
+            color: var(--black);
+        }
+
+        /* Wave animation container */
+        .wave-container {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            pointer-events: none;
+            opacity: 0.5;
+        }
+
+        /* Wave animation styling */
+        .wave {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(45deg, var(--gold), transparent);
+            opacity: 0.1;
+            animation: waveAnimation 8s infinite linear;
+        }
+
+        @keyframes waveAnimation {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Custom scrollbar styling */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--black);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--gold);
+            border-radius: 4px;
+        }
+
+
+        /* Input field styling */
+        .luxury-input {
+            width: 100%;
+            background: rgba(26, 26, 26, 0.9);
+            border: 1px solid rgba(212, 175, 55, 0.2);
+            color: var(--white);
+            padding: 0.75rem 1rem;
+            border-radius: 6px;
+            transition: all 0.3s ease;
+            font-family: 'Montserrat', sans-serif;
+        }
+
+        .luxury-input:focus {
+            border-color: var(--gold);
+            outline: none;
+        }
+
+        .luxury-input option {
+            background: rgba(26, 26, 26, 0.9);
+            color: var(--white);
+            padding: 0.5rem;
+        }
+
+        /* Status message styling */
+        .status-message {
+            margin-top: 1rem;
+            padding: 1rem;
+            border-radius: 8px;
+            font-family: 'Montserrat', sans-serif;
+            display: none;
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid var(--gold);
+            color: var(--white);
+        }
+
+        /* Loading spinner animation */
+        .loading-spinner {
+            display: none;
+            width: 20px;
+            height: 20px;
+            border: 2px solid var(--gold);
+            border-top: 2px solid transparent;
+            border-radius: 50%;
+            margin-left: 10px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Grid system utilities */
+        .row {
+            width: 100%;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 991px) {
+            .section {
+                padding: 4rem 0;
+            }
+            
+            .col-lg-5 {
+                margin-bottom: 2rem;
+            }
+            
+            .luxury-card {
+                margin-top: 2rem;
+            }
+        }
+
+        /* Smooth scroll behavior */
+        html {
+            scroll-behavior: smooth;
+            scroll-padding-top: 140px;
+        }
+
+        /* Section spacing */
+        #portfolio-section {
+            margin-top: 0;
+        }
+
+        /* Visibility helper */
+        .section.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+
+
+        .luxury-nav {
+            position: sticky;
+            top: 80px;
+            margin-bottom: 2rem;
+            z-index: 100;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            padding: 1rem 0;
+            border-bottom: 1px solid rgba(212, 175, 55, 0.2);
+        }
+
+        .nav-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 1rem;
+        }
+
+        .nav-tiles {
+            display: flex;
+            gap: 1rem;
+            overflow-x: auto;
+            padding: 0.5rem 0;
+            -ms-overflow-style: none;  /* Hide scrollbar IE and Edge */
+            scrollbar-width: none;     /* Hide scrollbar Firefox */
+        }
+
+        /* Hide scrollbar for Chrome, Safari and Opera */
+        .nav-tiles::-webkit-scrollbar {
+            display: none;
+        }
+
+        .nav-tile {
+            flex: 0 0 auto;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 0.75rem 1.25rem;
+            background: rgba(26, 26, 26, 0.9);
+            border: 1px solid rgba(212, 175, 55, 0.2);
+            border-radius: 8px;
+            color: var(--white);
+            text-decoration: none;
+            transition: all 0.3s ease;
+            position: relative;  
+            margin: 0.25rem;
+            min-width: 140px;  /* Set minimum width for tiles */
+            text-align: center;  /* Center text */
+        }
+
+        .nav-tile:hover {
+            background: rgba(212, 175, 55, 0.1);
+            border-color: var(--gold);
+            transform: translateY(-2px);
+            color: var(--gold);
+            z-index: 1;
+        }
+
+        .nav-tile i {
+            font-size: 1.25rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .nav-tile span {
+            font-size: 0.875rem;
+            font-family: 'Montserrat', sans-serif;
+            line-height: 1.2;  /* Improve text readability */
+        }
+
+        /* Active tile state */
+        .nav-tile.active {
+            background: rgba(212, 175, 55, 0.1);
+            border-color: var(--gold);
+            color: var(--gold);
+        }
+
+
+        .luxury-card {
+            background: rgba(26, 26, 26, 0.95);
+            border: 1px solid rgba(212, 175, 55, 0.2);
+            border-radius: 10px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .form-section {
+            margin-bottom: 2rem;
+            padding-bottom: 2rem;
+            border-bottom: 1px solid rgba(212, 175, 55, 0.1);
+        }
+
+        .form-section:last-child {
+            border-bottom: none;
+        }
+
+        .section-title {
+            color: var(--gold);
+            font-size: 1.2rem;
+            margin-bottom: 1.5rem;
+            font-family: 'Syncopate', sans-serif;
+        }
+
+        .luxury-input {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(212, 175, 55, 0.2);
+            border-radius: 5px;
+            color: var(--white);
+            transition: all 0.3s ease;
+        }
+
+        .luxury-input:focus {
+            outline: none;
+            border-color: var(--gold);
+            box-shadow: 0 0 0 2px rgba(212, 175, 55, 0.1);
+        }
+
+        .luxury-select {
+            width: 100%;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(212, 175, 55, 0.2);
+            border-radius: 5px;
+            color: var(--white);
+        }
+
+        /* Select2 Luxury Styling - Complete Overhaul */
+        .select2-container--default .select2-selection--multiple {
+            background: rgba(26, 26, 26, 0.95) !important;
+            border: 1px solid rgba(212, 175, 55, 0.2) !important;
+            border-radius: 8px !important;
+            min-height: 50px !important;
+            padding: 8px !important;
+        }
+
+        /* Dropdown list */
+        .select2-dropdown {
+            background: rgba(26, 26, 26, 0.95) !important;
+            border: 1px solid rgba(212, 175, 55, 0.2) !important;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2) !important;
+        }
+
+        /* Options in dropdown */
+        .select2-container--default .select2-results__option {
+            color: var(--white) !important;
+            padding: 10px 15px !important;
+            font-family: 'Montserrat', sans-serif !important;
+        }
+
+        /* Hover state for options */
+        .select2-container--default .select2-results__option--highlighted[aria-selected] {
+            background: rgba(212, 175, 55, 0.15) !important;
+            color: var(--gold) !important;
+        }
+
+        /* Selected tags */
+        .select2-container--default .select2-selection--multiple .select2-selection__choice {
+            background: rgba(212, 175, 55, 0.15) !important;
+            border: 1px solid var(--gold) !important;
+            border-radius: 4px !important;
+            color: var(--gold) !important;
+            padding: 5px 10px !important;
+            margin: 4px !important;
+            font-family: 'Montserrat', sans-serif !important;
+        }
+
+        /* Remove button in tags */
+        .select2-container--default .select2-selection--multiple .select2-selection__choice__remove {
+            color: var(--gold) !important;
+            margin-right: 8px !important;
+            border-right: 1px solid rgba(212, 175, 55, 0.3) !important;
+            padding-right: 8px !important;
+        }
+
+        /* Remove button hover */
+        .select2-container--default .select2-selection--multiple .select2-selection__choice__remove:hover {
+            background: rgba(212, 175, 55, 0.1) !important;
+            color: var(--gold) !important;
+        }
+
+        /* Search field */
+        .select2-container--default .select2-search--inline .select2-search__field {
+            color: var(--white) !important;
+            font-family: 'Montserrat', sans-serif !important;
+        }
+
+        /* Focus state */
+        .select2-container--default.select2-container--focus .select2-selection--multiple {
+            border-color: var(--gold) !important;
+            box-shadow: 0 0 0 2px rgba(212, 175, 55, 0.1) !important;
+        }
+
+        /* Selected option in dropdown */
+        .select2-container--default .select2-results__option[aria-selected=true] {
+            background: rgba(212, 175, 55, 0.1) !important;
+            color: var(--gold) !important;
+        }
+
+        /* Search box in dropdown */
+        .select2-container--default .select2-search--dropdown .select2-search__field {
+            background: rgba(0, 0, 0, 0.3) !important;
+            border: 1px solid rgba(212, 175, 55, 0.2) !important;
+            color: var(--white) !important;
+            border-radius: 4px !important;
+            padding: 8px !important;
+        }
+
+        /* Toggle Switch */
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 60px;
+            height: 34px;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.3);
+            transition: .4s;
+            border-radius: 34px;
+            border: 1px solid rgba(212, 175, 55, 0.2);
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 26px;
+            width: 26px;
+            left: 4px;
+            bottom: 3px;
+            background-color: var(--white);
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider {
+            background-color: var(--gold);
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(26px);
+        }
+
+        /* Button Styling */
+        .luxury-button {
+            background: linear-gradient(45deg, var(--gold), #FFD700);
+            border: none;
+            color: var(--black);
+            padding: 0.75rem 1.5rem;
+            border-radius: 5px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .luxury-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(212, 175, 55, 0.2);
+        }
+
+        .luxury-button:active {
+            transform: translateY(0);
+        }
+
+        /* Target Box Styling */
+        .target-box {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 1rem;
+            border-radius: 5px;
+            border: 1px solid rgba(212, 175, 55, 0.1);
+        }
+
+        .remove-target {
+            padding: 0.75rem;
+            background: rgba(255, 0, 0, 0.2);
+            border: 1px solid rgba(255, 0, 0, 0.3);
+        }
+
+        .remove-target:hover {
+            background: rgba(255, 0, 0, 0.3);
+        }
+
+        /* Add these CSS rules to match dashboard.html exactly */
+        .nav-container {
+            width: 100%;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 1rem 2rem;
+        }
+
+        .nav-tiles {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-top: 80px;
+        }
+
+        .nav-tile {
+            background: rgba(26, 26, 26, 0.95);
+            border: 1px solid rgba(212, 175, 55, 0.2);
+            padding: 1.5rem;
+            border-radius: 10px;
+            text-decoration: none;
+            color: var(--white);
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .nav-tile:hover {
+            border-color: var(--gold);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(212, 175, 55, 0.1);
+        }
+
+        .nav-tile i {
+            font-size: 1.5rem;
+            color: var(--gold);
+            margin-bottom: 0.5rem;
+            display: block;
+        }
+
+        .premium-title {
+            font-family: 'Syncopate', sans-serif;
+            font-size: 2.5rem;
+            font-weight: 700;
+            letter-spacing: 0.2em;
+            color: var(--white);
+            text-transform: uppercase;
+            margin-bottom: 1.5rem;
+        }
+
+        .premium-subtitle {
+            font-size: 1.1rem;
+            line-height: 1.8;
+            opacity: 0.9;
+            margin-bottom: 2rem;
+        }
+
+        .form-group {
+            margin-bottom: 2rem;
+        }
+
+        .form-label {
+            color: var(--gold);
+            font-weight: 500;
+            margin-bottom: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+        }
+
+        .form-control {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(212, 175, 55, 0.2);
+            border-radius: 8px;
+            color: var(--white);
+            padding: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .form-control:focus {
+            background: rgba(0, 0, 0, 0.4);
+            border-color: var(--gold);
+            box-shadow: none;
+            color: var(--white);
+        }
+
+        .luxury-button {
+            background: transparent;
+            border: 1px solid var(--gold);
+            color: var(--gold);
+            padding: 1rem 2rem;
+            font-family: 'Syncopate', sans-serif;
+            font-size: 0.8rem;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .luxury-button:hover {
+            background: var(--gold);
+            color: var(--black);
+        }
+
+        .text-gold {
+            color: var(--gold);
+        }
+    </style>
+</head>
+<body>
+    <div id="canvas-container"></div>
+    
+    <header class="luxury-header">
+        <div class="brand">SOL PORT</div>
+    </header>
+
+    <div class="nav-container">
+        <div class="nav-tiles">
+            <a href="/dashboard" class="nav-tile">
+                <i class="fas fa-home"></i>
+                <span>Dashboard</span>
+            </a>
+            <a href="/strategy" class="nav-tile">
+                <i class="fas fa-robot"></i>
+                <span>Strategy Operations</span>
+            </a>
+        </div>
+    </div>
+
+    <div class="premium-container">
+        <div class="container">
+            <section class="section" id="strategy-creation">
+                <div class="row">
+                    <div class="col-12">
+                        <h1 class="premium-title">STRATEGY CREATION</h1>
+                        <p class="premium-subtitle">Configure and deploy automated trading strategies</p>
+                        
+                        <div class="luxury-card">
+                            <div class="wave-container">
+                                <div class="wave"></div>
+                            </div>
+                            <form id="strategy-form">
+                                <!-- Basic Information -->
+                                <div class="form-group">
+                                    <h3 class="text-gold mb-4">BASIC INFORMATION</h3>
+                                    <div class="mb-3">
+                                        <label class="form-label">Strategy Name</label>
+                                        <input type="text" class="form-control" id="strategy-name" required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Source Type</label>
+                                        <select class="form-control" id="source-type" required>
+                                            <option value="">Select Source Type</option>
+                                                <option value="ATTENTION">Attention</option>
+                                                <option value="PORTSUMMARY">Portfolio Summary</option>
+                                                <option value="VOLUME">Volume</option>
+                                                <option value="PUMPFUN">Pump Fun</option>
+                                                <option value="SMARTMONEY">Smart Money</option>
+                                        </select>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Description</label>
+                                        <textarea class="form-control" id="description" rows="3"></textarea>
+                                    </div>
+                                </div>
+
+                                <!-- Entry Conditions -->
+                                <div class="form-group">
+                                    <h3 class="text-gold mb-4">ENTRY CONDITIONS</h3>
+                                    <div class="mb-3">
+                                        <label class="form-label">Required Tags</label>
+                                        <select class="form-control select2-multiple" id="required-tags" multiple="multiple">
+                                        </select>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Minimum Market Cap</label>
+                                        <input type="number" class="form-control" id="min-market-cap">
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Minimum Liquidity</label>
+                                        <input type="number" class="form-control" id="min-liquidity">
+                                    </div>
+                                </div>
+
+                                <!-- Investment Instructions -->
+                                <div class="form-group">
+                                    <h3 class="text-gold mb-4">INVESTMENT INSTRUCTIONS</h3>
+                                    <div class="mb-3">
+                                        <label class="form-label">Entry Type</label>
+                                        <select class="form-control" id="entry-type" required>
+                                            <option value="">Select Entry Type</option>
+                                            <option value="BULK">Bulk Entry</option>
+                                            <option value="DCA">DCA (Dollar Cost Average)</option>
+                                        </select>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Allocated Amount</label>
+                                        <input type="number" class="form-control" id="allocated-amount">
+                                    </div>
+                                </div>
+
+                                <!-- Profit Taking -->
+                                <div class="form-group">
+                                    <h3 class="text-gold mb-4">PROFIT TAKING INSTRUCTIONS</h3>
+                                    <div class="target-box mb-3">
+                                        <label class="form-label">Target 1</label>
+                                        <div class="row">
+                                            <div class="col">
+                                                <input type="number" class="form-control" placeholder="Price Target %">
+                                            </div>
+                                            <div class="col">
+                                                <input type="number" class="form-control" placeholder="Sell Amount %">
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <button type="button" class="luxury-button" id="add-target">Add Target</button>
+                                </div>
+
+                                <!-- Risk Management -->
+                                <div class="form-group">
+                                    <div class="d-flex justify-content-between align-items-center mb-4">
+                                        <h3 class="text-gold mb-0">RISK MANAGEMENT INSTRUCTIONS</h3>
+                                        <div class="toggle-switch">
+                                            <input type="checkbox" id="risk-enabled">
+                                            <label class="slider" for="risk-enabled"></label>
+                                        </div>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Stop Loss %</label>
+                                        <input type="number" class="form-control" id="stop-loss-pct">
+                                    </div>
+                                </div>
+
+                                <div class="text-center mt-5">
+                                    <button type="submit" class="luxury-button">
+                                        <i class="fas fa-rocket me-2"></i>Deploy Strategy
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script>
+        // Three.js Background Animation
+        const container = document.getElementById('canvas-container');
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        container.appendChild(renderer.domElement);
+
+        // Create particles
+        const particles = new THREE.BufferGeometry();
+        const particleCount = 1000;
+        const posArray = new Float32Array(particleCount * 3);
+
+        for(let i = 0; i < particleCount * 3; i++) {
+            posArray[i] = (Math.random() - 0.5) * 5;
+        }
+
+        particles.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
+
+        const material = new THREE.PointsMaterial({
+            size: 0.005,
+            color: 0xD4AF37,
+            transparent: true,
+            opacity: 0.8
+        });
+
+        const particleMesh = new THREE.Points(particles, material);
+        scene.add(particleMesh);
+
+        camera.position.z = 2;
+
+        // Animation
+        function animate() {
+            requestAnimationFrame(animate);
+            particleMesh.rotation.y += 0.001;
+            renderer.render(scene, camera);
+        }
+
+        animate();
+
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        // Helper functions
+        function showLoading(button) {
+            button.disabled = true;
+            button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+        }
+
+        function hideLoading(button) {
+            button.disabled = false;
+            button.innerHTML = button.getAttribute('data-original-text') || 'Submit';
+        }
+
+        function showStatus(elementId, message, isError = false) {
+            const $status = $(`#${elementId}`);
+            $status
+                .text(message)
+                .removeClass('text-success text-danger')
+                .addClass(isError ? 'text-danger' : 'text-success')
+                .fadeIn();
+            
+            // Auto-hide after 5 seconds
+            setTimeout(() => $status.fadeOut(), 5000);
+        }
+
+        // Form handling
+        $(document).ready(function() {
+            // Save original button text
+            $('.luxury-button').each(function() {
+                $(this).attr('data-original-text', $(this).html());
+            });
+
+            let targetCount = 1;
+
+            $('#add-target').click(function() {
+                targetCount++;
+                const newTarget = `
+                    <div class="target-box mb-3">
+                        <label class="form-label">Target ${targetCount}</label>
+                        <div class="row">
+                            <div class="col">
+                                <input type="number" class="form-control" placeholder="Price Target %">
+                            </div>
+                            <div class="col">
+                                <input type="number" class="form-control" placeholder="Sell Amount %">
+                            </div>
+                        </div>
+                    </div>
+                `;
+                $('.target-box').last().after(newTarget);
+            });
+
+            // Form submission
+            $('#strategy-form').submit(function(e) {
+                e.preventDefault();
+                
+                const $submitBtn = $(this).find('button[type="submit"]');
+                showLoading($submitBtn[0]);
+
+                // Collect profit taking targets
+                const profit_taking_instructions = [];
+                $('.target-box').each(function() {
+                    const inputs = $(this).find('input');
+                    const priceTarget = parseFloat($(inputs[0]).val());
+                    const sellAmount = parseFloat($(inputs[1]).val());
+                    
+                    if (!isNaN(priceTarget) && !isNaN(sellAmount)) {
+                        profit_taking_instructions.push({
+                            price_target_pct: priceTarget,
+                            sell_amount_pct: sellAmount
+                        });
+                    }
+                });
+
+                const formData = {
+                    strategy_name: $('#strategy-name').val(),
+                    source_type: $('#source-type').val(),
+                    description: $('#description').val(),
+                    entry_conditions: {
+                        required_tags: $('#required-tags').val() || [],
+                        min_market_cap: parseFloat($('#min-market-cap').val()) || 0,
+                        min_liquidity: parseFloat($('#min-liquidity').val()) || 0
+                    },
+                    investment_instructions: {
+                        entry_type: $('#entry-type').val(),
+                        allocated_amount: parseFloat($('#allocated-amount').val()) || 0
+                    },
+                    profit_taking_instructions: profit_taking_instructions,
+                    risk_management_instructions: {
+                        enabled: $('#risk-enabled').is(':checked'),
+                        stop_loss_pct: parseFloat($('#stop-loss-pct').val()) || 0
+                    }
+                };
+
+                // Add this right before the $.ajax call
+                console.log('Form data being sent:', formData);
+
+                $.ajax({
+                    url: '/api/strategy/create',
+                    method: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify(formData),
+                    success: function(response) {
+                        if (response.status === 'success') {
+                            showStatus('form-status', 'Strategy created successfully!');
+                            $('#strategy-form')[0].reset();
+                            $('.target-box:not(:first)').remove();
+                        } else {
+                            showStatus('form-status', 'Error: ' + (response.message || 'Unknown error'), true);
+                        }
+                    },
+                    error: function(xhr) {
+                        const errorMsg = xhr.responseJSON?.message || 'Error creating strategy';
+                        showStatus('form-status', errorMsg, true);
+                    },
+                    complete: function() {
+                        hideLoading($submitBtn[0]);
+                    }
+                });
+            });
+
+            // Add status message div if not present
+            if (!$('#form-status').length) {
+                $('#strategy-form').prepend('<div id="form-status" class="status-message"></div>');
+            }
+
+            // Define tag mappings for different source types
+            const tagMappings = {
+                'PORTSUMMARY': [
+                    // Balance Tags
+                    { id: 'BALANCE_100K', text: 'Balance > 100K' },
+                    { id: 'BALANCE_500K', text: 'Balance > 500K' },
+                    { id: 'BALANCE_1M', text: 'Balance > 1M' },
+                    
+                    // Price Change Tags
+                    { id: 'HUGE_1D_CHANGE', text: 'Large 24h Change' },
+                    { id: 'HUGE_7D_CHANGE', text: 'Large 7d Change' },
+                    { id: 'HUGE_30D_CHANGE', text: 'Large 30d Change' },
+                    { id: 'PRICE_WITHIN_RANGE', text: 'Price In Range' },
+                    
+                    // Market Cap Tags
+                    { id: 'MCAP_0_1M', text: 'MCap 0-1M' },
+                    { id: 'MCAP_1M_10M', text: 'MCap 1M-10M' },
+                    { id: 'MCAP_10M_50M', text: 'MCap 10M-50M' },
+                    { id: 'MCAP_50M_100M', text: 'MCap 50M-100M' },
+                    { id: 'MCAP_ABOVE_100M', text: 'MCap > 100M' },
+                    
+                    // Smart Wallet Tags
+                    { id: 'SMART_300K_10K_1', text: 'Smart Wallet T1 (300K/10K)' },
+                    { id: 'SMART_300K_10K_2', text: 'Smart Wallet T2 (300K/10K)' },
+                    { id: 'SMART_300K_10K_3', text: 'Smart Wallet T3 (300K/10K)' },
+                    { id: 'SMART_500K_30K_1', text: 'Smart Wallet T1 (500K/30K)' },
+                    { id: 'SMART_500K_30K_2', text: 'Smart Wallet T2 (500K/30K)' },
+                    { id: 'SMART_500K_30K_3', text: 'Smart Wallet T3 (500K/30K)' },
+                    { id: 'SMART_1M_100K_1', text: 'Smart Wallet T1 (1M/100K)' },
+                    { id: 'SMART_1M_100K_2', text: 'Smart Wallet T2 (1M/100K)' },
+                    { id: 'SMART_1M_100K_3', text: 'Smart Wallet T3 (1M/100K)' }
+                ],
+                'SMARTMONEY': [
+                    { id: 'smart_money', text: 'Smart Money' },
+                    { id: 'high_volume', text: 'High Volume' },
+                    { id: 'whale_activity', text: 'Whale Activity' }
+                ],
+                // Add other source types and their tags here
+            };
+
+            // Initialize Select2 for source type
+            $('#source-type').on('change', function() {
+                const selectedSource = $(this).val();
+                const tags = tagMappings[selectedSource] || [];
+                
+                // Update required tags based on selected source
+                $('#required-tags').empty().select2({
+                    theme: 'classic',
+                    width: '100%',
+                    placeholder: 'Select Required Tags',
+                    allowClear: true,
+                    data: tags,
+                    templateResult: formatTagOption,
+                    templateSelection: formatTagSelection
+                });
+            });
+        });
+
+        function formatTagOption(tag) {
+            if (!tag.id) return tag.text;
+            return $('<span class="luxury-option">' + tag.text + '</span>');
+        }
+
+        function formatTagSelection(tag) {
+            if (!tag.id) return tag.text;
+            return $('<span class="luxury-tag">' + tag.text + '</span>');
+        }
+    </script>
+</body>
+</html> 
