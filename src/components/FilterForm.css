@@ -1,0 +1,415 @@
+.filter-form {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  color: rgba(255, 255, 255, 0.9);
+  font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  position: relative;
+  overflow: hidden;
+  background-color: rgba(28, 28, 30, 0.8);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.filter-form::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(circle at top right, rgba(41, 151, 255, 0.05), transparent 70%);
+  pointer-events: none;
+  z-index: -1;
+}
+
+.filter-form-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  background-color: rgba(0, 0, 0, 0.1);
+}
+
+.filter-form-header h3 {
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.filter-form-header h3 svg {
+  color: #4285f4; /* Accent color from reference */
+}
+
+.filter-reset-button {
+  background: rgba(255, 59, 48, 0.1);
+  color: rgba(255, 59, 48, 0.9);
+  border: 1px solid rgba(255, 59, 48, 0.2);
+  border-radius: 4px;
+  padding: 5px 10px;
+  font-size: 0.7rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.filter-reset-button:hover {
+  background: rgba(255, 59, 48, 0.15);
+  color: rgba(255, 59, 48, 1);
+}
+
+.filter-reset-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.filter-form-body {
+  padding: 0.5rem 16px;
+  margin-bottom: 1rem;
+}
+
+.filter-row {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+
+.filter-group {
+  flex: 1;
+  min-width: 0;
+}
+
+.filter-group label {
+  display: block;
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.7);
+  margin-bottom: 5px;
+  font-weight: 500;
+}
+
+.filter-group input {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  padding: 8px 12px;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 0.8rem;
+  transition: all 0.2s ease;
+}
+
+.filter-group input:focus {
+  outline: none;
+  border-color: rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.filter-group input::placeholder {
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.filter-input-with-icon {
+  position: relative;
+}
+
+.filter-input-icon {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 0.75rem;
+  pointer-events: none;
+  transition: all 0.2s ease;
+}
+
+.filter-input-with-icon input {
+  padding-left: 30px;
+}
+
+.filter-input-with-icon input:focus {
+  padding-left: 30px;
+}
+
+.filter-input-with-icon input:focus + .filter-input-icon {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.filter-form-footer {
+  display: flex;
+  justify-content: flex-end;
+  padding: 12px 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  background-color: rgba(0, 0, 0, 0.1);
+}
+
+.filter-apply-button {
+  background: #4285f4; /* Accent color from reference */
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 7px 14px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.filter-apply-button:hover {
+  background: #357abd; /* Darker shade for hover */
+  transform: translateY(-1px);
+}
+
+.filter-apply-button:active {
+  transform: translateY(0);
+}
+
+@media (max-width: 768px) {
+  .filter-row {
+    flex-direction: column;
+    gap: 10px;
+  }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Selector Styling */
+.filter-selector {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  padding: 8px 12px;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-height: 34px;
+}
+
+.filter-selector:hover {
+  border-color: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.filter-dropdown-icon {
+  font-size: 0.7rem;
+  color: rgba(255, 255, 255, 0.6);
+  transition: all 0.2s ease;
+}
+
+.filter-dropdown-icon.open {
+  transform: rotate(180deg);
+}
+
+.filter-selector:hover .filter-dropdown-icon {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+/* Popup Styling */
+.filter-dropdown-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  z-index: 25;
+  animation: fadeIn 0.2s ease;
+}
+
+.filter-popup {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 280px;
+  background: rgba(40, 40, 42, 0.98);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 4px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  padding: 12px;
+  z-index: 30;
+  animation: fadeIn 0.2s ease;
+}
+
+.filter-popup h5 {
+  font-size: 0.8rem;
+  font-weight: 600;
+  margin: 0 0 10px 0;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.filter-popup-option {
+  padding: 5px 10px;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.filter-popup-option:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+}
+
+.filter-popup-option.selected {
+  background: rgba(66, 133, 244, 0.15);
+  color: #4285f4;
+}
+
+.filter-popup-option.selected:hover {
+  background: rgba(66, 133, 244, 0.2);
+}
+
+.filter-check-icon {
+  font-size: 0.7rem;
+  color: #4285f4;
+}
+
+/* Custom Range Popup Styling */
+.filter-custom-range-popup {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 280px;
+  background: rgba(40, 40, 42, 0.98);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 4px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  padding: 12px;
+  z-index: 50;
+  animation: fadeIn 0.2s ease;
+}
+
+.filter-custom-range-popup h5 {
+  font-size: 0.8rem;
+  font-weight: 600;
+  margin: 0 0 10px 0;
+  color: rgba(255, 255, 255, 0.9);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.filter-custom-range-inputs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.filter-custom-input-group {
+  flex: 1;
+}
+
+.filter-custom-input-group label {
+  font-size: 0.7rem;
+  color: rgba(255, 255, 255, 0.7);
+  margin-bottom: 4px;
+  display: block;
+}
+
+.filter-custom-input-group input {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  padding: 6px 8px;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 0.75rem;
+}
+
+.filter-custom-input-group input:focus {
+  outline: none;
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.filter-custom-range-actions {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.filter-custom-range-actions button {
+  flex: 1;
+  padding: 6px 0;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.filter-custom-range-actions button:first-child {
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.filter-custom-range-actions button:last-child {
+  background: #4285f4;
+  color: white;
+  border: none;
+}
+
+.filter-custom-range-actions button:hover {
+  transform: translateY(-1px);
+}
+
+/* Scrollbar styling for popup */
+.filter-popup::-webkit-scrollbar {
+  width: 6px;
+}
+
+.filter-popup::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.1);
+}
+
+.filter-popup::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.2);
+  border-radius: 3px;
+}
+
+.filter-popup::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(255, 255, 255, 0.3);
+}
+
+@media (max-width: 768px) {
+  .filter-popup {
+    width: 90%;
+    max-height: 250px;
+  }
+  
+  .filter-popup-option {
+    padding: 8px 12px;
+  }
+}
