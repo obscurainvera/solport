@@ -31,6 +31,7 @@ from api.operations.ReportsAPI import reports_page_bp
 from api.portsummary.PortSummaryReportAPI import port_summary_report_bp
 from api.smartmoney.SmartMoneyWalletsReportAPI import smartMoneyWalletsReportBp
 from api.smartmoney.SmartMoneyPerformanceReportAPI import smartMoneyPerformanceReportBp
+from api.strategyreport.StrategyReportAPI import strategy_report_bp
 
 logger = get_logger(__name__)
 
@@ -123,6 +124,7 @@ class PortfolioApp:
             self.app.register_blueprint(reports_page_bp)
             self.app.register_blueprint(port_summary_report_bp)
             self.app.register_blueprint(smartMoneyPerformanceReportBp)
+            self.app.register_blueprint(strategy_report_bp)
       
             logger.info("Portfolio app initialized successfully")
         except Exception as e:
