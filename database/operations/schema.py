@@ -183,6 +183,7 @@ class VolumeToken:
     lastupdatedat: Optional[datetime] = None
     createdat: Optional[datetime] = None
     fdv: Optional[Decimal] = None
+    timeago: Optional[datetime] = None
 
 @dataclass
 class PumpFunToken:
