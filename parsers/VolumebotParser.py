@@ -67,7 +67,8 @@ def parseVolumeResponse(response: Dict) -> List[VolumeToken]:
                     firstseenat=_parseDatetime(item['createdAt_time']),
                     lastupdatedat=datetime.now(),
                     createdat=datetime.now(),
-                    fdv=Decimal(str(priceData.fdv)) if priceData else None
+                    fdv=Decimal(str(priceData.fdv)) if priceData else None,
+                    timeago=_parseDatetime(item['time_ago'])
                 )
                 
                 result.append(volumeToken)

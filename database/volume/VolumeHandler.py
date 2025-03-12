@@ -296,7 +296,11 @@ class VolumeHandler(BaseSQLiteHandler):
 
     def _updateExistingRecords(self, cursor, token: VolumeToken, currentState: Dict) -> None:
         """
-        Archive current state and update records only if key metrics have changed
+        Archive current state and update records ONLY if:
+        1. The token was seen within the last 10 minutes (timeago ≤ 10 minutes), AND
+        2. Key metrics have changed
+        
+        If the token was seen more than 10 minutes ago, skip the update regardless of metric changes.
         
         Key metrics monitored for changes:
         - buysolqty: Number of SOL buy transactions
@@ -304,7 +308,23 @@ class VolumeHandler(BaseSQLiteHandler):
         - percentilerankpeats: Ranking based on occurrences
         - percentileranksol: Ranking based on SOL buys
         """
-        # Check if any key metrics have changed
+        currentTime = datetime.now()
+        
+        # PRIMARY CONDITION: Check if token was seen within the last 10 minutes using timeago field
+        if token.timeago is not None:
+            timeDifference = (currentTime - token.timeago).total_seconds() / 60  # Convert to minutes
+            
+            if timeDifference > 10:
+                logger.info(f"Token {token.tokenid} was seen {timeDifference:.2f} minutes ago, outside 10-minute threshold, skipping update")
+                return  # Skip update entirely if token was seen more than 10 minutes ago
+                
+            logger.info(f"Token {token.tokenid} was seen {timeDifference:.2f} minutes ago, within 10-minute threshold, checking for changes")
+        else:
+            # If timeago is None, skip update
+            logger.info(f"Token {token.tokenid} has no timeago value, skipping update")
+            return
+        
+        # SECONDARY CONDITION: Check if any metrics have changed
         shouldUpdate = False
         metricsToCompare = [
             ('buysolqty', token.buysolqty, currentState['buysolqty']),
@@ -325,7 +345,6 @@ class VolumeHandler(BaseSQLiteHandler):
             return
             
         logger.info(f"Changes detected for token {token.tokenid}: {', '.join(changedMetrics)}")
-        currentTime = datetime.now()
         
         # 1. Archive current state since we're going to update
         cursor.execute('''
