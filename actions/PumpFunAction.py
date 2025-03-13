@@ -51,9 +51,14 @@ class PumpFunAction:
                 logger.error("No valid items found in response")
                 return False
 
-            # Persist to database
-            self.persistTokens(pumpFunTokens)
-            return True
+            # Persist to database and get successfully persisted tokens
+            persistedTokens = self.persistTokens(pumpFunTokens)
+            
+            # Push persisted tokens to strategy framework
+            if persistedTokens:
+                self.pushPumpFunTokensToStrategyFramework(persistedTokens)
+                
+            return len(persistedTokens) > 0
 
         except Exception as e:
             logger.error(f"Pump fun signals action failed: {str(e)}")
@@ -110,17 +115,103 @@ class PumpFunAction:
             logger.error(f"API request failed: {str(e)}")
             return None
 
-    def persistTokens(self, pumpFunTokens: List[PumpFunToken]) -> None:
+    def persistTokens(self, pumpFunTokens: List[PumpFunToken]) -> List[PumpFunToken]:
         """
         Persist PumpFunToken objects to database
         
         Args:
             pumpFunTokens: List of PumpFunToken objects to persist
+            
+        Returns:
+            List[PumpFunToken]: List of tokens that were successfully persisted
         """
+        successfulTokens = []
         try:
             for token in pumpFunTokens:
-                self.db.pumpfun.insertTokenData(token)
-            logger.info(f"Successfully persisted {len(pumpFunTokens)} pump fun tokens")
+                try:
+                    self.db.pumpfun.insertTokenData(token)
+                    successfulTokens.append(token)
+                except Exception as token_error:
+                    logger.error(f"Failed to persist token {token.tokenid}: {str(token_error)}")
+                    continue
+                    
+            logger.info(f"Successfully persisted {len(successfulTokens)} pump fun tokens")
+            return successfulTokens
         except Exception as e:
             logger.error(f"Database operation failed: {str(e)}")
-            raise 
+            raise
+
+    def pushPumpFunTokensToStrategyFramework(self, pumpFunTokens: List[PumpFunToken]) -> bool:
+        """
+        Maps pump fun tokens to PumpFunTokenData objects and pushes them to the strategy framework
+        
+        Args:
+            pumpFunTokens: List of PumpFunToken objects to push to the strategy framework
+            
+        Returns:
+            bool: True if at least one token was successfully pushed, False otherwise
+        """
+        try:
+            if not pumpFunTokens:
+                logger.info("No pump fun tokens to push to strategy framework")
+                return False
+                
+            logger.info(f"Pushing {len(pumpFunTokens)} pump fun tokens to strategy framework")
+            
+            # Import required modules
+            from framework.analyticsframework.api.PushTokenFrameworkAPI import PushTokenAPI
+            from framework.analyticshandlers.AnalyticsHandler import AnalyticsHandler
+            from framework.analyticsframework.enums.SourceTypeEnum import SourceType
+            
+            # Initialize analytics handler and push token API
+            analyticsHandler = AnalyticsHandler()
+            pushTokenAPI = PushTokenAPI(analyticsHandler)
+            
+            # Process each token
+            success_count = 0
+            for token in pumpFunTokens:
+                try:
+                    # Get the current state of the token from the database
+                    tokenState = self.db.pumpfun.getTokenState(token.tokenid)
+                    if not tokenState:
+                        logger.warning(f"Token state not found for {token.tokenid}, skipping")
+                        continue
+                        
+                    # Get token info
+                    tokenInfo = self.db.pumpfun.getTokenInfo(token.tokenid)
+                    if not tokenInfo:
+                        logger.warning(f"Token info not found for {token.tokenid}, skipping")
+                        continue
+                    
+                    # Combine token state and info into a single dictionary
+                    combinedTokenData = {**tokenState, **tokenInfo}
+                    
+                    # Add rug count if available
+                    if hasattr(token, 'rugcount'):
+                        combinedTokenData['rugcount'] = token.rugcount
+                    
+                    # Convert to PumpFunTokenData
+                    tokenData = PushTokenAPI.mapPumpFunTokenData(combinedTokenData)
+                    
+                    # Push to strategy framework
+                    success = pushTokenAPI.pushToken(
+                        tokenData=tokenData,
+                        sourceType=SourceType.PUMPFUN.value
+                    )
+                    
+                    if success:
+                        success_count += 1
+                        logger.info(f"Successfully pushed token {tokenData.tokenid} ({tokenData.tokenname}) to strategy framework")
+                    else:
+                        logger.warning(f"Failed to push token {tokenData.tokenid} ({tokenData.tokenname}) to strategy framework")
+                
+                except Exception as token_error:
+                    logger.error(f"Error processing token {token.tokenid}: {str(token_error)}")
+                    continue
+            
+            logger.info(f"Successfully pushed {success_count}/{len(pumpFunTokens)} tokens to strategy framework")
+            return success_count > 0
+            
+        except Exception as e:
+            logger.error(f"Failed to push pump fun tokens to strategy framework: {str(e)}", exc_info=True)
+            return False 
