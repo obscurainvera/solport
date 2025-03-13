@@ -62,3 +62,4 @@ class PortfolioScheduler:
                 logger.error(f"Failed to execute action for market age {category['market_age']}: {str(e)}")
 
         PortfolioTaggerAction(self.db).addTagsToActivePortSummaryTokens()
+        self.action.pushPortSummaryTokensToStrategyFramework()

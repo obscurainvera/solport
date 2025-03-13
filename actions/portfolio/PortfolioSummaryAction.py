@@ -16,6 +16,9 @@ from decimal import Decimal
 import time
 from datetime import datetime
 from logs.logger import get_logger
+from framework.analyticsframework.api.PushTokenFrameworkAPI import PushTokenAPI
+from framework.analyticshandlers.AnalyticsHandler import AnalyticsHandler
+from framework.analyticsframework.enums.SourceTypeEnum import SourceType    
 
 logger = get_logger(__name__)
 
@@ -231,3 +234,52 @@ class PortfolioSummaryAction:
         except Exception as e:
             logger.error(f"Database operation failed: {str(e)}")
             raise
+        
+    def pushPortSummaryTokensToStrategyFramework(self):
+        """
+        Pushes the portfolio summary tokens to the strategy framework
+        """
+        try:
+            # Get all tokens from portfolio summary
+            tokens = self.db.getActivePortfolioTokens()
+            
+            if not tokens:
+                logger.info("No active tokens found in portfolio summary")
+                return False
+            
+            logger.info(f"Found {len(tokens)} active tokens in portfolio summary")
+
+            
+            # Initialize analytics handler and push token API
+            analyticsHandler = AnalyticsHandler()
+            pushTokenAPI = PushTokenAPI(analyticsHandler)
+            
+            # Process each token
+            success_count = 0
+            for token in tokens:
+                try:
+                    # Convert to PortSummaryTokenData
+                    tokenData = PushTokenAPI.mapPortfolioTokenData(token)
+                    
+                    # Push to strategy framework
+                    success = pushTokenAPI.pushToken(
+                        tokenData=tokenData,
+                        sourceType=SourceType.PORTSUMMARY.value
+                    )
+                    
+                    if success:
+                        success_count += 1
+                        logger.info(f"Successfully pushed token {tokenData.tokenid} ({tokenData.tokenname}) to strategy framework")
+                    else:
+                        logger.warning(f"Failed to push token {tokenData.tokenid} ({tokenData.tokenname}) to strategy framework")
+                
+                except Exception as token_error:
+                    logger.error(f"Error processing token {token.get('tokenid', 'unknown')}: {str(token_error)}")
+                    continue
+            
+            logger.info(f"Successfully pushed {success_count}/{len(tokens)} tokens to strategy framework")
+            return success_count > 0
+            
+        except Exception as e:
+            logger.error(f"Failed to push portfolio summary tokens to strategy framework: {str(e)}", exc_info=True)
+            return False

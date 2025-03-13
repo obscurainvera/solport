@@ -53,9 +53,14 @@ class VolumebotAction:
                 logger.error("No valid items found in response")
                 return False
 
-            # Persist to database
-            self.persistTokens(volumeTokens)
-            return True
+            # Persist to database and get successfully persisted tokens
+            persistedTokens = self.persistTokens(volumeTokens)
+            
+            # Push persisted tokens to strategy framework
+            if persistedTokens:
+                self.pushVolumeTokensToStrategyFramework(persistedTokens)
+                
+            return len(persistedTokens) > 0
 
         except Exception as e:
             logger.error(f"Volume signals action failed: {str(e)}")
@@ -111,19 +116,101 @@ class VolumebotAction:
             logger.error(f"API request failed: {str(e)}")
             return None
 
-    def persistTokens(self, volumeTokens: List[VolumeToken]) -> None:
+    def persistTokens(self, volumeTokens: List[VolumeToken]) -> List[VolumeToken]:
         """
         Persist VolumeToken objects to database
         
         Args:
             volumeTokens: List of VolumeToken objects to persist
+            
+        Returns:
+            List[VolumeToken]: List of tokens that were successfully persisted
         """
+        successfulTokens = []
         try:
             for token in volumeTokens:
-                self.db.volume.insertTokenData(token)
-            logger.info(f"Successfully persisted {len(volumeTokens)} volume tokens")
+                try:
+                    self.db.volume.insertTokenData(token)
+                    successfulTokens.append(token)
+                except Exception as token_error:
+                    logger.error(f"Failed to persist token {token.tokenid}: {str(token_error)}")
+                    continue
+                    
+            logger.info(f"Successfully persisted {len(successfulTokens)} volume tokens")
+            return successfulTokens
         except Exception as e:
             logger.error(f"Database operation failed: {str(e)}")
             raise
+
+    def pushVolumeTokensToStrategyFramework(self, volumeTokens: List[VolumeToken]) -> bool:
+        """
+        Maps volume tokens to VolumeTokenData objects and pushes them to the strategy framework
+        
+        Args:
+            volumeTokens: List of VolumeToken objects to push to the strategy framework
+            
+        Returns:
+            bool: True if at least one token was successfully pushed, False otherwise
+        """
+        try:
+            if not volumeTokens:
+                logger.info("No volume tokens to push to strategy framework")
+                return False
+                
+            logger.info(f"Pushing {len(volumeTokens)} volume tokens to strategy framework")
+            
+            # Import required modules
+            from framework.analyticsframework.api.PushTokenFrameworkAPI import PushTokenAPI
+            from framework.analyticshandlers.AnalyticsHandler import AnalyticsHandler
+            from framework.analyticsframework.enums.SourceTypeEnum import SourceType
+            
+            # Initialize analytics handler and push token API
+            analyticsHandler = AnalyticsHandler()
+            pushTokenAPI = PushTokenAPI(analyticsHandler)
+            
+            # Process each token
+            success_count = 0
+            for token in volumeTokens:
+                try:
+                    # Get the current state of the token from the database
+                    tokenState = self.db.volume.getTokenState(token.tokenid)
+                    if not tokenState:
+                        logger.warning(f"Token state not found for {token.tokenid}, skipping")
+                        continue
+                        
+                    # Get token info
+                    tokenInfo = self.db.volume.getTokenInfo(token.tokenid)
+                    if not tokenInfo:
+                        logger.warning(f"Token info not found for {token.tokenid}, skipping")
+                        continue
+                    
+                    # Combine token state and info into a single dictionary
+                    combinedTokenData = {**tokenState, **tokenInfo}
+                    
+                    # Convert to VolumeTokenData
+                    tokenData = PushTokenAPI.mapVolumeTokenData(combinedTokenData)
+                    
+                    # Push to strategy framework
+                    success = pushTokenAPI.pushToken(
+                        tokenData=tokenData,
+                        sourceType=SourceType.VOLUME.value
+                    )
+                    
+                    if success:
+                        success_count += 1
+                        logger.info(f"Successfully pushed token {tokenData.tokenid} ({tokenData.tokenname}) to strategy framework")
+                    else:
+                        logger.warning(f"Failed to push token {tokenData.tokenid} ({tokenData.tokenname}) to strategy framework")
+                
+                except Exception as token_error:
+                    logger.error(f"Error processing token {token.tokenid}: {str(token_error)}")
+                    continue
+            
+            logger.info(f"Successfully pushed {success_count}/{len(volumeTokens)} tokens to strategy framework")
+            return success_count > 0
+            
+        except Exception as e:
+            logger.error(f"Failed to push volume tokens to strategy framework: {str(e)}", exc_info=True)
+            return False
 
     
