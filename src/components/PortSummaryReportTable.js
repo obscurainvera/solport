@@ -166,38 +166,56 @@ function PortSummaryReportTable({ data, onSort, sortConfig, onRowClick }) {
     // If empty or null, return empty array
     if (!tagsString || tagsString === '[]') return [];
     
-    // If it's already an array, return it
-    if (Array.isArray(tagsString)) return tagsString;
+    // For debugging
+    console.log('Tag formatting input:', {
+      tagsString,
+      type: typeof tagsString,
+      isArray: Array.isArray(tagsString)
+    });
     
+    let allTags = [];
+    
+    // If it's already an array, use it
+    if (Array.isArray(tagsString)) {
+      allTags = [...tagsString]; // Create a copy to avoid mutation
+    }
     // If it's a string, handle it based on format
-    if (typeof tagsString === 'string') {
-      // First check if it looks like a comma-separated list (most common case in our data)
+    else if (typeof tagsString === 'string') {
+      // First check if it looks like a comma-separated list
       if (tagsString.includes(',') && !tagsString.includes('{') && !tagsString.includes('[')) {
-        const splitTags = tagsString.split(',').map(tag => tag.trim()).filter(Boolean);
-        return splitTags;
+        allTags = tagsString.split(',').map(tag => tag.trim()).filter(Boolean);
       }
-      
       // If not a simple comma list, try to parse as JSON
-      try {
-        const parsed = JSON.parse(tagsString);
-        
-        // Handle both array and object formats
-        if (Array.isArray(parsed)) {
-          return parsed;
-        } else if (typeof parsed === 'object') {
-          return Object.values(parsed);
+      else {
+        try {
+          const parsed = JSON.parse(tagsString);
+          
+          // Handle both array and object formats
+          if (Array.isArray(parsed)) {
+            allTags = parsed;
+          } else if (typeof parsed === 'object') {
+            allTags = Object.values(parsed);
+          }
+        } catch (e) {
+          // Last resort: just split by comma
+          allTags = tagsString.split(',').map(tag => tag.trim()).filter(Boolean);
         }
-        
-        return [];
-      } catch (e) {
-        // Last resort: just split by comma
-        const splitTags = tagsString.split(',').map(tag => tag.trim()).filter(Boolean);
-        return splitTags;
       }
     }
     
-    // If we get here, return empty array
-    return [];
+    // Filter out MCAP tags and BALANCE_100K for display purposes only
+    const filteredTags = allTags.filter(tag => 
+      !tag.startsWith('MCAP_') && 
+      tag !== 'BALANCE_100K'
+    );
+    
+    // For debugging
+    console.log('Tag formatting result:', {
+      original: allTags,
+      filtered: filteredTags
+    });
+    
+    return filteredTags;
   };
 
   const getSortIndicator = (key) => {
@@ -327,8 +345,8 @@ function PortSummaryReportTable({ data, onSort, sortConfig, onRowClick }) {
                 <td className="text-center current-price">
                   {formatCurrency(row.currentprice)}
                 </td> {/* Current Price */}
-                <td className={`text-center price-change ${row.pricechange > 0 ? 'positive' : row.pricechange < 0 ? 'negative' : ''}`} title={row.pricechange !== null ? `${row.pricechange.toFixed(2)}%` : ''}>
-                  {row.pricechange !== null ? (
+                <td className={`text-center price-change ${row.pricechange > 0 ? 'positive' : row.pricechange < 0 ? 'negative' : ''}`} title={row.pricechange != null ? `${row.pricechange.toFixed(2)}%` : ''}>
+                  {row.pricechange != null ? (
                     <>
                       {row.pricechange > 0 ? <FaArrowUp className="change-icon up" /> : 
                        row.pricechange < 0 ? <FaArrowDown className="change-icon down" /> : '0'}
@@ -348,7 +366,7 @@ function PortSummaryReportTable({ data, onSort, sortConfig, onRowClick }) {
                     onScroll={() => handleTagCellScroll(rowId)}
                   >
                     {Array.isArray(row.tags) && row.tags.length > 0 ? (
-                      row.tags.map((tag, i) => (
+                      formatTags(row.tags).map((tag, i) => (
                         <span key={i} className={`tag-badge ${tag}`}>{tag}</span>
                       ))
                     ) : typeof row.tags === 'string' && row.tags.length > 0 ? (

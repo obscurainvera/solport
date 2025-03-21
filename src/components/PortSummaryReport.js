@@ -6,6 +6,16 @@ import WalletInvestedModal from './WalletInvestedModal';
 import { FaFilter, FaChartLine, FaCoins, FaTimes } from 'react-icons/fa';
 import './PortSummaryReport.css';
 
+// Create an axios instance with default config
+const api = axios.create({
+  baseURL: 'http://localhost:8080',
+  timeout: 10000, // 10 seconds timeout
+  headers: {
+    'Accept': 'application/json',
+    'Content-Type': 'application/json'
+  }
+});
+
 function PortSummaryReport() {
   const [filters, setFilters] = useState({});
   const [data, setData] = useState([]);
@@ -17,6 +27,7 @@ function PortSummaryReport() {
     sort_by: 'smartbalance',
     sort_order: 'desc'
   });
+  const [retryCount, setRetryCount] = useState(0);
 
   // Define fetchData with useCallback to memoize it and avoid unnecessary re-renders
   const fetchData = useCallback(async () => {
@@ -25,9 +36,18 @@ function PortSummaryReport() {
     try {
       // Convert filters to snake_case for backend API, including sort config
       const apiFilters = Object.entries({ ...filters, ...sortConfig }).reduce((acc, [key, value]) => {
-        if (value) {
-          const snakeKey = key.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
-          acc[snakeKey] = value;
+        if (value !== undefined && value !== null && value !== '') {
+          // Handle selectedTags array specially
+          if (key === 'selectedTags' && Array.isArray(value) && value.length > 0) {
+            // Add each tag as a separate query parameter with the same name
+            value.forEach(tag => {
+              acc['selected_tags'] = acc['selected_tags'] || [];
+              acc['selected_tags'].push(tag);
+            });
+          } else {
+            const snakeKey = key.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
+            acc[snakeKey] = value;
+          }
         }
         return acc;
       }, {});
@@ -37,18 +57,40 @@ function PortSummaryReport() {
         apiFilters.chain_name = '';
       }
 
-      const queryParams = new URLSearchParams(apiFilters).toString();
-      
-      const response = await axios.get(`http://localhost:8080/api/reports/portsummary?${queryParams}`, {
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json'
+      // Convert filter object to URL parameters, handling arrays properly
+      const queryParams = new URLSearchParams();
+      Object.entries(apiFilters).forEach(([key, value]) => {
+        if (Array.isArray(value)) {
+          // For arrays, add multiple parameters with the same name
+          value.forEach(item => queryParams.append(key, item));
+        } else {
+          queryParams.append(key, value);
         }
       });
 
+      console.log(`Fetching data with params: ${queryParams.toString()}`);
+      
+      const response = await api.get(`/api/reports/portsummary?${queryParams.toString()}`);
+
       // Debug: Log the raw response data to verify structure
       console.log('Raw API Response:', response.data);
+      
+      if (!response.data || !Array.isArray(response.data)) {
+        throw new Error('Invalid response format from API');
+      }
+      
       console.log('Parsed Data Structure:', response.data.map(item => Object.keys(item)));
+      
+      // Add additional logging for tag data
+      if (response.data.length > 0) {
+        console.log('Sample Tags Structure:', {
+          sampleRecord: response.data[0],
+          tagType: typeof response.data[0].tags,
+          tagsSample: response.data[0].tags,
+          isArray: Array.isArray(response.data[0].tags),
+          selectedTags: filters.selectedTags
+        });
+      }
 
       // Ensure data structure matches expected fields
       const processedData = response.data.map(row => ({
@@ -66,14 +108,41 @@ function PortSummaryReport() {
       }));
 
       setData(processedData);
+      setRetryCount(0); // Reset retry count on success
     } catch (err) {
-      setError(err.response?.data?.message || 'An error occurred while fetching data');
-      setData([]);
       console.error('Fetch Error:', err);
+      
+      // Handle different error types
+      if (err.response) {
+        // The request was made and the server responded with a status code
+        // that falls out of the range of 2xx
+        setError(`Server error: ${err.response.data?.message || err.response.statusText || 'Unknown error'}`);
+      } else if (err.request) {
+        // The request was made but no response was received
+        if (retryCount < 3) {
+          // Retry up to 3 times with exponential backoff
+          const delay = Math.pow(2, retryCount) * 1000;
+          console.log(`Retrying in ${delay}ms (attempt ${retryCount + 1}/3)...`);
+          
+          setTimeout(() => {
+            setRetryCount(prev => prev + 1);
+            // This will trigger a re-fetch due to the dependency on retryCount
+          }, delay);
+          
+          setError(`Connection error. Retrying... (${retryCount + 1}/3)`);
+        } else {
+          setError('Unable to connect to the server. Please check if the API server is running.');
+        }
+      } else {
+        // Something happened in setting up the request that triggered an Error
+        setError(`Error: ${err.message || 'Unknown error'}`);
+      }
+      
+      setData([]);
     } finally {
       setLoading(false);
     }
-  }, [filters, sortConfig]); // Add dependencies here
+  }, [filters, sortConfig, retryCount]); // Add retryCount as dependency
 
   useEffect(() => {
     fetchData();
@@ -158,6 +227,11 @@ function PortSummaryReport() {
     setSelectedToken(null);
   };
 
+  const handleRetry = () => {
+    setRetryCount(0); // Reset retry count
+    fetchData(); // Manually trigger a fetch
+  };
+
   return (
     <div className="port-summary-container">
       <div className="port-summary-header">
@@ -182,6 +256,7 @@ function PortSummaryReport() {
       {error && (
         <div className="error-message">
           <p>{error}</p>
+          <button onClick={handleRetry} className="retry-button">Retry</button>
         </div>
       )}
 
@@ -198,30 +273,6 @@ function PortSummaryReport() {
           </>
         )}
         
-        <div className="report-stats">
-          <div className="stat-card">
-            <FaChartLine className="stat-icon" />
-            <div className="stat-content">
-              <h3>Total Tokens</h3>
-              <p>{data.length}</p>
-            </div>
-          </div>
-          <div className="stat-card">
-            <FaCoins className="stat-icon" />
-            <div className="stat-content">
-              <h3>Total Market Cap</h3>
-              <p>{data.length > 0 ? 
-                new Intl.NumberFormat('en-US', {
-                  style: 'currency',
-                  currency: 'USD',
-                  maximumFractionDigits: 0
-                }).format(data.reduce((sum, item) => sum + (item.mcap || 0), 0)) 
-                : '$0'}
-              </p>
-            </div>
-          </div>
-        </div>
-
         <div className="report-container">
           {loading ? (
             <div className="loading-container">
@@ -231,6 +282,7 @@ function PortSummaryReport() {
           ) : error ? (
             <div className="error-message">
               <p>{error}</p>
+              <button onClick={handleRetry} className="retry-button">Retry</button>
             </div>
           ) : data.length === 0 ? (
             <div className="empty-state">

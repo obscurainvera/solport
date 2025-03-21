@@ -8,6 +8,9 @@ import Home from './components/Home';
 import Operations from './components/Operations';
 import Strategy from './components/Strategy';
 import Analytics from './components/Analytics';
+import StrategyPerformanceReport from './components/StrategyPerformanceReport';
+import FastTrackingReport from './components/FastTrackingReport';
+import AttentionReport from './components/AttentionReport';
 import './App.css';
 import { FaCoins } from 'react-icons/fa';
 
@@ -28,7 +31,9 @@ function App() {
             <NavLink to="/smartmoney" className={({ isActive }) => isActive ? "App-link active" : "App-link"}>Smart Money</NavLink>
             <NavLink to="/operations" className={({ isActive }) => isActive ? "App-link active" : "App-link"}>Operations</NavLink>
             <NavLink to="/strategy" className={({ isActive }) => isActive ? "App-link active" : "App-link"}>Strategy</NavLink>
-            <NavLink to="/analytics" className={({ isActive }) => isActive ? "App-link active" : "App-link"}>Analytics</NavLink>
+            <NavLink to="/performance" className={({ isActive }) => isActive ? "App-link active" : "App-link"}>Performance</NavLink>
+            <NavLink to="/fasttracking" className={({ isActive }) => isActive ? "App-link active" : "App-link"}>Fast Tracking</NavLink>
+            <NavLink to="/attention" className={({ isActive }) => isActive ? "App-link active" : "App-link"}>Attention</NavLink>
           </nav>
         </header>
         <main className="container fade-in">
@@ -40,12 +45,9 @@ function App() {
             <Route path="/strategy" element={<Strategy />} />
             <Route path="/analytics" element={<Analytics />} />
             <Route path="/strategyreport" element={<StrategyReport />} />
-            <Route path="/performance" element={
-              <div className="coming-soon">
-                <h2>Performance Analysis</h2>
-                <p>We're working on bringing you detailed performance analytics for your portfolio. This feature will be available soon!</p>
-              </div>
-            } />
+            <Route path="/performance" element={<StrategyPerformanceReport />} />
+            <Route path="/fasttracking" element={<FastTrackingReport />} />
+            <Route path="/attention" element={<AttentionReport />} />
             <Route path="/tokenmetrics" element={
               <div className="coming-soon">
                 <h2>Token Metrics</h2>

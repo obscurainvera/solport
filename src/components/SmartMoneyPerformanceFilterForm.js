@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { FaFilter, FaChevronDown, FaChevronUp, FaCheck, FaTimes } from 'react-icons/fa';
 import './SmartMoneyPerformanceFilterForm.css';
 
-function SmartMoneyPerformanceFilterForm({ onApply, initialFilters = {} }) {
+function SmartMoneyPerformanceFilterForm({ onApply, initialFilters = {}, onCancel }) {
   const [filters, setFilters] = useState({
     walletAddress: initialFilters.walletAddress || '',
     minProfitAndLoss: initialFilters.minProfitAndLoss || '',
@@ -322,21 +322,30 @@ function SmartMoneyPerformanceFilterForm({ onApply, initialFilters = {} }) {
     <div className="sm-filter-form">
       <div className="sm-filter-form-header">
         <h3><FaFilter /> Filter Options</h3>
-        <button 
-          className="sm-reset-button" 
-          onClick={handleReset}
-          disabled={
-            !filters.walletAddress && 
-            !filters.minProfitAndLoss && 
-            !filters.maxProfitAndLoss && 
-            !filters.minTradeCount && 
-            !filters.maxTradeCount && 
-            !filters.minInvestedAmount &&
-            selectedProfitAndLossRanges.length === 0
-          }
-        >
-          <FaTimes /> Reset
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <button 
+            className="sm-reset-button" 
+            onClick={handleReset}
+            disabled={
+              !filters.walletAddress && 
+              !filters.minProfitAndLoss && 
+              !filters.maxProfitAndLoss && 
+              !filters.minTradeCount && 
+              !filters.maxTradeCount && 
+              !filters.minInvestedAmount &&
+              selectedProfitAndLossRanges.length === 0
+            }
+          >
+            <FaTimes /> Reset
+          </button>
+          <button 
+            className="sm-close-button" 
+            onClick={onCancel}
+            aria-label="Close filter panel"
+          >
+            <FaTimes />
+          </button>
+        </div>
       </div>
       
       <div className="sm-filter-form-body">

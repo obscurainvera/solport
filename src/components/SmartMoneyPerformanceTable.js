@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { FaChevronDown, FaChevronUp, FaCopy, FaCheck, FaExternalLinkAlt } from 'react-icons/fa';
 import './SmartMoneyPerformanceTable.css';
 
-function SmartMoneyPerformanceTable({ data, onSort, sortConfig }) {
+function SmartMoneyPerformanceTable({ data, onSort, sortConfig, onWalletSelect }) {
   const [hoveredRow, setHoveredRow] = useState(null);
   const [copiedAddress, setCopiedAddress] = useState(null);
   const tableContainerRef = useRef(null);
@@ -26,6 +26,39 @@ function SmartMoneyPerformanceTable({ data, onSort, sortConfig }) {
     // Add resize listener
     window.addEventListener('resize', checkTableScroll);
     return () => window.removeEventListener('resize', checkTableScroll);
+  }, [data]);
+
+  // Handle scroll shadow indicators
+  useEffect(() => {
+    const handleScrollShadows = () => {
+      if (!tableContainerRef.current) return;
+      
+      const { scrollTop, scrollHeight, clientHeight } = tableContainerRef.current;
+      
+      // Show top shadow when scrolled down
+      if (scrollTop > 10) {
+        tableContainerRef.current.classList.add('has-overflow-top');
+      } else {
+        tableContainerRef.current.classList.remove('has-overflow-top');
+      }
+      
+      // Show bottom shadow when not at bottom
+      if (scrollTop + clientHeight < scrollHeight - 10) {
+        tableContainerRef.current.classList.add('has-overflow-bottom');
+      } else {
+        tableContainerRef.current.classList.remove('has-overflow-bottom');
+      }
+    };
+    
+    // Initial check
+    handleScrollShadows();
+    
+    // Add scroll event listener
+    const container = tableContainerRef.current;
+    if (container) {
+      container.addEventListener('scroll', handleScrollShadows);
+      return () => container.removeEventListener('scroll', handleScrollShadows);
+    }
   }, [data]);
 
   const formatNumber = (num) => {
@@ -141,6 +174,13 @@ function SmartMoneyPerformanceTable({ data, onSort, sortConfig }) {
     window.open(`https://app.cielo.finance/profile/${address}`, '_blank');
   };
 
+  const handleRowClick = (wallet) => {
+    // Call the parent component's onWalletSelect function with the wallet data
+    if (onWalletSelect) {
+      onWalletSelect(wallet);
+    }
+  };
+
   if (!data || data.length === 0) {
     return (
       <div className="sm-empty-state">
@@ -186,6 +226,9 @@ function SmartMoneyPerformanceTable({ data, onSort, sortConfig }) {
                 onMouseEnter={() => handleRowHover(index)}
                 onMouseLeave={handleRowLeave}
                 className={`${hoveredRow === index ? 'hovered' : ''}`}
+                onClick={() => handleRowClick(row)}
+                style={{ cursor: 'pointer' }}
+                title="Click to view wallet details"
               >
                 <td className="sm-wallet-address">
                   <div className="sm-address-container">
@@ -227,8 +270,10 @@ function SmartMoneyPerformanceTable({ data, onSort, sortConfig }) {
       </table>
       <div className="sm-table-footer">
         <div className="sm-table-info">
-          Showing {data.length} {data.length === 1 ? 'result' : 'results'}
+          Showing {data.length} {data.length === 1 ? 'wallet' : 'wallets'}
+          {data.length >= 100 && <span className="sm-more-available"> (Showing max results, filter for more specific data)</span>}
         </div>
+        <div className="sm-scrolling-hint">Scroll to view more wallets</div>
       </div>
     </div>
   );

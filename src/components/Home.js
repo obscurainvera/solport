@@ -1,7 +1,8 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { FaChartLine, FaCoins, FaChartBar, FaChartPie, FaArrowRight, FaLongArrowAltRight, FaFileAlt } from 'react-icons/fa';
+import { FaChartLine, FaCoins, FaChartBar, FaChartPie, FaArrowRight, FaLongArrowAltRight, FaFileAlt, FaAnalytics } from 'react-icons/fa';
 import './Home.css';
+import PortfolioAllocationWidget from './PortfolioAllocationWidget';
 
 function Home() {
   // Available reports data
@@ -31,20 +32,20 @@ function Home() {
       color: 'linear-gradient(135deg, #5ee7df, #b490ca)'
     },
     {
-      id: 'allocation',
-      title: 'Portfolio Allocation',
-      description: 'Visual breakdown of your portfolio allocation across tokens',
-      icon: <FaChartPie />,
-      path: '/allocation',
-      color: 'linear-gradient(135deg, #43e97b, #38f9d7)'
-    },
-    {
       id: 'strategyreport',
       title: 'Strategy Configurations',
       description: 'View and analyze all available trading strategies and their parameters',
       icon: <FaFileAlt />,
       path: '/strategyreport',
       color: 'linear-gradient(135deg, #0071e3, #42a5f5)'
+    },
+    {
+      id: 'analytics',
+      title: 'Strategy Analytics',
+      description: 'Create and deploy automated trading strategies with custom parameters',
+      icon: <FaChartLine />,
+      path: '/analytics',
+      color: 'linear-gradient(135deg, #FF6B6B, #FF8E53)'
     }
   ];
 
@@ -76,6 +77,10 @@ function Home() {
 
       <div className="reports-section">
         <div className="reports-grid">
+          {/* Render Portfolio Allocation Widget first */}
+          <PortfolioAllocationWidget />
+          
+          {/* Render other report cards */}
           {reports.map(report => (
             <Link to={report.path} key={report.id} className="report-card">
               <div className="card-icon">{report.icon}</div>

@@ -21,7 +21,8 @@ import {
   FaPlay,
   FaPause,
   FaHistory,
-  FaExchangeAlt
+  FaExchangeAlt,
+  FaBrain
 } from 'react-icons/fa';
 import './Operations.css';
 
@@ -126,6 +127,7 @@ function Operations() {
   const [pnlWalletAddress, setPnlWalletAddress] = useState('');
   const [volumeInterval, setVolumeInterval] = useState('5');
   const [pumpInterval, setPumpInterval] = useState('5');
+  const [walletBehaviourAddress, setWalletBehaviourAddress] = useState('');
   
   // Top PNL Investment Details state
   const [updateWalletAddress, setUpdateWalletAddress] = useState('');
@@ -1356,6 +1358,86 @@ function Operations() {
     }
   };
 
+  // SM Wallet Behaviour Analysis functions
+  const analyzeAllWalletsBehaviour = () => {
+    showLoading('analyze-all-wallets-behaviour');
+    console.log(`Sending XHR request to: ${API_BASE_URL}/api/smwalletbehaviour/analyze`);
+    
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', `${API_BASE_URL}/api/smwalletbehaviour/analyze`, true);
+    xhr.setRequestHeader('Content-Type', 'application/json');
+    xhr.setRequestHeader('Accept', 'application/json');
+    
+    xhr.onload = function() {
+      console.log('XHR status:', xhr.status);
+      
+      if (xhr.status >= 200 && xhr.status < 300) {
+        try {
+          const data = JSON.parse(xhr.responseText);
+          console.log('XHR parsed data:', data);
+          showStatus('wallet-behaviour-status', 'Successfully analyzed behaviour for all wallets');
+        } catch (e) {
+          console.error('Error parsing response:', e);
+          showStatus('wallet-behaviour-status', 'Error parsing response', true);
+        }
+      } else {
+        showStatus('wallet-behaviour-status', `Error: ${xhr.status} ${xhr.statusText}`, true);
+      }
+      hideLoading('analyze-all-wallets-behaviour');
+    };
+    
+    xhr.onerror = function() {
+      console.error('XHR error occurred');
+      showStatus('wallet-behaviour-status', 'Network error occurred', true);
+      hideLoading('analyze-all-wallets-behaviour');
+    };
+    
+    xhr.send(JSON.stringify({}));
+  };
+
+  const analyzeSpecificWalletBehaviour = () => {
+    if (!walletBehaviourAddress) {
+      showStatus('specific-wallet-behaviour-status', 'Please enter a wallet address', true);
+      return;
+    }
+
+    showLoading('analyze-specific-wallet-behaviour');
+    console.log(`Sending XHR request to: ${API_BASE_URL}/api/smwalletbehaviour/analyze`);
+    
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', `${API_BASE_URL}/api/smwalletbehaviour/analyze`, true);
+    xhr.setRequestHeader('Content-Type', 'application/json');
+    xhr.setRequestHeader('Accept', 'application/json');
+    
+    xhr.onload = function() {
+      console.log('XHR status:', xhr.status);
+      
+      if (xhr.status >= 200 && xhr.status < 300) {
+        try {
+          const data = JSON.parse(xhr.responseText);
+          console.log('XHR parsed data:', data);
+          showStatus('specific-wallet-behaviour-status', `Successfully analyzed behaviour for wallet: ${walletBehaviourAddress}`);
+        } catch (e) {
+          console.error('Error parsing response:', e);
+          showStatus('specific-wallet-behaviour-status', 'Error parsing response', true);
+        }
+      } else {
+        showStatus('specific-wallet-behaviour-status', `Error: ${xhr.status} ${xhr.statusText}`, true);
+      }
+      hideLoading('analyze-specific-wallet-behaviour');
+    };
+    
+    xhr.onerror = function() {
+      console.error('XHR error occurred');
+      showStatus('specific-wallet-behaviour-status', 'Network error occurred', true);
+      hideLoading('analyze-specific-wallet-behaviour');
+    };
+    
+    xhr.send(JSON.stringify({
+      walletAddress: walletBehaviourAddress
+    }));
+  };
+
   return (
     <div className="operations-container">
       {/* Header section matching Strategy.js */}
@@ -1411,6 +1493,13 @@ function Operations() {
             >
               <FaSync />
               <span>PNL Analysis</span>
+            </button>
+            <button 
+              className={`nav-tile ${activeSection === 'wallet-behaviour-section' ? 'active' : ''}`}
+              onClick={() => scrollToSection('wallet-behaviour-section')}
+            >
+              <FaBrain />
+              <span>Wallet Behaviour</span>
             </button>
             <button 
               className={`nav-tile ${activeSection === 'volume-bot-section' ? 'active' : ''}`}
@@ -2261,6 +2350,89 @@ function Operations() {
                         )}
                       </div>
                     </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Wallet Behaviour Section */}
+        <section className="section" id="wallet-behaviour-section">
+          <div className="section-content">
+            <div className="section-row">
+              <div className="col">
+                <h1 className="premium-title">WALLET BEHAVIOUR</h1>
+                <p className="premium-subtitle">Analyze investment behaviour patterns of wallets</p>
+                <div className="section-description">
+                  <p>
+                    Analyze investment behaviour patterns of smart money wallets to identify strategies,
+                    risk profiles, and performance metrics. Understand how successful wallets allocate
+                    investments across different conviction levels.
+                  </p>
+                </div>
+              </div>
+              <div className="col">
+                <div className="luxury-card">
+                  <div className="card-content">
+                    <div className="card-header">
+                      <h3>All Wallets Analysis</h3>
+                      <div className="badge badge-gold">Analytics</div>
+                    </div>
+                    <div className="pattern pattern-grid"></div>
+                    <p>
+                      Analyze investment behaviour patterns across all smart money wallets.
+                    </p>
+                    <button 
+                      className="luxury-button" 
+                      onClick={analyzeAllWalletsBehaviour}
+                      disabled={loading['analyze-all-wallets-behaviour']}
+                    >
+                      Analyze All Wallets Behaviour
+                      {loading['analyze-all-wallets-behaviour'] && <div className="loading-spinner"></div>}
+                    </button>
+                    {statusMessages['wallet-behaviour-status']?.visible && (
+                      <div className={`status-message ${statusMessages['wallet-behaviour-status']?.isError ? 'error' : ''}`}>
+                        {statusMessages['wallet-behaviour-status']?.message}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+              <div className="col">
+                <div className="luxury-card">
+                  <div className="card-content">
+                    <div className="card-header">
+                      <h3>Specific Wallet Analysis</h3>
+                      <div className="badge badge-gold">Analytics</div>
+                    </div>
+                    <div className="pattern pattern-grid"></div>
+                    <p>
+                      Analyze investment behaviour patterns for a specific smart money wallet.
+                    </p>
+                    <div className="form-group">
+                      <label>Wallet Address:</label>
+                      <input 
+                        type="text" 
+                        className="luxury-input" 
+                        value={walletBehaviourAddress} 
+                        onChange={(e) => setWalletBehaviourAddress(e.target.value)}
+                        placeholder="Enter wallet address"
+                      />
+                    </div>
+                    <button 
+                      className="luxury-button" 
+                      onClick={analyzeSpecificWalletBehaviour}
+                      disabled={loading['analyze-specific-wallet-behaviour']}
+                    >
+                      Analyze Wallet Behaviour
+                      {loading['analyze-specific-wallet-behaviour'] && <div className="loading-spinner"></div>}
+                    </button>
+                    {statusMessages['specific-wallet-behaviour-status']?.visible && (
+                      <div className={`status-message ${statusMessages['specific-wallet-behaviour-status']?.isError ? 'error' : ''}`}>
+                        {statusMessages['specific-wallet-behaviour-status']?.message}
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>

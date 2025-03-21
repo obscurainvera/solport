@@ -34,6 +34,7 @@ function FilterForm({ onApply, initialFilters = {} }) {
     maxMarketCap: initialFilters.maxMarketCap || '',
     minTokenAge: initialFilters.minTokenAge || '',
     maxTokenAge: initialFilters.maxTokenAge || '',
+    selectedTags: initialFilters.selectedTags || [],
   });
 
   // State for popup visibility
@@ -41,6 +42,7 @@ function FilterForm({ onApply, initialFilters = {} }) {
   const [showTokenAgePopup, setShowTokenAgePopup] = useState(false);
   const [showMarketCapCustom, setShowMarketCapCustom] = useState(false);
   const [showTokenAgeCustom, setShowTokenAgeCustom] = useState(false);
+  const [showTagPopup, setShowTagPopup] = useState(false);
 
   // State for selections
   const [selectedMarketCapRanges, setSelectedMarketCapRanges] = useState([]);
@@ -51,6 +53,7 @@ function FilterForm({ onApply, initialFilters = {} }) {
   // Refs for click-outside detection
   const marketCapPopupRef = useRef(null);
   const tokenAgePopupRef = useRef(null);
+  const tagPopupRef = useRef(null);
 
   // Handle click outside to close popups
   useEffect(() => {
@@ -81,10 +84,17 @@ function FilterForm({ onApply, initialFilters = {} }) {
       ) {
         setShowTokenAgeCustom(false);
       }
+      if (
+        showTagPopup &&
+        tagPopupRef.current &&
+        !tagPopupRef.current.contains(event.target)
+      ) {
+        setShowTagPopup(false);
+      }
     }
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [showMarketCapPopup, showTokenAgePopup, showMarketCapCustom, showTokenAgeCustom]);
+  }, [showMarketCapPopup, showTokenAgePopup, showMarketCapCustom, showTokenAgeCustom, showTagPopup]);
 
   // Toggle popup visibility
   const toggleMarketCapPopup = (e) => {
@@ -99,6 +109,14 @@ function FilterForm({ onApply, initialFilters = {} }) {
     e.stopPropagation();
     setShowMarketCapPopup(false); // Close other popup
     setShowTokenAgePopup(!showTokenAgePopup);
+  };
+
+  const toggleTagPopup = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setShowMarketCapPopup(false);
+    setShowTokenAgePopup(false);
+    setShowTagPopup(!showTagPopup);
   };
 
   // Handle input changes
@@ -239,7 +257,7 @@ function FilterForm({ onApply, initialFilters = {} }) {
 
   // Reset filters
   const handleReset = () => {
-    setFilters({ tokenId: '', tokenName: '', minMarketCap: '', maxMarketCap: '', minTokenAge: '', maxTokenAge: '' });
+    setFilters({ tokenId: '', tokenName: '', minMarketCap: '', maxMarketCap: '', minTokenAge: '', maxTokenAge: '', selectedTags: [] });
     setSelectedMarketCapRanges([]);
     setSelectedTokenAgeRanges([]);
     setShowMarketCapPopup(false);
@@ -268,6 +286,29 @@ function FilterForm({ onApply, initialFilters = {} }) {
     }
     const firstRange = rangeList.find((r) => r.id === ranges[0]);
     return `${firstRange ? firstRange.label : 'Custom'} +${ranges.length - 1} more`;
+  };
+
+  const handleTagToggle = (tag) => {
+    console.log('Toggling tag:', tag);
+    
+    setFilters(prev => {
+      const newSelectedTags = prev.selectedTags.includes(tag)
+        ? prev.selectedTags.filter(t => t !== tag)
+        : [...prev.selectedTags, tag];
+        
+      console.log('New selected tags:', newSelectedTags);
+      
+      return {
+        ...prev,
+        selectedTags: newSelectedTags
+      };
+    });
+  };
+
+  const formatSelectedTags = () => {
+    if (filters.selectedTags.length === 0) return 'Select tags';
+    if (filters.selectedTags.length === 1) return filters.selectedTags[0];
+    return `${filters.selectedTags[0]} +${filters.selectedTags.length - 1} more`;
   };
 
   return (
@@ -382,6 +423,37 @@ function FilterForm({ onApply, initialFilters = {} }) {
         </>
       )}
 
+      {/* Tag Popup */}
+      {showTagPopup && (
+        <>
+          <div className="filter-dropdown-overlay" onClick={() => setShowTagPopup(false)} />
+          <div className="filter-popup tag-filter-popup" ref={tagPopupRef}>
+            <h5>Select Tags</h5>
+            <div className="tag-filter-options">
+              {[
+                'BALANCE_500K', 'BALANCE_1M',
+                'HUGE_1D_CHANGE', 'HUGE_7D_CHANGE', 'HUGE_30D_CHANGE',
+                'PRICE_WITHIN_RANGE', 
+                'SMART_300K_10K_1', 'SMART_300K_10K_2', 'SMART_300K_10K_3', 
+                'SMART_500K_30K_1', 'SMART_500K_30K_2', 'SMART_500K_30K_3', 
+                'SMART_1M_100K_1', 'SMART_1M_100K_2', 'SMART_1M_100K_3'
+              ].map((tag) => (
+                <div
+                  key={tag}
+                  className={`filter-popup-option ${
+                    filters.selectedTags.includes(tag) ? 'selected' : ''
+                  }`}
+                  onClick={() => handleTagToggle(tag)}
+                >
+                  {tag}
+                  {filters.selectedTags.includes(tag) && <FaCheck className="filter-check-icon" />}
+                </div>
+              ))}
+            </div>
+          </div>
+        </>
+      )}
+
       {/* Filter Form Header */}
       <div className="filter-form-header">
         <h3>
@@ -445,6 +517,15 @@ function FilterForm({ onApply, initialFilters = {} }) {
             <div className="filter-selector" onClick={toggleTokenAgePopup}>
               {formatSelectedRanges('tokenAge')}
               <FaChevronDown className={`filter-dropdown-icon ${showTokenAgePopup ? 'open' : ''}`} />
+            </div>
+          </div>
+        </div>
+        <div className="filter-row">
+          <div className="filter-group full-width">
+            <label>Tags</label>
+            <div className="filter-selector" onClick={toggleTagPopup}>
+              {formatSelectedTags()}
+              <FaChevronDown className={`filter-dropdown-icon ${showTagPopup ? 'open' : ''}`} />
             </div>
           </div>
         </div>

@@ -8,32 +8,58 @@ function Strategy() {
   const [singleTokenLoading, setSingleTokenLoading] = useState(false);
   const [monitoringLoading, setMonitoringLoading] = useState(false);
   const [pushTokenLoading, setPushTokenLoading] = useState(false);
+  const [pushAllSourceTokensLoading, setPushAllSourceTokensLoading] = useState(false);
   
   const [portfolioStatus, setPortfolioStatus] = useState({ message: '', isError: false, visible: false });
   const [monitoringStatus, setMonitoringStatus] = useState({ message: '', isError: false, visible: false });
   const [pushTokenStatus, setPushTokenStatus] = useState({ message: '', isError: false, visible: false });
+  const [pushAllSourceTokensStatus, setPushAllSourceTokensStatus] = useState({ message: '', isError: false, visible: false });
   
   const [tokenId, setTokenId] = useState('');
   const [evaluateTokenId, setEvaluateTokenId] = useState('');
   const [sourceType, setSourceType] = useState('');
+  const [bulkSourceType, setBulkSourceType] = useState('');
 
   // Handler functions
-  const tagAllPortfolioTokens = () => {
+  const tagAllPortfolioTokens = async () => {
     setPortfolioTaggingLoading(true);
     setPortfolioStatus({ message: '', isError: false, visible: false });
     
-    // Simulate API call
-    setTimeout(() => {
-      setPortfolioTaggingLoading(false);
+    try {
+      const response = await fetch('/api/portfoliotagger/persist', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      const data = await response.json();
+      
+      if (response.ok) {
+        setPortfolioStatus({
+          message: data.message || 'Successfully tagged all portfolio tokens!',
+          isError: false,
+          visible: true
+        });
+      } else {
+        setPortfolioStatus({
+          message: data.error || 'Failed to tag portfolio tokens',
+          isError: true,
+          visible: true
+        });
+      }
+    } catch (error) {
       setPortfolioStatus({
-        message: 'Successfully tagged all portfolio tokens!',
-        isError: false,
+        message: `Error: ${error.message}`,
+        isError: true,
         visible: true
       });
-    }, 2000);
+    } finally {
+      setPortfolioTaggingLoading(false);
+    }
   };
 
-  const tagAParticularPortfolioToken = () => {
+  const tagAParticularPortfolioToken = async () => {
     if (!evaluateTokenId) {
       setPortfolioStatus({
         message: 'Please enter a Token ID',
@@ -46,33 +72,80 @@ function Strategy() {
     setSingleTokenLoading(true);
     setPortfolioStatus({ message: '', isError: false, visible: false });
     
-    // Simulate API call
-    setTimeout(() => {
-      setSingleTokenLoading(false);
+    try {
+      const response = await fetch('/api/portfoliotagger/token/persist', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ token_id: evaluateTokenId }),
+      });
+      
+      const data = await response.json();
+      
+      if (response.ok) {
+        setPortfolioStatus({
+          message: `Successfully updated tags for token ${evaluateTokenId}!`,
+          isError: false,
+          visible: true
+        });
+      } else {
+        setPortfolioStatus({
+          message: data.error || `Failed to update tags for token ${evaluateTokenId}`,
+          isError: true,
+          visible: true
+        });
+      }
+    } catch (error) {
       setPortfolioStatus({
-        message: 'Token tags updated successfully!',
-        isError: false,
+        message: `Error: ${error.message}`,
+        isError: true,
         visible: true
       });
-    }, 2000);
+    } finally {
+      setSingleTokenLoading(false);
+    }
   };
 
-  const triggerExecutionMonitoring = () => {
+  const triggerExecutionMonitoring = async () => {
     setMonitoringLoading(true);
     setMonitoringStatus({ message: '', isError: false, visible: false });
     
-    // Simulate API call
-    setTimeout(() => {
-      setMonitoringLoading(false);
+    try {
+      const response = await fetch('/api/analytics/executionmonitoring', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+      
+      const data = await response.json();
+      
+      if (response.ok) {
+        setMonitoringStatus({
+          message: data.message || 'Monitoring completed successfully!',
+          isError: false,
+          visible: true
+        });
+      } else {
+        setMonitoringStatus({
+          message: data.message || 'Failed to trigger execution monitoring',
+          isError: true,
+          visible: true
+        });
+      }
+    } catch (error) {
       setMonitoringStatus({
-        message: 'Monitoring completed successfully! Processed 24 executions, 5 profit targets hit, 2 stop losses triggered in 3.2s.',
-        isError: false,
+        message: `Error: ${error.message}`,
+        isError: true,
         visible: true
       });
-    }, 2000);
+    } finally {
+      setMonitoringLoading(false);
+    }
   };
 
-  const pushTokenToAnalytics = () => {
+  const pushTokenToAnalytics = async () => {
     if (!tokenId || !sourceType) {
       setPushTokenStatus({
         message: 'Please enter both Token ID and Source Type',
@@ -85,15 +158,121 @@ function Strategy() {
     setPushTokenLoading(true);
     setPushTokenStatus({ message: '', isError: false, visible: false });
     
-    // Simulate API call
-    setTimeout(() => {
-      setPushTokenLoading(false);
+    try {
+      const response = await fetch('/api/analyticsframework/pushtoken', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          token_id: tokenId,
+          source_type: sourceType 
+        }),
+      });
+      
+      const data = await response.json();
+      
+      if (response.ok) {
+        setPushTokenStatus({
+          message: data.message || `Successfully pushed token ${tokenId} to analytics framework!`,
+          isError: false,
+          visible: true
+        });
+      } else {
+        setPushTokenStatus({
+          message: data.message || 'Failed to push token to analytics framework',
+          isError: true,
+          visible: true
+        });
+      }
+    } catch (error) {
       setPushTokenStatus({
-        message: 'Token successfully pushed to analytics framework!',
-        isError: false,
+        message: `Error: ${error.message}`,
+        isError: true,
         visible: true
       });
-    }, 2000);
+    } finally {
+      setPushTokenLoading(false);
+    }
+  };
+
+  const pushAllSourceTokensToAnalytics = async () => {
+    if (!bulkSourceType) {
+      setPushAllSourceTokensStatus({
+        message: 'Please select a Source Type',
+        isError: true,
+        visible: true
+      });
+      return;
+    }
+    
+    setPushAllSourceTokensLoading(true);
+    setPushAllSourceTokensStatus({ message: '', isError: false, visible: false });
+    
+    try {
+      const response = await fetch('/api/analyticsframework/pushallsourcetokens', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ source_type: bulkSourceType }),
+      });
+      
+      const data = await response.json();
+      
+      if (response.ok) {
+        const stats = data.data;
+        let successMessage = `Successfully processed ${stats.success} out of ${stats.total} tokens from ${bulkSourceType} source.`;
+        
+        // Add details about tokens processed if available
+        if (stats.successTokens && stats.successTokens.length > 0) {
+          const tokensList = stats.successTokens.map(t => t.tokenName || t.tokenId).join(', ');
+          const additionalTokens = stats.success > stats.successTokens.length 
+            ? ` and ${stats.success - stats.successTokens.length} more`
+            : '';
+          successMessage += ` Processed tokens: ${tokensList}${additionalTokens}.`;
+        }
+        
+        // Add details about failures if any
+        if (stats.failed > 0) {
+          successMessage += ` Failed to process ${stats.failed} tokens.`;
+          
+          if (stats.failedTokens && stats.failedTokens.length > 0) {
+            const failedList = stats.failedTokens.map(t => t.tokenName || t.tokenId).join(', ');
+            successMessage += ` Failed tokens: ${failedList}${stats.failed > stats.failedTokens.length ? ' and more.' : '.'}`;
+          }
+        }
+        
+        setPushAllSourceTokensStatus({
+          message: successMessage,
+          isError: false,
+          visible: true
+        });
+      } else {
+        let errorMessage = data.message || 'Failed to push tokens to analytics framework';
+        
+        // Try to extract error details if available
+        if (data.data && typeof data.data === 'object') {
+          if (data.data.error) {
+            errorMessage += `: ${data.data.error}`;
+          }
+        }
+        
+        setPushAllSourceTokensStatus({
+          message: errorMessage,
+          isError: true,
+          visible: true
+        });
+      }
+    } catch (error) {
+      setPushAllSourceTokensStatus({
+        message: `Error: ${error.message}`,
+        isError: true,
+        visible: true
+      });
+    } finally {
+      setPushAllSourceTokensLoading(false);
+    }
   };
 
   return (
@@ -225,6 +404,55 @@ function Strategy() {
                   <div className={`status-message ${pushTokenStatus.isError ? 'error' : 'success'}`}>
                     {pushTokenStatus.message}
                     <button className="close-status" onClick={() => setPushTokenStatus(prev => ({...prev, visible: false}))}>
+                      <FaTimes />
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Push All Source Tokens Card */}
+            <div className="strategy-card">
+              <div className="card-header">
+                <h2>Push All Source Tokens</h2>
+                <p>Push all tokens from a specific source to the analytics framework</p>
+              </div>
+              <div className="card-content">
+                <div className="input-group">
+                  <select 
+                    className="luxury-input" 
+                    value={bulkSourceType}
+                    onChange={(e) => setBulkSourceType(e.target.value)}
+                  >
+                    <option value="">Select Source Type</option>
+                    <option value="PORTSUMMARY">Port Summary</option>
+                    <option value="ATTENTION">Attention</option>
+                    <option value="SMARTMONEY">Smart Money</option>
+                    <option value="VOLUME">Volume</option>
+                    <option value="PUMPFUN">Pump Fun</option>
+                  </select>
+                  <div className="input-note">
+                    Note: Currently only Port Summary source is fully supported for bulk operations.
+                  </div>
+                </div>
+                
+                <button 
+                  className="luxury-button" 
+                  onClick={pushAllSourceTokensToAnalytics}
+                  disabled={pushAllSourceTokensLoading}
+                >
+                  Push All Tokens From Source
+                  {pushAllSourceTokensLoading && <span className="loading-spinner"></span>}
+                </button>
+                
+                <div className="info-note">
+                  This operation may process many tokens at once and could take several minutes to complete.
+                </div>
+                
+                {pushAllSourceTokensStatus.visible && (
+                  <div className={`status-message ${pushAllSourceTokensStatus.isError ? 'error' : 'success'}`}>
+                    {pushAllSourceTokensStatus.message}
+                    <button className="close-status" onClick={() => setPushAllSourceTokensStatus(prev => ({...prev, visible: false}))}>
                       <FaTimes />
                     </button>
                   </div>

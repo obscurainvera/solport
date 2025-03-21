@@ -16,9 +16,16 @@ import {
   FaChevronLeft,
   FaChevronRight,
   FaSortAmountDown,
-  FaSortAmountUp
+  FaSortAmountUp,
+  FaCopy,
+  FaChartBar,
+  FaLayerGroup,
+  FaChevronUp,
+  FaChevronDown
 } from 'react-icons/fa';
 import './SmartMoneyWalletModal.css';
+import SmartMoneyWalletBehaviourModal from './SmartMoneyWalletBehaviourModal';
+import SmartMoneyWalletInvestmentRangeReportModal from './SmartMoneyWalletInvestmentRangeReportModal';
 
 function SmartMoneyWalletModal({ wallet, onClose }) {
   const [tokens, setTokens] = useState([]);
@@ -30,8 +37,12 @@ function SmartMoneyWalletModal({ wallet, onClose }) {
   const [totalPnl, setTotalPnl] = useState(0);
   const [sortDirection, setSortDirection] = useState('desc'); // 'desc' for highest PNL first
   const [currentPage, setCurrentPage] = useState(1);
-  const [tokensPerPage, setTokensPerPage] = useState(10); // Show 10 tokens per page
+  const [tokensPerPage, setTokensPerPage] = useState(20); // Increased from 10 to 20 tokens per page
   const [walletData, setWalletData] = useState(null);
+  const [copiedTokenId, setCopiedTokenId] = useState(null);
+  const [showBehaviourModal, setShowBehaviourModal] = useState(false);
+  const [showRangesModal, setShowRangesModal] = useState(false);
+  const [sortConfig, setSortConfig] = useState(null);
   
   // Center the modal in the visible viewport when it opens
   useEffect(() => {
@@ -75,8 +86,8 @@ function SmartMoneyWalletModal({ wallet, onClose }) {
         const apiUrl = `http://localhost:8080/api/reports/smartmoneywallet/${wallet.walletaddress}`;
         const response = await axios.get(apiUrl, {
           params: {
-            sort_by: 'profitandloss',
-            sort_order: sortDirection
+            sort_by: sortConfig ? sortConfig.key : 'profitAndLoss',
+            sort_order: sortConfig ? sortConfig.direction : sortDirection
           },
           headers: {
             'Accept': 'application/json',
@@ -126,7 +137,7 @@ function SmartMoneyWalletModal({ wallet, onClose }) {
     };
     
     fetchWalletTokens();
-  }, [wallet, sortDirection]);
+  }, [wallet, sortDirection, sortConfig]);
 
   // Add debugging useEffect to log token data whenever it changes
   useEffect(() => {
@@ -149,57 +160,40 @@ function SmartMoneyWalletModal({ wallet, onClose }) {
 
   // Generate mock token data based on the wallet (for development/fallback only)
   const generateMockTokenData = (wallet) => {
-    // Create some realistic token data with both profitable and loss-making tokens
+    // Base tokens with fixed data for consistency
     const baseTokens = [
-      { 
-        tokenId: 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v', 
-        tokenName: 'USDC',
-        amountInvested: parseFloat(wallet.totalinvestedamount) * 0.3,
-        amountTakenOut: parseFloat(wallet.amounttakenout) * 0.35,
-        profitAndLoss: 1200.50,
-        avgEntry: 1.0,
-        avgExit: 1.0,
-        currentPrice: 1.0
+      {
+        tokenId: "mock-sol-123456789",
+        tokenName: "Solana",
+        amountInvested: 10000,
+        amountTakenOut: 15000,
+        profitAndLoss: 6500,
+        remainingCoins: 10.5,
+        currentPrice: 142.86,
+        remainingAmount: 1500,
+        realizedPnl: 5000
       },
-      { 
-        tokenId: 'So11111111111111111111111111111111111111112', 
-        tokenName: 'SOL',
-        amountInvested: parseFloat(wallet.totalinvestedamount) * 0.2,
-        amountTakenOut: parseFloat(wallet.amounttakenout) * 0.15,
-        profitAndLoss: -450.75,
-        avgEntry: 70.25,
-        avgExit: 65.50,
-        currentPrice: 150.0
+      {
+        tokenId: "mock-bonk-123456789",
+        tokenName: "BONK",
+        amountInvested: 5000,
+        amountTakenOut: 8000,
+        profitAndLoss: 3500,
+        remainingCoins: 5000000,
+        currentPrice: 0.00001,
+        remainingAmount: 50,
+        realizedPnl: 3000
       },
-      { 
-        tokenId: 'mSoLzYCxHdYgdzU16g5QSh3i5K3z3KZK7ytfqcJm7So', 
-        tokenName: 'mSOL',
-        amountInvested: parseFloat(wallet.totalinvestedamount) * 0.15,
-        amountTakenOut: parseFloat(wallet.amounttakenout) * 0.1,
-        profitAndLoss: 850.25,
-        avgEntry: 45.0,
-        avgExit: 55.0,
-        currentPrice: 160.0
-      },
-      { 
-        tokenId: 'DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263', 
-        tokenName: 'BONK',
-        amountInvested: parseFloat(wallet.totalinvestedamount) * 0.05,
-        amountTakenOut: parseFloat(wallet.amounttakenout) * 0.02,
-        profitAndLoss: -120.30,
-        avgEntry: 0.00001,
-        avgExit: 0.000008,
-        currentPrice: 0.000015
-      },
-      { 
-        tokenId: '7vfCXTUXx5WJV5JADk17DUJ4ksgau7utNKj4b963voxs', 
-        tokenName: 'ETH (Wormhole)',
-        amountInvested: parseFloat(wallet.totalinvestedamount) * 0.25,
-        amountTakenOut: parseFloat(wallet.amounttakenout) * 0.3,
+      {
+        tokenId: "mock-btc-123456789",
+        tokenName: "Wrapped BTC",
+        amountInvested: 20000,
+        amountTakenOut: 18000,
         profitAndLoss: -250.45,
-        avgEntry: 3500,
-        avgExit: 3300,
-        currentPrice: 3800
+        remainingCoins: 0.1,
+        currentPrice: 67500,
+        remainingAmount: 6750,
+        realizedPnl: -2000
       }
     ];
     
@@ -209,19 +203,28 @@ function SmartMoneyWalletModal({ wallet, onClose }) {
     
     for (let i = 0; i < 15; i++) {
       const isProfit = Math.random() > 0.5; // 50% chance of profit
-      const pnl = isProfit ? 
-        Math.random() * 1000 + 50 : // Profitable: 50-1050
-        -(Math.random() * 1000 + 50); // Loss: -50 to -1050
+      const amountInvested = parseFloat(wallet.totalinvestedamount) * (Math.random() * 0.1 + 0.01);
+      const amountTakenOut = parseFloat(wallet.amounttakenout) * (Math.random() * 0.1 + 0.01);
+      const realizedPnl = amountTakenOut - amountInvested;
+      
+      const hasRemainingCoins = Math.random() > 0.3; // 70% chance of having remaining coins
+      const currentPrice = Math.random() * 100 + 1;
+      const remainingCoins = hasRemainingCoins ? Math.random() * 1000 : 0;
+      const remainingAmount = remainingCoins * currentPrice;
+      
+      // Total PNL is realized PNL + remaining amount
+      const pnl = realizedPnl + remainingAmount;
         
       additionalTokens.push({
         tokenId: `mock-token-${i}`,
         tokenName: tokenNames[i % tokenNames.length],
-        amountInvested: parseFloat(wallet.totalinvestedamount) * (Math.random() * 0.1 + 0.01),
-        amountTakenOut: parseFloat(wallet.amounttakenout) * (Math.random() * 0.1 + 0.01),
-        profitAndLoss: pnl,
-        avgEntry: Math.random() * 100 + 1,
-        avgExit: Math.random() * 100 + 1,
-        currentPrice: Math.random() * 100 + 1
+        amountInvested: amountInvested,
+        amountTakenOut: amountTakenOut,
+        remainingCoins: remainingCoins,
+        currentPrice: currentPrice,
+        remainingAmount: remainingAmount,
+        realizedPnl: realizedPnl,
+        profitAndLoss: pnl
       });
     }
     
@@ -255,6 +258,30 @@ function SmartMoneyWalletModal({ wallet, onClose }) {
     setSortDirection(sortDirection === 'desc' ? 'asc' : 'desc');
   };
 
+  // Handle column sorting
+  const handleSort = (key) => {
+    // If clicking the same column, toggle direction
+    if (sortConfig && sortConfig.key === key) {
+      setSortConfig({ 
+        key: key, 
+        direction: sortConfig.direction === 'asc' ? 'desc' : 'asc' 
+      });
+    } else {
+      // Default to descending order when clicking a new column
+      setSortConfig({ key: key, direction: 'desc' });
+    }
+  };
+
+  // Get sort icon for the column header
+  const getSortIcon = (key) => {
+    if (sortConfig && sortConfig.key === key) {
+      return sortConfig.direction === 'asc' 
+        ? <FaChevronUp className="sort-icon active" /> 
+        : <FaChevronDown className="sort-icon active" />;
+    }
+    return <FaChevronDown className="sort-icon" />;
+  };
+
   const formatCurrency = (value) => {
     if (value === null || value === undefined) return '-';
     
@@ -282,11 +309,23 @@ function SmartMoneyWalletModal({ wallet, onClose }) {
     }
   };
   
-  const openExternalLink = (tokenId) => {
-    if (!wallet || !wallet.walletaddress) return;
+  // Format PNL with color indication
+  const formatPNL = (pnl) => {
+    if (pnl === null || pnl === undefined) return { value: '-', isPositive: null };
     
-    // Open Cielo profile with token parameter
-    window.open(`https://app.cielo.finance/profile/${wallet.walletaddress}?tokens=${tokenId}`, '_blank');
+    const isPositive = pnl >= 0;
+    let formattedValue;
+    
+    // Format with appropriate suffix
+    if (Math.abs(pnl) >= 1_000_000) {
+      formattedValue = `$${(pnl / 1_000_000).toFixed(2)}M`;
+    } else if (Math.abs(pnl) >= 1_000) {
+      formattedValue = `$${(pnl / 1_000).toFixed(2)}K`;
+    } else {
+      formattedValue = `$${pnl.toFixed(2)}`;
+    }
+    
+    return { value: formattedValue, isPositive };
   };
   
   // Get filtered tokens based on toggle settings
@@ -294,18 +333,51 @@ function SmartMoneyWalletModal({ wallet, onClose }) {
     // Log filter settings for debugging
     console.log(`Filter settings - Show profitable: ${showProfitable}, Show loss-making: ${showLossMaking}`);
     
+    // Apply filtering
     const filtered = tokens.filter(token => {
       const pnl = parseFloat(token.profitAndLoss) || 0;
       const isProfitable = pnl >= 0;
-      
-      // Log token filtering for debugging
-      console.log(`Token ${token.tokenName} - PNL: ${pnl}, isProfitable: ${isProfitable}, Will show: ${(isProfitable && showProfitable) || (!isProfitable && showLossMaking)}`);
       
       if (isProfitable && !showProfitable) return false;
       if (!isProfitable && !showLossMaking) return false;
       
       return true;
     });
+    
+    // Apply sorting if sortConfig is set
+    if (sortConfig !== null) {
+      const sortedTokens = [...filtered].sort((a, b) => {
+        let aValue = a[sortConfig.key];
+        let bValue = b[sortConfig.key];
+        
+        // Handle numeric conversions
+        if (typeof aValue === 'string' && !isNaN(parseFloat(aValue))) {
+          aValue = parseFloat(aValue) || 0;
+        }
+        if (typeof bValue === 'string' && !isNaN(parseFloat(bValue))) {
+          bValue = parseFloat(bValue) || 0;
+        }
+        
+        // Handle string comparison
+        if (typeof aValue === 'string') {
+          aValue = aValue.toLowerCase();
+        }
+        if (typeof bValue === 'string') {
+          bValue = bValue.toLowerCase();
+        }
+        
+        // Compare values
+        if (aValue < bValue) {
+          return sortConfig.direction === 'asc' ? -1 : 1;
+        }
+        if (aValue > bValue) {
+          return sortConfig.direction === 'asc' ? 1 : -1;
+        }
+        return 0;
+      });
+      
+      return sortedTokens;
+    }
     
     console.log(`Filtered tokens: ${filtered.length} out of ${tokens.length}`);
     return filtered;
@@ -363,6 +435,112 @@ function SmartMoneyWalletModal({ wallet, onClose }) {
     if (e.target === e.currentTarget) {
       onClose();
     }
+  };
+
+  const handleCopyTokenId = (tokenId, e) => {
+    e.stopPropagation();
+    navigator.clipboard.writeText(tokenId);
+    setCopiedTokenId(tokenId);
+    setTimeout(() => setCopiedTokenId(null), 2000);
+  };
+
+  const handleBehaviourClick = () => {
+    setShowBehaviourModal(true);
+  };
+
+  const closeBehaviourModal = () => {
+    setShowBehaviourModal(false);
+  };
+
+  const handleRangesClick = () => {
+    setShowRangesModal(true);
+  };
+  
+  const closeRangesModal = () => {
+    setShowRangesModal(false);
+  };
+
+  const renderTableHeaders = () => {
+    return (
+      <thead>
+        <tr>
+          <th className="name-header sortable" onClick={() => handleSort('tokenName')}>
+            Name {getSortIcon('tokenName')}
+          </th>
+          <th className="amount-header sortable" onClick={() => handleSort('amountInvested')}>
+            Amount Invested {getSortIcon('amountInvested')}
+          </th>
+          <th className="amount-header sortable" onClick={() => handleSort('amountTakenOut')}>
+            Amount Taken Out {getSortIcon('amountTakenOut')}
+          </th>
+          <th className="amount-header sortable" onClick={() => handleSort('remainingAmount')}>
+            Remaining Amount {getSortIcon('remainingAmount')}
+          </th>
+          <th className="pnl-header sortable" onClick={() => handleSort('realizedPnl')}>
+            Realized PNL {getSortIcon('realizedPnl')}
+          </th>
+          <th className="pnl-header sortable" onClick={() => handleSort('profitAndLoss')}>
+            Total PNL {getSortIcon('profitAndLoss')}
+          </th>
+        </tr>
+      </thead>
+    );
+  };
+
+  const renderTableRow = (token) => {
+    // Format PNL values with color indication
+    const formattedPNL = formatPNL(token.profitAndLoss);
+    const formattedRealizedPNL = formatPNL(token.realizedPnl);
+    
+    const handleNameClick = (e) => {
+      e.stopPropagation();
+      handleCopyTokenId(token.tokenId, e);
+    };
+    
+    return (
+      <tr key={token.tokenId} className="token-row">
+        <td className="token-name-cell">
+          <div className="copy-name-container">
+            <span 
+              className={`token-name-display ${copiedTokenId === token.tokenId ? 'copied' : ''}`}
+              title={`Click to copy: ${token.tokenId}`}
+              onClick={handleNameClick}
+            >
+              {token.tokenName}
+            </span>
+            {copiedTokenId === token.tokenId && (
+              <FaCheck className="copy-success" />
+            )}
+          </div>
+        </td>
+        <td title={formatCurrency(token.amountInvested)}>
+          {formatAbbreviatedCurrency(token.amountInvested)}
+        </td>
+        <td title={formatCurrency(token.amountTakenOut)}>
+          {formatAbbreviatedCurrency(token.amountTakenOut)}
+        </td>
+        <td title={formatCurrency(token.remainingAmount)}>
+          {formatAbbreviatedCurrency(token.remainingAmount)}
+          {token.currentPrice > 0 && (
+            <span className="current-price-note">
+              @ {formatCurrency(token.currentPrice)}
+            </span>
+          )}
+        </td>
+        <td 
+          className={`pnl-cell ${formattedRealizedPNL.isPositive === null ? '' : formattedRealizedPNL.isPositive ? 'positive' : 'negative'}`}
+          title={formatCurrency(token.realizedPnl)}
+        >
+          {formattedRealizedPNL.value}
+        </td>
+        <td 
+          className={`pnl-cell ${formattedPNL.isPositive === null ? '' : formattedPNL.isPositive ? 'positive' : 'negative'}`}
+          title={formatCurrency(token.profitAndLoss)}
+        >
+          {formattedPNL.value}
+        </td>
+      </tr>
+    );
   };
 
   return (
@@ -438,6 +616,22 @@ function SmartMoneyWalletModal({ wallet, onClose }) {
                       <><FaSortAmountUp className="sort-icon" /> Lowest PNL First</>
                     }
                   </button>
+                  <button 
+                    className="toggle-button behaviour-button"
+                    onClick={handleBehaviourClick}
+                    title="View wallet behaviour analysis"
+                  >
+                    <FaChartBar className="behaviour-icon" />
+                    Behaviour
+                  </button>
+                  <button 
+                    className="toggle-button ranges-button"
+                    onClick={handleRangesClick}
+                    title="View investment range analysis"
+                  >
+                    <FaLayerGroup className="ranges-icon" />
+                    Ranges
+                  </button>
                 </div>
                 <div className="filter-info">
                   <FaInfoCircle />
@@ -473,106 +667,45 @@ function SmartMoneyWalletModal({ wallet, onClose }) {
                 <>
                   <div className="token-table-container">
                     <table className="token-table">
-                      <thead>
-                        <tr>
-                          <th>Token ID</th>
-                          <th>Name</th>
-                          <th className="text-center">Amount Invested</th>
-                          <th className="text-center">Amount Taken Out</th>
-                          <th className="text-center">PNL</th>
-                          <th className="text-center">Actions</th>
-                        </tr>
-                      </thead>
+                      {renderTableHeaders()}
                       <tbody>
-                        {currentTokens.map((token, index) => {
-                          const pnl = parseFloat(token.profitAndLoss) || 0;
-                          const isProfitable = pnl >= 0;
-                          
-                          return (
-                            <tr 
-                              key={index}
-                              className={isProfitable ? 'profitable-row' : 'loss-row'}
-                            >
-                              <td className="token-id" title={token.tokenId}>
-                                {token.tokenId.substring(0, 6)}...{token.tokenId.substring(token.tokenId.length - 4)}
-                              </td>
-                              <td className="token-name">
-                                {token.tokenName}
-                              </td>
-                              <td 
-                                className="text-center" 
-                                title={formatCurrency(token.amountInvested)}
-                              >
-                                {formatAbbreviatedCurrency(token.amountInvested)}
-                              </td>
-                              <td 
-                                className="text-center" 
-                                title={formatCurrency(token.amountTakenOut)}
-                              >
-                                {formatAbbreviatedCurrency(token.amountTakenOut)}
-                              </td>
-                              <td 
-                                className={`text-center pnl-cell ${isProfitable ? 'positive' : 'negative'}`}
-                                title={formatCurrency(token.profitAndLoss)}
-                              >
-                                {formatAbbreviatedCurrency(token.profitAndLoss)}
-                              </td>
-                              <td className="text-center">
-                                <button 
-                                  className="view-token-button"
-                                  onClick={() => openExternalLink(token.tokenId)}
-                                  title="View on Cielo"
-                                >
-                                  <FaExternalLinkAlt style={{ marginRight: '4px' }} />
-                                  View
-                                </button>
-                              </td>
-                            </tr>
-                          );
-                        })}
+                        {currentTokens.map(token => renderTableRow(token))}
                       </tbody>
                     </table>
                   </div>
                   
                   {/* Pagination controls */}
-                  <div className="pagination-controls">
-                    <div className="pagination-info">
-                      Showing {indexOfFirstToken + 1}-{Math.min(indexOfLastToken, filteredTokens.length)} of {filteredTokens.length} tokens
-                    </div>
-                    <div className="pagination-actions">
-                      <select 
-                        className="tokens-per-page" 
-                        value={tokensPerPage} 
-                        onChange={changeTokensPerPage}
-                        title="Tokens per page"
-                      >
-                        <option value="5">5 per page</option>
-                        <option value="10">10 per page</option>
-                        <option value="15">15 per page</option>
-                        <option value="20">20 per page</option>
-                      </select>
-                      <div className="pagination-buttons">
-                        <button 
-                          className={`pagination-button ${currentPage === 1 ? 'disabled' : ''}`}
-                          onClick={prevPage}
-                          disabled={currentPage === 1}
-                          title="Previous page"
-                        >
-                          <FaChevronLeft />
-                        </button>
-                        <span className="page-indicator">
-                          Page {currentPage} of {totalPages}
-                        </span>
-                        <button 
-                          className={`pagination-button ${currentPage === totalPages ? 'disabled' : ''}`}
-                          onClick={nextPage}
-                          disabled={currentPage === totalPages}
-                          title="Next page"
-                        >
-                          <FaChevronRight />
-                        </button>
-                      </div>
-                    </div>
+                  <div className="pagination-container">
+                    <button 
+                      className="pagination-button"
+                      onClick={prevPage}
+                      disabled={currentPage === 1}
+                      title="Previous page"
+                    >
+                      <FaChevronLeft />
+                    </button>
+                    <span className="page-info">
+                      Page {currentPage} of {totalPages}
+                    </span>
+                    <button 
+                      className="pagination-button"
+                      onClick={nextPage}
+                      disabled={currentPage === totalPages}
+                      title="Next page"
+                    >
+                      <FaChevronRight />
+                    </button>
+                    <select 
+                      className="pagination-button"
+                      value={tokensPerPage} 
+                      onChange={changeTokensPerPage}
+                      title="Tokens per page"
+                    >
+                      <option value="10">10 per page</option>
+                      <option value="20">20 per page</option>
+                      <option value="30">30 per page</option>
+                      <option value="50">50 per page</option>
+                    </select>
                   </div>
                 </>
               )}
@@ -580,6 +713,20 @@ function SmartMoneyWalletModal({ wallet, onClose }) {
           )}
         </div>
       </div>
+      
+      {showBehaviourModal && (
+        <SmartMoneyWalletBehaviourModal
+          wallet={wallet}
+          onClose={closeBehaviourModal}
+        />
+      )}
+      
+      {showRangesModal && (
+        <SmartMoneyWalletInvestmentRangeReportModal
+          wallet={wallet}
+          onClose={closeRangesModal}
+        />
+      )}
     </div>
   );
 }

@@ -2,7 +2,8 @@ import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import SmartMoneyPerformanceFilterForm from './SmartMoneyPerformanceFilterForm';
 import SmartMoneyPerformanceTable from './SmartMoneyPerformanceTable';
-import { FaFilter, FaChartLine, FaCoins, FaTimes, FaWallet, FaExchangeAlt } from 'react-icons/fa';
+import SmartMoneyWalletModal from './SmartMoneyWalletModal';
+import { FaFilter, FaWallet } from 'react-icons/fa';
 import './SmartMoneyPerformanceReport.css';
 
 function SmartMoneyPerformanceReport() {
@@ -11,6 +12,7 @@ function SmartMoneyPerformanceReport() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [showFilters, setShowFilters] = useState(false);
+  const [selectedWallet, setSelectedWallet] = useState(null);
   const [sortConfig, setSortConfig] = useState({
     sort_by: 'profitandloss',
     sort_order: 'desc'
@@ -27,6 +29,10 @@ function SmartMoneyPerformanceReport() {
         }
         return acc;
       }, {});
+
+      if (!apiFilters.limit) {
+        apiFilters.limit = 100;
+      }
 
       const queryParams = new URLSearchParams(apiFilters).toString();
       
@@ -81,11 +87,14 @@ function SmartMoneyPerformanceReport() {
     setShowFilters(!showFilters);
   };
 
-  const totalWallets = data.length;
-  const totalProfitAndLoss = data.reduce((sum, wallet) => sum + (wallet.profitandloss || 0), 0);
-  const averageWinRate = data.length > 0 
-    ? data.reduce((sum, wallet) => sum + (wallet.winrate || 0), 0) / data.length 
-    : 0;
+  const handleWalletSelect = (wallet) => {
+    console.log('Selected wallet:', wallet);
+    setSelectedWallet(wallet);
+  };
+
+  const handleCloseModal = () => {
+    setSelectedWallet(null);
+  };
 
   return (
     <div className="sm-performance-report-container">
@@ -116,48 +125,15 @@ function SmartMoneyPerformanceReport() {
 
       <div className="sm-performance-report-content">
         {showFilters && (
-          <>
-            <div className="sm-filter-backdrop" onClick={toggleFilters}></div>
-            <div className="sm-filter-panel">
-              <button className="sm-close-filter-button" onClick={toggleFilters}>
-                <FaTimes />
-              </button>
-              <SmartMoneyPerformanceFilterForm onApply={handleApplyFilters} initialFilters={filters} />
-            </div>
-          </>
+          <div className="sm-filter-form-container">
+            <SmartMoneyPerformanceFilterForm 
+              onApply={handleApplyFilters} 
+              initialFilters={filters}
+              onCancel={() => setShowFilters(false)}
+            />
+          </div>
         )}
         
-        <div className="sm-report-stats">
-          <div className="sm-stat-card">
-            <FaWallet className="sm-stat-icon" />
-            <div className="sm-stat-content">
-              <h3>Total Wallets</h3>
-              <p>{totalWallets}</p>
-            </div>
-          </div>
-          <div className="sm-stat-card">
-            <FaCoins className="sm-stat-icon" />
-            <div className="sm-stat-content">
-              <h3>Total Profit & Loss</h3>
-              <p className={totalProfitAndLoss >= 0 ? 'positive' : 'negative'}>
-                {totalProfitAndLoss > 0 ? '+' : ''}
-                {new Intl.NumberFormat('en-US', {
-                  style: 'currency',
-                  currency: 'USD',
-                  maximumFractionDigits: 0
-                }).format(totalProfitAndLoss)}
-              </p>
-            </div>
-          </div>
-          <div className="sm-stat-card">
-            <FaExchangeAlt className="sm-stat-icon" />
-            <div className="sm-stat-content">
-              <h3>Average Win Rate</h3>
-              <p>{Math.round(averageWinRate)}%</p>
-            </div>
-          </div>
-        </div>
-
         <div className="sm-report-container">
           {loading ? (
             <div className="sm-loading-container">
@@ -179,10 +155,18 @@ function SmartMoneyPerformanceReport() {
               data={data} 
               onSort={handleSort} 
               sortConfig={sortConfig}
+              onWalletSelect={handleWalletSelect}
             />
           )}
         </div>
       </div>
+      
+      {selectedWallet && (
+        <SmartMoneyWalletModal 
+          wallet={selectedWallet} 
+          onClose={handleCloseModal} 
+        />
+      )}
     </div>
   );
 }
