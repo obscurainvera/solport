@@ -33,7 +33,8 @@ class PortSummaryReportHandler(BaseSQLiteHandler):
                             minTokenAge: float = None,
                             maxTokenAge: float = None,
                             sortBy: str = "smartbalance",
-                            sortOrder: str = "desc") -> List[Dict[str, Any]]:
+                            sortOrder: str = "desc",
+                            selectedTags: List[str] = None) -> List[Dict[str, Any]]:
         """
         Get port summary report data with optional filters.
         
@@ -47,6 +48,7 @@ class PortSummaryReportHandler(BaseSQLiteHandler):
             maxTokenAge: Maximum token age filter
             sortBy: Field to sort by (default: smartbalance)
             sortOrder: Sort order (asc or desc, default: desc)
+            selectedTags: List of tags to filter by
             
         Returns:
             List of port summary data dictionaries
@@ -64,7 +66,7 @@ class PortSummaryReportHandler(BaseSQLiteHandler):
                 smartbalance,
                 tags
             FROM portsummary
-            WHERE status = 2
+            WHERE status = 1
         """
         params = []
 
@@ -132,6 +134,13 @@ class PortSummaryReportHandler(BaseSQLiteHandler):
                         else:
                             # If it's a single tag, make it a list
                             tags = [tags]
+                
+                # Filter tags if selectedTags is provided
+                if selectedTags:
+                    # Only include records that have at least one of the selected tags
+                    matching_tags = [tag for tag in tags if tag in selectedTags]
+                    if not matching_tags:  # Skip records with no matching tags
+                        continue
                 
                 portSummaryData.append({
                     'portsummaryid': row[0],

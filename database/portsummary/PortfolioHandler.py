@@ -1,11 +1,11 @@
 from database.operations.base_handler import BaseSQLiteHandler
 from database.operations.schema import PortfolioSummary
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Set
 from decimal import Decimal
 import json
 import sqlite3
 from logs.logger import get_logger
-from config.AnalysisStatusEnum import AnalysisStatus
+from config.PortfolioStatusEnum import PortfolioStatus
 from datetime import datetime, timedelta
 import pytz
 
@@ -69,7 +69,7 @@ class PortfolioHandler(BaseSQLiteHandler):
                     createdat TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     updatedat TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     tags TEXT,
-                    FOREIGN KEY (portsummaryid) REFERENCES portsummary(portsummaryid)
+                    FOREIGN KEY (portsummaryid) REFERENCES portsummary(portsummaryid) ON DELETE CASCADE
                 )
             ''')
 
@@ -203,9 +203,9 @@ class PortfolioHandler(BaseSQLiteHandler):
             try:
                 # Log the query and parameters for debugging
                 logger.debug(f"Executing query: {query}")
-                logger.debug(f"Parameters: token_ids={token_ids}, status={AnalysisStatus.ACTIVE.statuscode}")
+                logger.debug(f"Parameters: token_ids={token_ids}, status={PortfolioStatus.ACTIVE.statuscode}")
                 
-                cursor.execute(query, (*token_ids, AnalysisStatus.ACTIVE.statuscode))
+                cursor.execute(query, (*token_ids, PortfolioStatus.ACTIVE.statuscode))
                 rows = cursor.fetchall()
                 
                 # Log the number of rows returned
@@ -232,7 +232,7 @@ class PortfolioHandler(BaseSQLiteHandler):
             cursor.execute("""
                 SELECT * FROM portsummary 
                 WHERE status = ?
-            """, (AnalysisStatus.ACTIVE.statuscode,))
+            """, (PortfolioStatus.ACTIVE.statuscode,))
             return [dict(row) for row in cursor.fetchall()]
 
     def getTokenDataFromPortSummary(self, tokenId: str) -> Optional[Dict]:
@@ -245,8 +245,8 @@ class PortfolioHandler(BaseSQLiteHandler):
                         status
                     FROM portsummary
                     WHERE tokenid = ?
-                    AND status = 1
-                """, (tokenId,))
+                    AND status = ?
+                """, (tokenId, PortfolioStatus.ACTIVE.statuscode))
                 
                 row = cursor.fetchone()
                 return dict(row) if row else None
@@ -296,10 +296,10 @@ class PortfolioHandler(BaseSQLiteHandler):
         cursor.execute("""
             SELECT portsummaryid, tokenid, name, lastseen
             FROM portsummary 
-            WHERE status = 1  -- Active records only
+            WHERE status = ?  -- Active records only
             AND lastseen < ?  -- More than 2 days old
-            AND (markedinactive IS NULL OR status != 2)  -- Not already marked inactive
-        """, (cutoffDate,))
+            AND (markedinactive IS NULL OR status != ?)  -- Not already marked inactive
+        """, (PortfolioStatus.ACTIVE.statuscode, cutoffDate, PortfolioStatus.INACTIVE.statuscode))
         
         tokensToDeactivate = cursor.fetchall()
         
@@ -321,13 +321,13 @@ class PortfolioHandler(BaseSQLiteHandler):
         updateQuery = f"""
             UPDATE portsummary 
             SET 
-                status = 2,  -- Set to inactive
+                status = ?,  -- Set to inactive
                 markedinactive = ?,  -- Record when it was marked inactive
                 updatedat = ?
             WHERE portsummaryid IN ({placeholders})
         """
         
-        cursor.execute(updateQuery, [currentTime, currentTime] + tokenIds)
+        cursor.execute(updateQuery, [PortfolioStatus.INACTIVE.statuscode, currentTime, currentTime] + tokenIds)
         affectedRows = cursor.rowcount
         
         logger.info(f"Successfully deactivated {affectedRows} tokens")
@@ -338,9 +338,9 @@ class PortfolioHandler(BaseSQLiteHandler):
         with self.conn_manager.transaction() as cursor:
             cursor.execute("""
                 SELECT * FROM portsummary 
-                WHERE status = 1 
+                WHERE status = ? 
                 AND lastseen >= ?
-            """, (timestamp.strftime('%Y-%m-%d %H:%M:%S'),))
+            """, (PortfolioStatus.ACTIVE.statuscode, timestamp.strftime('%Y-%m-%d %H:%M:%S')))
             return [PortfolioSummary(**dict(row)) for row in cursor.fetchall()]
 
     def updateTokenTags(self, cursor: sqlite3.Cursor, tokenId: str, tags: str, timestamp: datetime) -> None:
@@ -395,8 +395,8 @@ class PortfolioHandler(BaseSQLiteHandler):
                 cursor.execute("""
                     SELECT * FROM portsummary
                     WHERE tokenid = ?
-                    AND status = 1
-                """, (tokenId,))
+                    AND status = ?
+                """, (tokenId, PortfolioStatus.ACTIVE.statuscode))
                 
                 row = cursor.fetchone()
                 if not row:
@@ -406,4 +406,143 @@ class PortfolioHandler(BaseSQLiteHandler):
                 
         except Exception as e:
             logger.error(f"Failed to get token data for analysis: {str(e)}")
-            return None 
+            return None
+
+    def markTokensInactiveDuringUpdate(self, tokens_to_mark_inactive: Set[str], cursor: Optional[sqlite3.Cursor] = None) -> int:
+        """
+        Mark tokens as inactive during update process
+        
+        Args:
+            tokens_to_mark_inactive: Set of token IDs to mark as inactive
+            cursor: Optional database cursor for transaction management
+            
+        Returns:
+            int: Number of tokens marked as inactive
+        """
+        if not tokens_to_mark_inactive:
+            logger.info("No tokens to mark as inactive during update")
+            return 0
+            
+        try:
+            current_time = datetime.now()
+            affected_count = 0
+            
+            # Use provided cursor or create a new transaction
+            if cursor is None:
+                with self.conn_manager.transaction() as inner_cursor:
+                    affected_count = self._execute_mark_inactive(inner_cursor, tokens_to_mark_inactive, current_time)
+            else:
+                affected_count = self._execute_mark_inactive(cursor, tokens_to_mark_inactive, current_time)
+                
+            logger.info(f"Successfully marked {affected_count} tokens as inactive during update")
+            return affected_count
+            
+        except Exception as e:
+            logger.error(f"Failed to mark tokens as inactive during update: {str(e)}")
+            raise
+    
+    def _execute_mark_inactive(self, cursor: sqlite3.Cursor, tokens_to_mark_inactive: Set[str], timestamp: datetime) -> int:
+        """
+        Execute the actual database update to mark tokens as inactive
+        
+        Args:
+            cursor: Database cursor
+            tokens_to_mark_inactive: Set of token IDs to mark as inactive
+            timestamp: Current timestamp
+            
+        Returns:
+            int: Number of affected rows
+        """
+        affected_count = 0
+        
+        for token_id in tokens_to_mark_inactive:
+            try:
+                cursor.execute("""
+                    UPDATE portsummary
+                    SET status = ?,
+                        markedinactive = ?,
+                        updatedat = ?
+                    WHERE tokenid = ? AND status = ?
+                """, (
+                    PortfolioStatus.MARKED_INACTIVE_DURING_UPDATE.statuscode,
+                    timestamp,
+                    timestamp,
+                    token_id,
+                    PortfolioStatus.ACTIVE.statuscode
+                ))
+                
+                if cursor.rowcount > 0:
+                    affected_count += cursor.rowcount
+                    logger.info(f"Marked token {token_id} as inactive during update")
+                    
+            except Exception as e:
+                logger.error(f"Failed to mark token {token_id} as inactive: {str(e)}")
+                
+        return affected_count
+
+    def persistPortfolioSummaryData(self, items: List[PortfolioSummary], market_age: list) -> Dict[str, int]:
+        """
+        Persist portfolio items to database with transaction management
+        
+        Args:
+            items: List of PortfolioSummary objects to persist
+            market_age: Market age filter used for this API call
+            
+        Returns:
+            Dict: Stats about the operation (updated and inserted counts)
+            
+        Note:
+            Uses transaction to ensure atomic updates
+            Handles both new insertions and updates to existing records
+        """
+        if not items:
+            logger.warning(f"No items to persist for market age {market_age}")
+            return {"updated": 0, "inserted": 0}
+            
+        try:
+            tokenIds = [item.tokenid for item in items]
+            existingRecords = self.getTokenData(tokenIds)
+            existingMap = {record.tokenid: record for record in existingRecords}
+            current_time = datetime.now()
+            
+            updated_count = 0
+            inserted_count = 0
+
+            with self.conn_manager.transaction() as cursor:
+                for item in items:
+                    try:
+                        # Ensure status is set to ACTIVE
+                        item.status = PortfolioStatus.ACTIVE.statuscode
+                        
+                        # Ensure createdat and updatedat are set
+                        if not hasattr(item, 'createdat') or item.createdat is None:
+                            item.createdat = current_time
+                        if not hasattr(item, 'updatedat') or item.updatedat is None:
+                            item.updatedat = current_time
+                        
+                        if item.tokenid in existingMap:
+                            # Insert history record first
+                            existing_item = existingMap[item.tokenid]
+                            # Preserve original createdat from existing record
+                            if hasattr(existing_item, 'createdat') and existing_item.createdat is not None:
+                                item.createdat = existing_item.createdat
+                            self.insertHistory(existing_item, cursor)
+                            # Then update current record
+                            self.updateSummary(item, cursor)
+                            updated_count += 1
+                            logger.info(f"Updated existing record for token {item.tokenid} with name {item.name} at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} with market age {market_age}")
+                        else:
+                            # Insert new record
+                            self.insertSummary(item, cursor)
+                            inserted_count += 1
+                            logger.info(f"Inserted new record for token {item.tokenid} with name {item.name} at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} with market age {market_age}")
+                    except Exception as e:
+                        logger.error(f"Failed to persist item {item.tokenid} at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} with market age {market_age}: {str(e)}")
+                        raise
+
+            logger.info(f"Successfully persisted {len(items)} items (updated: {updated_count}, inserted: {inserted_count}) at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} with market age {market_age}")
+            return {"updated": updated_count, "inserted": inserted_count}
+            
+        except Exception as e:
+            logger.error(f"Database operation failed: {str(e)}")
+            raise 

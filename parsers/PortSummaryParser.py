@@ -3,7 +3,7 @@ from typing import List, Dict, Any, Optional
 import re
 from logs.logger import get_logger
 from database.operations.schema import PortfolioSummary
-from config.AnalysisStatusEnum import AnalysisStatus
+from config.PortfolioStatusEnum import PortfolioStatus
 from decimal import Decimal, InvalidOperation
 from datetime import datetime
 
@@ -32,7 +32,7 @@ def parsePortSummaryAPIResponse(response: Dict[str, Any]) -> List[PortfolioSumma
                 qtychange1d=_safeDecimal(rawItem['d1_chg_pct']),
                 qtychange7d=_safeDecimal(rawItem['d7_chg_pct']),
                 qtychange30d=_safeDecimal(rawItem['d30_chg_pct']),
-                status=AnalysisStatus.ACTIVE.statuscode,
+                status=PortfolioStatus.ACTIVE.statuscode,
                 tags=[],
                 # Add timestamp fields
                 firstseen=current_time,
@@ -43,7 +43,7 @@ def parsePortSummaryAPIResponse(response: Dict[str, Any]) -> List[PortfolioSumma
             
             if filterPortfolioItems(summaryItem):
                 results.append(summaryItem)
-                logger.info(f"Parsed token {summaryItem.tokenid} - {summaryItem.name} with status {AnalysisStatus.ACTIVE}")
+                logger.info(f"Parsed token {summaryItem.tokenid} - {summaryItem.name} with status {PortfolioStatus.ACTIVE}")
                 
         except Exception as e:
             logger.error(f"Failed to parse item: {e}")

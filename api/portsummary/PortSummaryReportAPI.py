@@ -14,7 +14,7 @@ port_summary_report_bp = Blueprint('port_summary_report', __name__)
 def get_port_summary():
     if request.method == 'OPTIONS':
         response = jsonify({})
-        response.headers.add('Access-Control-Allow-Origin', 'http://localhost:3000')
+        response.headers.add('Access-Control-Allow-Origin', '*')  # Allow any origin for development
         response.headers.add('Access-Control-Allow-Methods', 'GET, OPTIONS')
         response.headers.add('Access-Control-Allow-Headers', 'Content-Type, Accept')
         return response, 200
@@ -30,7 +30,12 @@ def get_port_summary():
         maxTokenAge = request.args.get('max_token_age', type=float)
         sortBy = request.args.get('sort_by', 'smartbalance')
         sortOrder = request.args.get('sort_order', 'desc')
-
+        selectedTags = request.args.getlist('selected_tags')  # Get list of selected tags
+        
+        # Log selected tags to help debugging
+        if selectedTags:
+            logger.info(f"Filtering by tags: {selectedTags}")
+        
         # Use the handler to get the data
         with SQLitePortfolioDB() as db:
             handler = PortSummaryReportHandler(db)
@@ -42,7 +47,7 @@ def get_port_summary():
                     'error': 'Configuration error',
                     'message': "Handler 'port_summary_report' not found"
                 })
-                response.headers.add('Access-Control-Allow-Origin', 'http://localhost:3000')
+                response.headers.add('Access-Control-Allow-Origin', '*')  # Allow any origin for development
                 return response, 500
                 
             portSummaryData = handler.getPortSummaryReport(
@@ -54,7 +59,8 @@ def get_port_summary():
                 minTokenAge=minTokenAge,
                 maxTokenAge=maxTokenAge,
                 sortBy=sortBy,
-                sortOrder=sortOrder
+                sortOrder=sortOrder,
+                selectedTags=selectedTags if selectedTags else None  # Pass selected tags to handler
             )
             
             # Initialize DexScreener action to fetch current prices
@@ -107,8 +113,9 @@ def get_port_summary():
                     tags = record.get('tags', [])
                     logger.info(f"Record {i+1} tags type: {type(tags)}, value: {tags}")
 
+        # Create response with proper CORS headers
         response = jsonify(portSummaryData)
-        response.headers.add('Access-Control-Allow-Origin', 'http://localhost:3000')
+        response.headers.add('Access-Control-Allow-Origin', '*')  # Allow any origin for development
         return response
 
     except Exception as e:
@@ -117,5 +124,5 @@ def get_port_summary():
             'error': 'Internal server error',
             'message': str(e)
         })
-        response.headers.add('Access-Control-Allow-Origin', 'http://localhost:3000')
+        response.headers.add('Access-Control-Allow-Origin', '*')  # Allow any origin for development
         return response, 500

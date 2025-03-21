@@ -5,6 +5,7 @@ from scheduler.WalletsInvestedScheduler import WalletsInvestedScheduler
 from config.Security import COOKIE_MAP, isValidCookie
 from logs.logger import get_logger
 from decimal import Decimal
+from database.operations.schema import WalletInvestedStatusEnum
 
 logger = get_logger(__name__)
 
@@ -176,7 +177,8 @@ def getWalletsInvestedInToken(token_id):
                         'totalcoins': wallet_details.get('totalcoins'),
                         'avgentry': wallet_details.get('avgentry'),
                         'tags': wallet_details.get('tags'),
-                        'chainedgepnl': wallet_details.get('chainedgepnl')
+                        'chainedgepnl': wallet_details.get('chainedgepnl'),
+                        'status': wallet_details.get('status')
                     }
                     detailed_wallets.append(formatted_wallet)
             

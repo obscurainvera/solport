@@ -3,6 +3,8 @@ from database.operations.base_handler import BaseSQLiteHandler
 from logs.logger import get_logger
 import json
 import sqlite3
+import requests
+from actions.DexscrennerAction import DexScreenerAction
 
 logger = get_logger(__name__)
 
@@ -20,6 +22,7 @@ class SmartMoneyWalletsReportHandler(BaseSQLiteHandler):
             conn_manager: Database connection manager instance
         """
         super().__init__(conn_manager)
+        self.dex_screener = DexScreenerAction()
     
     def execute_query(self, query: str, params: tuple = ()) -> List[tuple]:
         """
@@ -42,6 +45,39 @@ class SmartMoneyWalletsReportHandler(BaseSQLiteHandler):
             logger.error(f"Params: {params}")
             raise
     
+    def fetch_token_prices(self, token_ids: List[str]) -> Dict[str, float]:
+        """
+        Fetch current prices for tokens from Dexscreener API using batch request
+        
+        Args:
+            token_ids: List of token IDs to fetch prices for
+            
+        Returns:
+            Dictionary mapping token IDs to their current prices
+        """
+        prices = {}
+        
+        try:
+            logger.info(f"Fetching prices for {len(token_ids)} tokens in batch")
+            
+            # Use the DexscreennerAction to get batch token prices
+            token_price_data = self.dex_screener.getBatchTokenPrices(token_ids, "solana")
+            
+            # Convert TokenPrice objects to simple price values
+            for token_id, token_price in token_price_data.items():
+                if token_price is not None:
+                    prices[token_id] = token_price.price
+                else:
+                    prices[token_id] = 0
+                    logger.warning(f"No price data found for token: {token_id}")
+            
+            logger.info(f"Successfully fetched prices for {len(prices)} tokens")
+            
+        except Exception as e:
+            logger.error(f"Error fetching batch token prices: {str(e)}")
+        
+        return prices
+    
     def getSmartMoneyWalletReport(self, 
                                  walletAddress: str,
                                  sortBy: str = "profitandloss",
@@ -61,7 +97,8 @@ class SmartMoneyWalletsReportHandler(BaseSQLiteHandler):
         """
         try:
             # Validate sort parameters
-            valid_sort_fields = ["profitandloss", "tokenname", "amountinvested", "amounttakenout"]
+            valid_sort_fields = ["profitandloss", "tokenname", "amountinvested", "amounttakenout", 
+                                "remainingamount", "realizedpnl"]
             if sortBy not in valid_sort_fields:
                 sortBy = "profitandloss"
                 
@@ -70,13 +107,15 @@ class SmartMoneyWalletsReportHandler(BaseSQLiteHandler):
             
             # Map frontend sort field names to database column names
             sort_field_map = {
-                "profitandloss": "t.unprocessedpnl",  # Updated to match actual column name
-                "tokenname": "t.name",  # Updated to match actual column name
+                "profitandloss": "t.unprocessedpnl",  # Total PNL will be calculated after fetching data
+                "tokenname": "t.name",
                 "amountinvested": "t.amountinvested",
-                "amounttakenout": "t.amounttakenout"
+                "amounttakenout": "t.amounttakenout",
+                "remainingamount": "t.remainingcoins",  # Sort by remaining coins initially
+                "realizedpnl": "CAST(t.amounttakenout AS DECIMAL) - CAST(t.amountinvested AS DECIMAL)"  # Calculate realized PNL
             }
             
-            db_sort_field = sort_field_map.get(sortBy, "t.unprocessedpnl")  # Updated default
+            db_sort_field = sort_field_map.get(sortBy, "t.unprocessedpnl")
             
             # First, get the wallet data from smartmoneywallets table
             wallet_query = """
@@ -102,14 +141,15 @@ class SmartMoneyWalletsReportHandler(BaseSQLiteHandler):
                 "profitAndLoss": wallet_result[0][2]
             }
             
-            # Now get the token data from smwallettoppnltoken table
+            # Now get the token data from smwallettoppnltoken table with additional columns
             tokens_query = f"""
             SELECT 
                 t.tokenid,
                 t.name as tokenname,
                 t.amountinvested,
                 t.amounttakenout,
-                t.unprocessedpnl as profitandloss
+                t.unprocessedpnl as profitandloss,
+                t.remainingcoins
             FROM smwallettoppnltoken t
             WHERE t.walletaddress = ?
             ORDER BY {db_sort_field} {sortOrder}
@@ -118,17 +158,74 @@ class SmartMoneyWalletsReportHandler(BaseSQLiteHandler):
             tokens_params = (walletAddress,)
             tokens_results = self.execute_query(tokens_query, tokens_params)
             
-            # Create token data list
-            tokens = []
+            # Filter tokens with remaining coins > 0
+            tokens_with_remaining = []
+            token_ids = []
+            
             for row in tokens_results:
+                token_id = row[0]
+                token_name = row[1]
+                amount_invested = float(row[2]) if row[2] is not None else 0
+                amount_taken_out = float(row[3]) if row[3] is not None else 0
+                profit_and_loss = float(row[4]) if row[4] is not None else 0
+                remaining_coins = float(row[5]) if row[5] is not None else 0
+                
+                # Add token to list regardless of remaining coins
                 token = {
-                    "tokenId": row[0],
-                    "tokenName": row[1],
-                    "amountInvested": row[2],
-                    "amountTakenOut": row[3],
-                    "profitAndLoss": row[4]
+                    "tokenId": token_id,
+                    "tokenName": token_name,
+                    "amountInvested": amount_invested,
+                    "amountTakenOut": amount_taken_out,
+                    "profitAndLoss": profit_and_loss,
+                    "remainingCoins": remaining_coins,
+                    "currentPrice": 0,  # Will be updated later for tokens with remaining coins
+                    "remainingAmount": 0,  # Will be calculated
+                    "realizedPnl": amount_taken_out - amount_invested  # Calculate realized PNL
                 }
+                
+                tokens_with_remaining.append(token)
+                
+                # Only fetch prices for tokens with remaining coins
+                if remaining_coins > 0:
+                    token_ids.append(token_id)
+            
+            # Fetch current prices for tokens with remaining coins in batch
+            token_prices = {}
+            if token_ids:
+                try:
+                    token_prices = self.fetch_token_prices(token_ids)
+                except Exception as e:
+                    logger.error(f"Error fetching token prices: {str(e)}")
+            
+            # Calculate remaining amount and update total PNL
+            tokens = []
+            for token in tokens_with_remaining:
+                token_id = token["tokenId"]
+                remaining_coins = token["remainingCoins"]
+                
+                # Get current price if available
+                current_price = token_prices.get(token_id, 0)
+                token["currentPrice"] = current_price
+                
+                # Calculate remaining amount
+                remaining_amount = remaining_coins * current_price
+                token["remainingAmount"] = remaining_amount
+                
+                # Update total PNL (realized PNL + remaining amount)
+                token["profitAndLoss"] = token["realizedPnl"] + remaining_amount
+                
                 tokens.append(token)
+            
+            # Sort tokens based on the requested sort field
+            # Since we've calculated values that weren't in the DB, we need to sort here if certain fields were requested
+            if sortBy in ["remainingamount", "realizedpnl", "profitandloss"]:
+                sort_field_client = {
+                    "remainingamount": "remainingAmount",
+                    "realizedpnl": "realizedPnl",
+                    "profitandloss": "profitAndLoss"
+                }.get(sortBy)
+                
+                tokens = sorted(tokens, key=lambda x: x[sort_field_client], reverse=(sortOrder.lower() == "desc"))
             
             # Return combined data
             return {

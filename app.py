@@ -26,12 +26,17 @@ from api.analyticsframework.PushTokenFrameworkAPI import push_token_bp
 from framework.analyticsframework.enums.SourceTypeEnum import SourceType
 from api.operations.StrategyAPI import strategy_page_bp
 from api.analyticsframework.ExecutionMonitorAPI import execution_monitor_bp
-from api.smwalletsbehaviour.SMWalletsBehaviourAPI import smwallet_behaviour_bp
+from api.smartmoneywalletsbehaviour.SmartMoneyWalletsBehaviourAPI import smartMoneyWalletBehaviourBp
 from api.operations.ReportsAPI import reports_page_bp
 from api.portsummary.PortSummaryReportAPI import port_summary_report_bp
 from api.smartmoney.SmartMoneyWalletsReportAPI import smartMoneyWalletsReportBp
 from api.smartmoney.SmartMoneyPerformanceReportAPI import smartMoneyPerformanceReportBp
 from api.strategyreport.StrategyReportAPI import strategy_report_bp
+from api.strategyreport.StrategyPerformanceAPI import strategyperformance_bp
+from api.smwalletsbehaviour.SMWalletBehaviourReportAPI import smwalletBehaviourReportBp
+from api.smwalletsbehaviour.SMWalletInvestmentRangeReportAPI import smwallet_investment_range_report_bp
+from api.portfolioallocation.PortfolioAllocationAPI import portfolio_allocation_bp
+from api.attention.AttentionReportAPI import attention_report_bp
 
 logger = get_logger(__name__)
 
@@ -120,12 +125,17 @@ class PortfolioApp:
             self.app.register_blueprint(push_token_bp)
             self.app.register_blueprint(strategy_page_bp)
             self.app.register_blueprint(execution_monitor_bp)
-            self.app.register_blueprint(smwallet_behaviour_bp)
+            self.app.register_blueprint(smartMoneyWalletBehaviourBp)
             self.app.register_blueprint(reports_page_bp)
             self.app.register_blueprint(port_summary_report_bp)
             self.app.register_blueprint(smartMoneyPerformanceReportBp)
             self.app.register_blueprint(strategy_report_bp)
-      
+            self.app.register_blueprint(smwallet_investment_range_report_bp)
+            self.app.register_blueprint(smwalletBehaviourReportBp)
+            self.app.register_blueprint(strategyperformance_bp)
+            self.app.register_blueprint(portfolio_allocation_bp)
+            self.app.register_blueprint(attention_report_bp)
+            
             logger.info("Portfolio app initialized successfully")
         except Exception as e:
             logger.error(f"Failed to initialize PortfolioApp: {e}")

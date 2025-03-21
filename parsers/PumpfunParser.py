@@ -84,7 +84,8 @@ def parsePumpFunResponse(response: Dict) -> List[PumpFunToken]:
                     firstseenat=_parseDatetime(item['createdAt_time']),
                     lastupdatedat=datetime.now(),
                     createdat=datetime.now(),
-                    rugcount=float(item.get('rugcount', 0))
+                    rugcount=float(item.get('rugcount', 0)),
+                    timeago=_parseDatetime(item['time_ago'])
                 )
                 
                 result.append(pumpFunToken)

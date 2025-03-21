@@ -14,6 +14,9 @@ from logs.logger import get_logger
 from database.pumpfun.PumpfunHandler import PumpFunHandler
 from services.AuthService import AuthService
 from database.auth.ServiceCredentialsEnum import ServiceCredentials
+from framework.analyticsframework.api.PushTokenFrameworkAPI import PushTokenAPI
+from framework.analyticsframework.enums.SourceTypeEnum import SourceType
+from framework.analyticshandlers.AnalyticsHandler import AnalyticsHandler
 
 logger = get_logger(__name__)
 
@@ -157,11 +160,6 @@ class PumpFunAction:
                 return False
                 
             logger.info(f"Pushing {len(pumpFunTokens)} pump fun tokens to strategy framework")
-            
-            # Import required modules
-            from framework.analyticsframework.api.PushTokenFrameworkAPI import PushTokenAPI
-            from framework.analyticshandlers.AnalyticsHandler import AnalyticsHandler
-            from framework.analyticsframework.enums.SourceTypeEnum import SourceType
             
             # Initialize analytics handler and push token API
             analyticsHandler = AnalyticsHandler()

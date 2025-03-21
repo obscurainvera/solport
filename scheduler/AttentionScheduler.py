@@ -36,21 +36,25 @@ class AttentionScheduler:
             logger.warning("No valid cookies available for attention API")
             return False
 
-        for cookie in validCookies:
-            try:
+        try:
+            for cookie in validCookies:
                 logger.info(f"Using cookie: {cookie[:15]}...")
                 
                 # Get and process attention scores
                 attentionData = self.action.persistAttentionDataFromAPI(cookie=cookie)
+
+                # Update inactive tokens after processing new data
+                self.db.attention.updateInactiveTokens()
+                logger.info("Updated status of inactive tokens")
                 
                 if attentionData and len(attentionData) > 0:
                     logger.info(f"Successfully processed {len(attentionData)} attention scores")
+                    
                     return True
                 
                 logger.warning("No attention data received")
                 return False
                 
-                
-            except Exception as e:
-                logger.error(f"Failed to execute attention analysis: {str(e)}") 
-                return False
+        except Exception as e:
+            logger.error(f"Failed to execute attention analysis: {str(e)}") 
+            return False

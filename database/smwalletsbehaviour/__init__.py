@@ -1,0 +1,1 @@
+# This file makes the smwalletsbehaviour directory a Python package 

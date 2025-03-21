@@ -1,5 +1,5 @@
 from database.operations.base_handler import BaseSQLiteHandler
-from database.operations.schema import WalletsInvested
+from database.operations.schema import WalletsInvested, WalletInvestedStatusEnum
 from typing import List, Dict, Optional
 from decimal import Decimal, InvalidOperation
 import sqlite3
@@ -52,7 +52,7 @@ class WalletsInvestedHandler(BaseSQLiteHandler):
                     createdat TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     updatedat TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     status INTEGER DEFAULT 1,
-                    FOREIGN KEY (portsummaryid) REFERENCES portsummary(portsummaryid),
+                    FOREIGN KEY (portsummaryid) REFERENCES portsummary(portsummaryid) ON DELETE CASCADE,
                     UNIQUE(tokenid, walletaddress)
                 )
             ''')
@@ -80,7 +80,8 @@ class WalletsInvestedHandler(BaseSQLiteHandler):
                     status INTEGER,
                     snaptimeat TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     createdat TIMESTAMP NOT NULL,
-                    FOREIGN KEY (walletinvestedid) REFERENCES walletsinvested(walletinvestedid)
+                    FOREIGN KEY (walletinvestedid) REFERENCES walletsinvested(walletinvestedid) ON DELETE CASCADE,
+                    FOREIGN KEY (portsummaryid) REFERENCES portsummary(portsummaryid) ON DELETE CASCADE
                 )
             ''')
 
@@ -323,17 +324,17 @@ class WalletsInvestedHandler(BaseSQLiteHandler):
                         FROM walletsinvested
                         WHERE smartholding >= ?
                         AND tokenid = ?
-                        AND status = 1
+                        AND status = ?
                         ORDER BY smartholding DESC
-                    """, (str(minBalance), tokenId))
+                    """, (str(minBalance), tokenId, WalletInvestedStatusEnum.ACTIVE))
                 else:
                     cursor.execute("""
                         SELECT walletinvestedid, walletaddress, tokenid, smartholding
                         FROM walletsinvested
                         WHERE smartholding >= ?
-                        AND status = 1
+                        AND status = ?
                         ORDER BY smartholding DESC
-                    """, (str(minBalance),))
+                    """, (str(minBalance), WalletInvestedStatusEnum.ACTIVE))
                 
                 return [dict(row) for row in cursor.fetchall()]
                 
@@ -364,8 +365,8 @@ class WalletsInvestedHandler(BaseSQLiteHandler):
                     SELECT * 
                     FROM walletsinvested 
                     WHERE walletinvestedid = ?
-                    AND status = 1
-                """, (walletInvestedId,))
+                    AND status = ?
+                """, (walletInvestedId, WalletInvestedStatusEnum.ACTIVE))
                 
                 result = cursor.fetchone()
                 return dict(result) if result else None
@@ -373,3 +374,106 @@ class WalletsInvestedHandler(BaseSQLiteHandler):
         except Exception as e:
             logger.error(f"Failed to get wallet details by ID: {str(e)}")
             return None
+
+    def getActiveWalletsByTokenId(self, tokenId: str) -> List[str]:
+        """
+        Get all active wallet addresses for a specific token
+        
+        Args:
+            tokenId: The token ID to query
+            
+        Returns:
+            List of active wallet addresses
+        """
+        try:
+            with self.conn_manager.transaction() as cursor:
+                cursor.execute("""
+                    SELECT walletaddress FROM walletsinvested 
+                    WHERE tokenid = ? AND status = ?
+                """, (tokenId, WalletInvestedStatusEnum.ACTIVE))
+                
+                results = cursor.fetchall()
+                return [row['walletaddress'] for row in results] if results else []
+        except Exception as e:
+            logger.error(f"Failed to get active wallets for token {tokenId}: {str(e)}")
+            return []
+
+    def markWalletsAsInactive(self, tokenId: str, walletAddresses: List[str]) -> bool:
+        """
+        Mark wallets as inactive
+        
+        Args:
+            tokenId: The token ID
+            walletAddresses: List of wallet addresses to mark as inactive
+            
+        Returns:
+            bool: True if successful, False otherwise
+        """
+        if not walletAddresses:
+            return True
+            
+        try:
+            currentTime = self.get_current_ist_time()
+            with self.conn_manager.transaction() as cursor:
+                # First, get all records at once for history
+                placeholders = ','.join(['?' for _ in walletAddresses])
+                query = f"""
+                    SELECT * FROM walletsinvested 
+                    WHERE tokenid = ? AND walletaddress IN ({placeholders})
+                    AND status = ?
+                """
+                params = [tokenId] + walletAddresses + [WalletInvestedStatusEnum.ACTIVE]
+                
+                cursor.execute(query, params)
+                existing_records = cursor.fetchall()
+                
+                # Add all records to history before updating
+                for record in existing_records:
+                    self.insertWalletHistory(record, cursor)
+                
+                # Do a bulk update of all wallets at once
+                addresses_found = [record['walletaddress'] for record in existing_records]
+                if addresses_found:
+                    placeholders = ','.join(['?' for _ in addresses_found])
+                    update_query = f"""
+                        UPDATE walletsinvested 
+                        SET status = ?, updatedat = ?
+                        WHERE tokenid = ? AND walletaddress IN ({placeholders})
+                    """
+                    update_params = [WalletInvestedStatusEnum.INACTIVE, currentTime, tokenId] + addresses_found
+                    
+                    cursor.execute(update_query, update_params)
+                    logger.info(f"Marked {len(addresses_found)} wallets as inactive for token {tokenId} and recorded history")
+                
+                # Log any addresses not found
+                addresses_not_found = set(walletAddresses) - set(addresses_found)
+                if addresses_not_found:
+                    logger.warning(f"{len(addresses_not_found)} wallets not found for token {tokenId}: {', '.join(list(addresses_not_found)[:5])}{'...' if len(addresses_not_found) > 5 else ''}")
+                    
+            return True
+        except Exception as e:
+            logger.error(f"Failed to mark wallets as inactive: {str(e)}")
+            return False
+            
+    def getWalletsInvestedByTokenId(self, tokenId: str) -> List[Dict]:
+        """
+        Get all wallets invested in a specific token
+        
+        Args:
+            tokenId: The token ID to query
+            
+        Returns:
+            List of wallet records
+        """
+        try:
+            with self.conn_manager.transaction() as cursor:
+                cursor.execute("""
+                    SELECT * FROM walletsinvested 
+                    WHERE tokenid = ?
+                """, (tokenId,))
+                
+                results = cursor.fetchall()
+                return [dict(row) for row in results] if results else []
+        except Exception as e:
+            logger.error(f"Failed to get wallets for token {tokenId}: {str(e)}")
+            return []
