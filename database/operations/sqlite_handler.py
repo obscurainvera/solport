@@ -1,5 +1,6 @@
 from database.operations.connection_manager import DatabaseConnectionManager
 from database.portsummary.PortfolioHandler import PortfolioHandler
+from database.smwalletsbehaviour.SmartMoneyWalletBehaviourHandler import SmartMoneyWalletBehaviourHandler
 from database.walletinvested.WalletsInvestedHandler import WalletsInvestedHandler
 from database.job.job_handler import JobHandler
 from database.smartmoneywallets.SmartMoneyWalletsHandler import SmartMoneyWalletsHandler
@@ -76,6 +77,7 @@ class SQLitePortfolioDB:
         self.credentials = CredentialsHandler(self.conn_manager)
         self.analytics = AnalyticsHandler(self.conn_manager)
         self.notification = NotificationHandler(self.conn_manager)
+        self.smWalletBehaviour = SmartMoneyWalletBehaviourHandler(self.conn_manager)
         
         # Map handler names to instances for dynamic access
         self._handlers = {
@@ -91,7 +93,8 @@ class SQLitePortfolioDB:
             'token': self.token,
             'credentials': self.credentials,
             'analytics': self.analytics,
-            'notification': self.notification
+            'notification': self.notification,
+            'smWalletBehaviour': self.smWalletBehaviour
         }
 
     def getActiveExecutions(self) -> List[Tuple[ExecutionState, BaseStrategyConfig]]:
@@ -142,7 +145,8 @@ class SQLitePortfolioDB:
             self.attention,
             self.volume,
             self.pumpfun,
-            self.analytics
+            self.analytics,
+            self.smWalletBehaviour
         ]:
             if hasattr(handler, name):
                 return getattr(handler, name)
@@ -295,6 +299,7 @@ class SQLitePortfolioDB:
             'attention': self.attention,
             'volume': self.volume,
             'pumpfun': self.pumpfun,
-            'analytics': self.analytics
+            'analytics': self.analytics,
+            'smWalletBehaviour': self.smWalletBehaviour
         }
         return handlers.get(handler_type)

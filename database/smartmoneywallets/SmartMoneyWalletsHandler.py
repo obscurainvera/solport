@@ -61,8 +61,8 @@ class SmartMoneyWalletsHandler(BaseSQLiteHandler):
                     wallet.walletaddress,
                     str(wallet.profitandloss),
                     wallet.tradecount,
-                    wallet.firstSeen,
-                    wallet.lastSeen,
+                    wallet.firstseen,
+                    wallet.lastseen,
                     currentTime,
                     currentTime,
                     wallet.status

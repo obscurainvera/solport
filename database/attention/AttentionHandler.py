@@ -2,9 +2,9 @@ from database.operations.base_handler import BaseSQLiteHandler
 from typing import List, Dict, Optional
 from decimal import Decimal
 import sqlite3
-from datetime import datetime
+from datetime import datetime, timedelta
 from logs.logger import get_logger
-from database.operations.schema import AttentionData
+from database.operations.schema import AttentionData, AttentionStatusEnum
 import pytz
 
 logger = get_logger(__name__)
@@ -86,15 +86,18 @@ class AttentionHandler(BaseSQLiteHandler):
                 return None
             
             with self.conn_manager.transaction() as cursor:
-                # Check if token exists
-                existing = self._getExistingTokenRegistryEntry(cursor, data.tokenid)
-                
                 # Get current time for timestamp
                 currentTime = self.getCurrentIstTime()
                 
+                # Check if token exists
+                existing = self._getExistingTokenRegistryEntry(cursor, data.tokenid)
+                
                 if existing:
-                    self._updateExistingTokenRegistryEntry(cursor, data.tokenid, currentTime)
-                    logger.info(f"Updated existing token registry entry for {data.tokenid}")
+                    # Check if last seen time is different from current time
+                    lastSeenTime = datetime.fromisoformat(existing['lastseenat'])
+                    if lastSeenTime.date() != currentTime.date():
+                        self._updateExistingTokenRegistryEntry(cursor, data.tokenid, currentTime)
+                        logger.info(f"Updated existing token registry entry for {data.tokenid}")
                     return existing['id']
                 else:
                     registry_id = self._createNewTokenRegistryEntry(cursor, data, currentTime)
@@ -140,9 +143,10 @@ class AttentionHandler(BaseSQLiteHandler):
         cursor.execute("""
             UPDATE attentiontokenregistry 
             SET lastseenat = ?,
-                attentioncount = attentioncount + 1
+                attentioncount = attentioncount + 1,
+                currentstatus = ?
             WHERE tokenid = ?
-        """, (currentTime, tokenId))
+        """, (currentTime, AttentionStatusEnum.ACTIVE.value, tokenId))
 
     def _createNewTokenRegistryEntry(self, cursor, data: AttentionData, currentTime: datetime) -> Optional[int]:
         """
@@ -166,13 +170,14 @@ class AttentionHandler(BaseSQLiteHandler):
                 tokenid, name, chain,
                 firstseenat, lastseenat,
                 currentstatus
-            ) VALUES (?, ?, ?, ?, ?, 'NEW')
+            ) VALUES (?, ?, ?, ?, ?, ?)
         """, (
             data.tokenid, 
             data.name, 
             data.chain,
             currentTime, 
-            currentTime
+            currentTime,
+            AttentionStatusEnum.NEW.value
         ))
         
         # Get the ID of the newly inserted registry entry
@@ -217,7 +222,36 @@ class AttentionHandler(BaseSQLiteHandler):
         except Exception as e:
             logger.error(f"Failed to store attention data for {data.tokenid or data.name}: {str(e)}")
             raise
-    
+
+    def updateInactiveTokens(self) -> None:
+        """
+        Update status of tokens that haven't been seen for more than 2 days
+        """
+        try:
+            with self.conn_manager.transaction() as cursor:
+                currentTime = self.getCurrentIstTime()
+                twoDaysAgo = currentTime - timedelta(days=2)
+                
+                # Update tokens that haven't been seen for more than 2 days
+                cursor.execute("""
+                    UPDATE attentiontokenregistry 
+                    SET currentstatus = ?,
+                        attentioncount = 0
+                    WHERE lastseenat < ? 
+                    AND currentstatus != ?
+                """, (
+                    AttentionStatusEnum.INACTIVE.value,
+                    twoDaysAgo,
+                    AttentionStatusEnum.INACTIVE.value
+                ))
+                
+                updatedCount = cursor.rowcount
+                logger.info(f"Updated {updatedCount} inactive tokens")
+                
+        except Exception as e:
+            logger.error(f"Failed to update inactive tokens: {str(e)}")
+            raise
+
     def _getLastAttentionRecord(self, cursor, tokenId: str) -> Optional[sqlite3.Row]:
         """
         Get the most recent record for a token

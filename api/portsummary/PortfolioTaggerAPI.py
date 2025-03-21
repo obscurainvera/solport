@@ -20,8 +20,6 @@ def tagPortfolioTokens():
     try:
         db = SQLitePortfolioDB('portfolio.db')
         tagger = PortfolioTaggerAction(db)
-
-        PortfolioTaggerAction(db).addTagsToActivePortSummaryTokens()
         
         success = tagger.addTagsToActivePortSummaryTokens()
         

@@ -10,7 +10,7 @@ from framework.analyticshandlers.AnalyticsHandler import AnalyticsHandler
 from database.portsummary.PortfolioHandler import PortfolioHandler
 from database.operations.sqlite_handler import SQLitePortfolioDB
 from logs.logger import get_logger
-from typing import Dict, Optional
+from typing import Dict, Optional, List, Tuple
 from decimal import Decimal
 
 logger = get_logger(__name__)
@@ -123,6 +123,59 @@ def pushToken():
 
     except Exception as e:
         logger.error(f"Token analysis API error: {str(e)}", exc_info=True)
+        return jsonify({
+            'status': 'error',
+            'message': f'Internal server error: {str(e)}'
+        }), 500
+
+@push_token_bp.route('/api/analyticsframework/pushallsourcetokens', methods=['POST'])
+def pushAllSourceTokens():
+    """
+    API endpoint to push all tokens from a specific source type to the analytics framework
+    """
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({'status': 'error', 'message': 'No data provided'}), 400
+
+        # Validate required field
+        sourceType = data.get('source_type')
+        
+        if not sourceType:
+            return jsonify({
+                'status': 'error',
+                'message': 'Missing required field: source_type'
+            }), 400
+
+        if not SourceType.isValidSource(sourceType):
+            return jsonify({
+                'status': 'error',
+                'message': f'Invalid source type: {sourceType}'
+            }), 400
+            
+        # Initialize database and analytics handler
+        db = SQLitePortfolioDB()
+        analyticsHandler = AnalyticsHandler(db)
+        pushTokenApiInstance = PushTokenAPI(analyticsHandler)
+        
+        # Push all tokens for the specified source
+        success, stats = pushTokenApiInstance.pushAllTokens(sourceType)
+        
+        if success:
+            return jsonify({
+                'status': 'success',
+                'message': f'Successfully pushed tokens from {sourceType} source to analytics framework',
+                'data': stats
+            }), 200
+        else:
+            return jsonify({
+                'status': 'error',
+                'message': f'Failed to push tokens from {sourceType} source',
+                'data': stats
+            }), 500
+
+    except Exception as e:
+        logger.error(f"Push all tokens API error: {str(e)}", exc_info=True)
         return jsonify({
             'status': 'error',
             'message': f'Internal server error: {str(e)}'

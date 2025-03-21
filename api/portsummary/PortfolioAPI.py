@@ -2,6 +2,7 @@ from flask import Blueprint, jsonify, request
 from database.operations.sqlite_handler import SQLitePortfolioDB
 from scheduler.PortfolioScheduler import PortfolioScheduler
 from config.Security import COOKIE_MAP, isValidCookie
+from config.PortfolioStatusEnum import PortfolioStatus
 from logs.logger import get_logger
 
 logger = get_logger(__name__)
@@ -36,6 +37,36 @@ def handlePortSummaryUpdate():
 
     except Exception as e:
         logger.error(f"Manual portfolio update error: {str(e)}")
+        response = jsonify({
+            'status': 'error',
+            'message': f'Internal server error: {str(e)}'
+        })
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        return response, 500
+
+@portfolio_bp.route('/api/portsummary/status', methods=['GET'])
+def getPortfolioStatusTypes():
+    """API endpoint to get all portfolio status types"""
+    try:
+        # Convert enum values to a list of dictionaries
+        statuses = [
+            {
+                'code': status.statuscode,
+                'name': status.statusname,
+                'enum_name': status.name
+            }
+            for status in PortfolioStatus
+        ]
+        
+        response = jsonify({
+            'success': True,
+            'data': statuses
+        })
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        return response
+        
+    except Exception as e:
+        logger.error(f"Error getting portfolio statuses: {str(e)}")
         response = jsonify({
             'status': 'error',
             'message': f'Internal server error: {str(e)}'

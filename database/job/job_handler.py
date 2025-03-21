@@ -35,7 +35,7 @@ class JobHandler(BaseSQLiteHandler):
 
     def acquireLock(self, jobId: str, timeout: int = 3600) -> bool:
         try:
-            with self.connManager.transaction() as cursor:
+            with self.conn_manager.transaction() as cursor:
                 # Clean up expired locks first
                 cursor.execute("""
                     DELETE FROM joblocks 
@@ -57,7 +57,7 @@ class JobHandler(BaseSQLiteHandler):
 
     def releaseLock(self, jobId: str) -> bool:
         try:
-            with self.connManager.transaction() as cursor:
+            with self.conn_manager.transaction() as cursor:
                 cursor.execute("DELETE FROM joblocks WHERE jobid = ?", (jobId,))
                 return True
         except Exception as e:
@@ -66,7 +66,7 @@ class JobHandler(BaseSQLiteHandler):
 
     def startJobExecution(self, jobId: str) -> int:
         try:
-            with self.connManager.transaction() as cursor:
+            with self.conn_manager.transaction() as cursor:
                 cursor.execute("""
                     INSERT INTO jobexecutions 
                     (jobid, starttime, status)
@@ -79,7 +79,7 @@ class JobHandler(BaseSQLiteHandler):
 
     def completeJobExecution(self, executionId: int, status: str, errorMessage: Optional[str] = None) -> bool:
         try:
-            with self.connManager.transaction() as cursor:
+            with self.conn_manager.transaction() as cursor:
                 cursor.execute("""
                     UPDATE jobexecutions 
                     SET status = ?,
@@ -94,7 +94,7 @@ class JobHandler(BaseSQLiteHandler):
 
     def getJobStatus(self, jobId: str) -> Dict:
         try:
-            with self.connManager.transaction() as cursor:
+            with self.conn_manager.transaction() as cursor:
                 cursor.execute("""
                     SELECT * FROM jobexecutions
                     WHERE jobid = ?
@@ -109,7 +109,7 @@ class JobHandler(BaseSQLiteHandler):
 
     def getRunningJobs(self) -> List[Dict]:
         try:
-            with self.connManager.transaction() as cursor:
+            with self.conn_manager.transaction() as cursor:
                 cursor.execute("""
                     SELECT * FROM jobexecutions
                     WHERE status = 'RUNNING'
@@ -122,7 +122,7 @@ class JobHandler(BaseSQLiteHandler):
 
     def cleanupOldExecutions(self, days: int = 30) -> bool:
         try:
-            with self.connManager.transaction() as cursor:
+            with self.conn_manager.transaction() as cursor:
                 cursor.execute("""
                     DELETE FROM jobexecutions
                     WHERE datetime(createdat, '+' || ? || ' days') < datetime('now')
@@ -134,7 +134,7 @@ class JobHandler(BaseSQLiteHandler):
 
     def getJobHistory(self, jobId: str, limit: int = 100) -> List[Dict]:
         try:
-            with self.connManager.transaction() as cursor:
+            with self.conn_manager.transaction() as cursor:
                 cursor.execute("""
                     SELECT 
                         id,
@@ -156,7 +156,7 @@ class JobHandler(BaseSQLiteHandler):
 
     def getFailedJobs(self, hours: int = 24) -> List[Dict]:
         try:
-            with self.connManager.transaction() as cursor:
+            with self.conn_manager.transaction() as cursor:
                 cursor.execute("""
                     SELECT * FROM jobexecutions
                     WHERE status = 'FAILED'

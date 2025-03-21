@@ -4,7 +4,7 @@ in case of duplicate tokens, it updates the record and records the history
 in the history table
 """
 
-from typing import Optional, Dict, Any, List, Union
+from typing import Optional, Dict, Any, List, Union, Set
 from actions.portfolio.PortfolioTagEnum import PortfolioTokenTag
 from database.operations.sqlite_handler import SQLitePortfolioDB
 from database.operations.schema import PortfolioSummary
@@ -12,6 +12,7 @@ import logging
 import parsers.PortSummaryParser as PortSummaryParser
 import requests
 from config.Security import COOKIE_MAP, isValidCookie
+from config.PortfolioStatusEnum import PortfolioStatus
 from decimal import Decimal
 import time
 from datetime import datetime
@@ -133,7 +134,9 @@ class PortfolioSummaryAction:
             parsedItems = PortSummaryParser.parsePortSummaryAPIResponse(response.json())
             
             if parsedItems:
-                self.persistPortfolioSummaryData(parsedItems, marketAge)
+                # NEW FLOW: Process tokens and mark inactive ones
+                self.processPortfolioTokens(parsedItems, marketAge)
+                
                 logger.debug(f"Successfully processed {len(parsedItems)} items")
                 executionTime = time.time() - startTime
                 logger.debug(f"Action completed in {executionTime:.2f} seconds for market age {marketAge}")
@@ -164,7 +167,9 @@ class PortfolioSummaryAction:
                         
                     parsedItems = PortSummaryParser.parsePortSummaryAPIResponse(response.json())
                     if parsedItems:
-                        self.persistPortfolioSummaryData(parsedItems, marketAge)
+                        # NEW FLOW: Process tokens and mark inactive ones
+                        self.processPortfolioTokens(parsedItems, marketAge)
+                        
                         logger.info(f"Successfully processed {len(parsedItems)} items on retry {attempt}")
                         execution_time = time.time() - startTime
                         logger.info(f"Action completed in {execution_time:.2f} seconds for market age {marketAge}")
@@ -185,100 +190,80 @@ class PortfolioSummaryAction:
             logger.error(f"Action failed after {execution_time:.2f} seconds: {str(e)}")
             return None
 
+    def processPortfolioTokens(self, items: List[PortfolioSummary], market_age: list):
+        """
+        Process portfolio tokens with the updated flow
+        
+        Args:
+            items: List of portfolio summary objects to process
+            market_age: Market age filter used for this API call
+            
+        Flow:
+        1. Collect all token IDs from the API response
+        2. Update/insert tokens from the response
+        3. Mark tokens not in the response but in the DB as inactive
+        """
+        try:
+            # Get all token IDs from the response
+            response_token_ids = {item.tokenid for item in items}
+            
+            # Get all active tokens from the database
+            active_tokens = self.db.getActivePortfolioTokens()
+            active_token_ids = {token['tokenid'] for token in active_tokens}
+            
+            # Find tokens that are in the database but not in the response
+            tokens_to_mark_inactive = active_token_ids - response_token_ids
+            
+            # Persist tokens from response using the handler method
+            persistence_stats = self.db.persistPortfolioSummaryData(items, market_age)
+            
+            # Mark tokens as inactive if they're not in the response
+            affected_count = 0
+            if tokens_to_mark_inactive:
+                affected_count = self.db.markTokensInactiveDuringUpdate(tokens_to_mark_inactive)
+            
+            logger.info(f"Portfolio token processing completed. "
+                      f"Updated: {persistence_stats.get('updated', 0)}, "
+                      f"Inserted: {persistence_stats.get('inserted', 0)}, "
+                      f"Marked inactive: {affected_count}")
+                
+        except Exception as e:
+            logger.error(f"Error in processing portfolio tokens: {str(e)}", exc_info=True)
+            raise
+
     def persistPortfolioSummaryData(self, items: List[PortfolioSummary], market_age: list):
         """
-        Persist portfolio items to database with transaction management
+        DEPRECATED: Use db.persistPortfolioSummaryData instead
+        This method is kept for backward compatibility
         
         Args:
             items: List of PortfolioSummary objects to persist
-            
-        Note:
-            Uses transaction to ensure atomic updates
-            Handles both new insertions and updates to existing records
+            market_age: Market age filter used
         """
-        try:
-            tokenIds = [item.tokenid for item in items]
-            existingRecords = self.db.getTokenData(tokenIds)
-            existingMap = {record.tokenid: record for record in existingRecords}
-            current_time = datetime.now()
-
-            with self.db.transaction() as cursor:
-                for item in items:
-                    try:
-                        # Ensure createdat and updatedat are set
-                        if not hasattr(item, 'createdat') or item.createdat is None:
-                            item.createdat = current_time
-                        if not hasattr(item, 'updatedat') or item.updatedat is None:
-                            item.updatedat = current_time
-                        
-                        if item.tokenid in existingMap:
-                            # Insert history record first
-                            existing_item = existingMap[item.tokenid]
-                            # Preserve original createdat from existing record
-                            if hasattr(existing_item, 'createdat') and existing_item.createdat is not None:
-                                item.createdat = existing_item.createdat
-                            self.db.insertHistory(existing_item, cursor)
-                            # Then update current record
-                            self.db.updateSummary(item, cursor)
-                            logger.info(f"Updated existing record for token {item.tokenid} with name {item.name} at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} with market age {market_age}")
-                        else:
-                            # Insert new record
-                            self.db.insertSummary(item, cursor)
-                            logger.info(f"Inserted new record for token {item.tokenid} with name {item.name} at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} with market age {market_age}")
-                    except Exception as e:
-                        logger.error(f"Failed to persist item {item.tokenid} at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} with market age {market_age}: {str(e)}")
-                        raise
-
-            logger.info(f"Successfully persisted {len(items)} items at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} with market age {market_age}")
-            
-        except Exception as e:
-            logger.error(f"Database operation failed: {str(e)}")
-            raise
+        return self.db.persistPortfolioSummaryData(items, market_age)
         
     def pushPortSummaryTokensToStrategyFramework(self):
         """
         Pushes the portfolio summary tokens to the strategy framework
+        
+        Returns:
+            bool: True if successful, False otherwise
         """
         try:
-            # Get all tokens from portfolio summary
-            tokens = self.db.getActivePortfolioTokens()
-            
-            if not tokens:
-                logger.info("No active tokens found in portfolio summary")
-                return False
-            
-            logger.info(f"Found {len(tokens)} active tokens in portfolio summary")
-
-            
+    
             # Initialize analytics handler and push token API
-            analyticsHandler = AnalyticsHandler()
-            pushTokenAPI = PushTokenAPI(analyticsHandler)
+            analyticsHandler = AnalyticsHandler(self.db)
+            pushTokenApi = PushTokenAPI(analyticsHandler)
             
-            # Process each token
-            success_count = 0
-            for token in tokens:
-                try:
-                    # Convert to PortSummaryTokenData
-                    tokenData = PushTokenAPI.mapPortfolioTokenData(token)
-                    
-                    # Push to strategy framework
-                    success = pushTokenAPI.pushToken(
-                        tokenData=tokenData,
-                        sourceType=SourceType.PORTSUMMARY.value
-                    )
-                    
-                    if success:
-                        success_count += 1
-                        logger.info(f"Successfully pushed token {tokenData.tokenid} ({tokenData.tokenname}) to strategy framework")
-                    else:
-                        logger.warning(f"Failed to push token {tokenData.tokenid} ({tokenData.tokenname}) to strategy framework")
-                
-                except Exception as token_error:
-                    logger.error(f"Error processing token {token.get('tokenid', 'unknown')}: {str(token_error)}")
-                    continue
+            # Use the pushAllPortSummaryTokens method directly
+            success, stats = pushTokenApi.pushAllPortSummaryTokens()
             
-            logger.info(f"Successfully pushed {success_count}/{len(tokens)} tokens to strategy framework")
-            return success_count > 0
+            if success:
+                logger.info(f"Successfully pushed {stats['success']}/{stats['total']} tokens to strategy framework")
+                return True
+            else:
+                logger.warning(f"Failed to push tokens to strategy framework. Stats: {stats}")
+                return False
             
         except Exception as e:
             logger.error(f"Failed to push portfolio summary tokens to strategy framework: {str(e)}", exc_info=True)

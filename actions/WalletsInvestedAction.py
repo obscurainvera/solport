@@ -2,7 +2,7 @@
 
 from typing import Optional, Dict, Any, List
 from database.operations.sqlite_handler import SQLitePortfolioDB
-from database.operations.schema import WalletsInvested
+from database.operations.schema import WalletsInvested, WalletInvestedStatusEnum
 import requests
 from datetime import datetime
 import time
@@ -83,6 +83,22 @@ class WalletsInvestedAction:
             )
             
             if parsedItems:
+                # Get current active wallets from the database for this token
+                investedWallets = self.db.walletsInvested.getActiveWalletsByTokenId(tokenId)
+                
+                # Extract wallet addresses from the parsed API response
+                updatedInvestedWalletsList = {item.walletaddress for item in parsedItems}
+                
+                # Mark missing wallets as inactive
+                walletsToInactivate = []
+                for walletAddress in investedWallets:
+                    if walletAddress not in updatedInvestedWalletsList:
+                        walletsToInactivate.append(walletAddress)
+                
+                if walletsToInactivate:
+                    logger.info(f"Marking {len(walletsToInactivate)} wallets as inactive for token {tokenId}")
+                    self.db.walletsInvested.markWalletsAsInactive(tokenId, walletsToInactivate)
+                
                 self.persistWalletsInvestedData(parsedItems)
                 logger.debug(f"Successfully processed token analysis for {tokenId}")
                 executionTime = time.time() - startTime

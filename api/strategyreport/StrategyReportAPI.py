@@ -13,7 +13,7 @@ def get_strategy_report():
     """API endpoint to get strategy report data with optional filtering"""
     if request.method == 'OPTIONS':
         response = jsonify({})
-        response.headers.add('Access-Control-Allow-Origin', 'http://localhost:3000')
+        response.headers.add('Access-Control-Allow-Origin', '*')
         response.headers.add('Access-Control-Allow-Methods', 'GET, OPTIONS')
         response.headers.add('Access-Control-Allow-Headers', 'Content-Type, Accept')
         return response, 200
@@ -65,7 +65,7 @@ def get_strategy_report():
             'message': str(e),
             'timestamp': datetime.now().isoformat()
         })
-        response.headers.add('Access-Control-Allow-Origin', 'http://localhost:3000')
+        response.headers.add('Access-Control-Allow-Origin', '*')
         return response, 500
 
 
@@ -74,7 +74,7 @@ def get_strategy_detail(strategy_id):
     """API endpoint to get detailed information about a specific strategy"""
     if request.method == 'OPTIONS':
         response = jsonify({})
-        response.headers.add('Access-Control-Allow-Origin', 'http://localhost:3000')
+        response.headers.add('Access-Control-Allow-Origin', '*')
         response.headers.add('Access-Control-Allow-Methods', 'GET, OPTIONS')
         response.headers.add('Access-Control-Allow-Headers', 'Content-Type, Accept')
         return response, 200
@@ -91,7 +91,7 @@ def get_strategy_detail(strategy_id):
                 'message': f'Strategy with ID {strategy_id} not found',
                 'timestamp': datetime.now().isoformat()
             })
-            response.headers.add('Access-Control-Allow-Origin', 'http://localhost:3000')
+            response.headers.add('Access-Control-Allow-Origin', '*')
             return response, 404
         
         # Return the response
@@ -101,7 +101,7 @@ def get_strategy_detail(strategy_id):
             'timestamp': datetime.now().isoformat()
         })
         
-        response.headers.add('Access-Control-Allow-Origin', 'http://localhost:3000')
+        response.headers.add('Access-Control-Allow-Origin', '*')
         return response, 200
         
     except Exception as e:
@@ -111,7 +111,7 @@ def get_strategy_detail(strategy_id):
             'message': str(e),
             'timestamp': datetime.now().isoformat()
         })
-        response.headers.add('Access-Control-Allow-Origin', 'http://localhost:3000')
+        response.headers.add('Access-Control-Allow-Origin', '*')
         return response, 500
 
 
@@ -120,7 +120,7 @@ def get_strategy_executions_count():
     """API endpoint to get count of executions for each strategy"""
     if request.method == 'OPTIONS':
         response = jsonify({})
-        response.headers.add('Access-Control-Allow-Origin', 'http://localhost:3000')
+        response.headers.add('Access-Control-Allow-Origin', '*')
         response.headers.add('Access-Control-Allow-Methods', 'GET, OPTIONS')
         response.headers.add('Access-Control-Allow-Headers', 'Content-Type, Accept')
         return response, 200
@@ -139,7 +139,7 @@ def get_strategy_executions_count():
             'timestamp': datetime.now().isoformat()
         })
         
-        response.headers.add('Access-Control-Allow-Origin', 'http://localhost:3000')
+        response.headers.add('Access-Control-Allow-Origin', '*')
         return response, 200
         
     except Exception as e:
@@ -149,5 +149,5 @@ def get_strategy_executions_count():
             'message': str(e),
             'timestamp': datetime.now().isoformat()
         })
-        response.headers.add('Access-Control-Allow-Origin', 'http://localhost:3000')
+        response.headers.add('Access-Control-Allow-Origin', '*')
         return response, 500 

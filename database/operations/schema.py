@@ -5,6 +5,7 @@ from decimal import Decimal
 from database.smartmoneywallets.WalletPNLStatusEnum import SmartWalletPnlStatus
 from database.smartmoneywallets.TopTokenPNLStatusEnum import TokenStatus
 from framework.notificationframework.NotificationEnums import NotificationSource, ChatGroup, NotificationStatus
+from enum import IntEnum, Enum
 
 @dataclass
 class PortfolioSummary:
@@ -216,21 +217,35 @@ class PumpFunToken:
     lastupdatedat: Optional[datetime] = None
     createdat: Optional[datetime] = None
     rugcount: Optional[float] = None
+    timeago: Optional[datetime] = None
 
 @dataclass
-class SMWalletBehaviour:
-    """Data structure for wallet investment behavior analysis"""
+class SmartMoneyWalletBehaviour:
+    """Data structure for wallet investment behavior analysis with cluster metrics"""
     walletaddress: str
     totalinvestment: float
     numtokens: int
     avginvestmentpertoken: float
     highconvictionnumtokens: int
     highconvictionavginvestment: float
+    highconvictionwinrate: float
+    highconvictiontotalinvested: float
+    highconvictiontotaltakenout: float
+    highconvictionpercentagereturn: float
     mediumconvictionnumtokens: int
     mediumconvictionavginvestment: float
+    mediumconvictionwinrate: float
+    mediumconvictiontotalinvested: float
+    mediumconvictiontotaltakenout: float
+    mediumconvictionpercentagereturn: float
     lowconvictionnumtokens: int
     lowconvictionavginvestment: float
-    analysistime: Optional[datetime] = None 
+    lowconvictionwinrate: float
+    lowconvictiontotalinvested: float
+    lowconvictiontotaltakenout: float
+    lowconvictionpercentagereturn: float
+    analysistime: Optional[datetime] = None
+
 
 @dataclass
 class NotificationButton:
@@ -259,4 +274,14 @@ class Notification:
     createdat: Optional[datetime] = None
     updatedat: Optional[datetime] = None
     sentat: Optional[datetime] = None
+
+class WalletInvestedStatusEnum(IntEnum):
+    ACTIVE = 1
+    INACTIVE = 2
+
+class AttentionStatusEnum(Enum):
+    NEW = "NEW"
+    ACTIVE = "ACTIVE"
+    INACTIVE = "INACTIVE"
+    ARCHIVED = "ARCHIVED"
 

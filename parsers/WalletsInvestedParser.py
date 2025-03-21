@@ -1,7 +1,7 @@
 from typing import Dict, Any, Optional, List
 from decimal import Decimal, InvalidOperation
 from datetime import datetime
-from database.operations.schema import WalletsInvested
+from database.operations.schema import WalletsInvested, WalletInvestedStatusEnum
 from logs.logger import get_logger
 
 logger = get_logger(__name__)
@@ -119,7 +119,7 @@ def parseWalletsInvestedInASpecificTokenAPIResponse(response: Dict[str, Any], po
                     qtychange7d=_safeDecimal(qtychange7d),
                     avgentry=_safeDecimal(walletData.get('AVERAGE ENTRY', 0)),
                     chainedgepnl=_safeDecimal(walletData.get('total_pnl', 0)),
-                    status=1  # Active status
+                    status=WalletInvestedStatusEnum.ACTIVE  # Use enum value
                 )
 
                 # Validate the created object

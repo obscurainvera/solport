@@ -70,11 +70,6 @@ class WalletsInvestedInvestmentDetailsScheduler:
                         else:
                             logger.warning(f"Failed to analyze wallet {wallet['walletaddress']}")
                         
-                        # Sleep between API calls
-                        delay = random.uniform(2, 5)
-                        logger.info(f"Sleeping for {delay} seconds")
-                        time.sleep(delay)
-                        logger.info("Sleep completed")
                         
                     except Exception as e:
                         logger.error(f"Failed to process wallet {wallet['walletaddress']}: {str(e)}")

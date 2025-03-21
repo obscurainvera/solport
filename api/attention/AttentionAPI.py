@@ -17,7 +17,7 @@ def analyzeAttention():
     """
     Trigger attention analysis manually
     Returns:
-        JSON response with execution status
+        JSON response with execution status and statistics
     """
     if request.method == 'OPTIONS':
         response = jsonify({})

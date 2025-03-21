@@ -1,4 +1,4 @@
-from typing import Optional, Dict, Any, List
+from typing import Optional, Dict, Any, List, Tuple
 from framework.analyticsframework.models.BaseModels import BaseTokenData, BaseStrategyConfig
 from framework.analyticsframework.interfaces.BaseStrategy import BaseStrategy
 from framework.analyticsframework.models.SourceModels import (
@@ -14,7 +14,7 @@ from framework.analyticsframework.enums.SourceTypeEnum import SourceType
 from framework.analyticsframework.models.StrategyModels import StrategyConfig
 from framework.analyticshandlers.AnalyticsHandler import AnalyticsHandler
 from logs.logger import get_logger
-
+from database.operations.sqlite_handler import SQLitePortfolioDB
 logger = get_logger(__name__)
 
 class PushTokenAPI:
@@ -23,6 +23,7 @@ class PushTokenAPI:
     def __init__(self, analyticsHandler: AnalyticsHandler):
         self.analyticsHandler = analyticsHandler
         self.strategyFramework = StrategyFramework(analyticsHandler)
+        self.db = SQLitePortfolioDB()
         
         # Initialize strategy handlers
         self.strategyHandlers = {
@@ -267,4 +268,98 @@ class PushTokenAPI:
             'remainingcoins': tokenData.get('remainingcoins'),
             'status': tokenData.get('status', 0)
         }
-        return SmartMoneyTokenData(**mappedData) 
+        return SmartMoneyTokenData(**mappedData)
+
+    def pushAllTokens(self, sourceType: str) -> Tuple[bool, Dict[str, Any]]:
+        """
+        Push all tokens from a specific source type to the analytics framework
+        
+        Args:
+            sourceType: Source type (e.g., PORTSUMMARY, ATTENTION, etc.)
+            
+        Returns:
+            Tuple containing success status and statistics
+        """
+        try:
+            if sourceType == SourceType.PORTSUMMARY.value:
+                return self.pushAllPortSummaryTokens()
+            else:
+                logger.warning(f"Source type {sourceType} is not yet supported for bulk token pushing")
+                return False, {'error': f"Source type {sourceType} is not yet supported for bulk token pushing"}
+        except Exception as e:
+            logger.error(f"Failed to push all tokens for source {sourceType}: {str(e)}", exc_info=True)
+            return False, {'error': str(e)}
+            
+    def pushAllPortSummaryTokens(self) -> Tuple[bool, Dict[str, Any]]:
+        """
+        Push all portfolio summary tokens to the analytics framework
+        
+        Returns:
+            Tuple containing success status and statistics
+        """
+        try:
+            # Get all tokens from portfolio summary
+            tokens = self.db.portfolio.getActivePortfolioTokens()
+            
+            if not tokens:
+                logger.info("No active tokens found in portfolio summary")
+                return False, {'total': 0, 'processed': 0, 'success': 0, 'failed': 0}
+            
+            logger.info(f"Found {len(tokens)} active tokens in portfolio summary")
+            
+            # Process each token
+            successCount = 0
+            failedCount = 0
+            processedTokens = []
+            failedTokens = []
+            
+            for token in tokens:
+                try:
+                    # Convert to PortSummaryTokenData
+                    tokenData = self.mapPortfolioTokenData(token)
+                    
+                    # Push to strategy framework
+                    success = self.pushToken(
+                        tokenData=tokenData,
+                        sourceType=SourceType.PORTSUMMARY.value
+                    )
+                    
+                    if success:
+                        successCount += 1
+                        processedTokens.append({
+                            'tokenId': tokenData.tokenid,
+                            'tokenName': tokenData.tokenname
+                        })
+                        logger.info(f"Successfully pushed token {tokenData.tokenid} ({tokenData.tokenname}) to strategy framework")
+                    else:
+                        failedCount += 1
+                        failedTokens.append({
+                            'tokenId': tokenData.tokenid,
+                            'tokenName': tokenData.tokenname
+                        })
+                        logger.warning(f"Failed to push token {tokenData.tokenid} ({tokenData.tokenname}) to strategy framework")
+                
+                except Exception as tokenError:
+                    failedCount += 1
+                    failedTokens.append({
+                        'tokenId': token.get('tokenid', 'unknown'),
+                        'error': str(tokenError)
+                    })
+                    logger.error(f"Error processing token {token.get('tokenid', 'unknown')}: {str(tokenError)}")
+                    continue
+            
+            stats = {
+                'total': len(tokens),
+                'processed': successCount + failedCount,
+                'success': successCount,
+                'failed': failedCount,
+                'successTokens': processedTokens[:10],  # Limit the number of tokens in the response
+                'failedTokens': failedTokens[:10]
+            }
+            
+            logger.info(f"Successfully pushed {successCount}/{len(tokens)} tokens to strategy framework")
+            return successCount > 0, stats
+            
+        except Exception as e:
+            logger.error(f"Failed to push portfolio summary tokens to strategy framework: {str(e)}", exc_info=True)
+            return False, {'error': str(e)} 
