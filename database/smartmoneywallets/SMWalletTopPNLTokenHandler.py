@@ -164,19 +164,6 @@ class SMWalletTopPNLTokenHandler(BaseSQLiteHandler):
             logger.error(f"Failed to update token investment data: {str(e)}")
             return False
 
-    def getAllHighPNLTokens(self) -> List[SMWalletTopPnlToken]: #not used anywhere
-        """Get all tokens with HIGH_PNL_TOKEN status"""
-        try:
-            with self.conn_manager.transaction() as cursor:
-                cursor.execute("""
-                    SELECT * FROM smwallettoppnltoken
-                    WHERE status = ?
-                    ORDER BY unprocessedpnl DESC
-                """, (TokenStatus.HIGH_PNL_TOKEN.value,))
-                return [SMWalletTopPnlToken(**dict(row)) for row in cursor.fetchall()]
-        except Exception as e:
-            logger.error(f"Failed to get high PNL tokens: {str(e)}")
-            return []
 
     def getAllWalletTokens(self, wallet_address: str) -> List[SMWalletTopPnlToken]:
         """
@@ -283,58 +270,6 @@ class SMWalletTopPNLTokenHandler(BaseSQLiteHandler):
         except Exception as e:
             logger.error(f"Failed to update token amounts: {str(e)}")
             return False
-            
-    def getAllHighPnlTokens(self, walletAddresses: List[str]) -> List[Dict[str, Any]]:
-        """
-        Get all active tokens for given wallets with formatted data for front-end
-        
-        Args:
-            walletAddresses: List of wallet addresses to get tokens for
-            
-        Returns:
-            List of dictionaries containing token data formatted for front-end
-        """
-        try:
-            if not walletAddresses:
-                logger.warning("No wallet addresses provided to getAllHighPnlTokens")
-                return []
-                
-            placeholders = ','.join('?' * len(walletAddresses))
-            with self.conn_manager.transaction() as cursor:
-                cursor.execute(f"""
-                    SELECT 
-                        t.walletaddress,
-                        t.tokenid,
-                        t.name,
-                        t.amountinvested,
-                        t.amounttakenout,
-                        t.unprocessedpnl,
-                        t.status
-                    FROM smwallettoppnltoken t
-                    WHERE t.walletaddress IN ({placeholders})
-                    AND t.status = 1
-                    ORDER BY t.unprocessedpnl DESC
-                """, walletAddresses)
-                
-                results = cursor.fetchall()
-                tokens = []
-                
-                for row in results:
-                    token_data = {
-                        "walletAddress": row[0],
-                        "tokenId": row[1],
-                        "tokenName": row[2],
-                        "amountInvested": row[3],
-                        "amountTakenOut": row[4],
-                        "profitAndLoss": row[5],
-                        "status": row[6]
-                    }
-                    tokens.append(token_data)
-                
-                return tokens
-        except Exception as e:
-            logger.error(f"Failed to get tokens for wallets: {str(e)}")
-            return []
 
     def updateTokenStatus(self, token: SMWalletTopPnlToken, cursor: Optional[sqlite3.Cursor] = None) -> bool:
         """Update token status based on PNL"""

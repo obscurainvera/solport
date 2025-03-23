@@ -141,11 +141,10 @@ class SMWalletTopPNLTokensInvestmentDetailsAction:
         logger.info(f"Processing investment details for wallet: {walletAddress}")
         return self.findHighPNLTokenInvestmentDataForWallet(walletAddress, cookie, service)
 
-    def findHighPNLTokenInvestmentDataForWallet(self, walletAddress: str, cookie: str,
-                                  service: ServiceCredentials = ServiceCredentials.CIELO) -> bool:
+    def findHighPNLTokenInvestmentDataForWallet(self, walletAddress: str, cookie: str, service: ServiceCredentials = ServiceCredentials.CIELO) -> bool:
         """Process all tokens for a specific wallet"""
         try:
-            tokens = self.db.smWalletTopPNLToken.getAllHighPnlTokens([walletAddress])
+            tokens = self.db.smWalletTopPNLToken.getTokensForWallet(walletAddress)
             if not tokens:
                 logger.warning(f"No tokens found for wallet {walletAddress}")
                 return False
@@ -154,20 +153,16 @@ class SMWalletTopPNLTokensInvestmentDetailsAction:
                 try:
                     success = self.findInvestmentDataForToken(
                         walletAddress=walletAddress,
-                        tokenId=token['tokenid'],
+                        tokenId=token.tokenid,
                         cookie=cookie,
                         service=service
                     )
                     if not success:
-                        logger.warning(f"Failed to process token {token['tokenid']}")
+                        logger.warning(f"Failed to process token {token.tokenid}")
                         continue
-                        
-                    # Sleep between tokens
-                    delay = random.uniform(2, 10)
-                    time.sleep(delay)
                     
                 except Exception as e:
-                    logger.error(f"Failed to process token {token['tokenid']}: {str(e)}")
+                    logger.error(f"Failed to process token {token.tokenid}: {str(e)}")
                     continue
                 
             return True
