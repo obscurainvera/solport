@@ -5,6 +5,7 @@ from datetime import datetime
 from enum import Enum
 import json
 import logging
+from framework.analyticsframework.models.BaseModels import BaseStrategyConfig
 
 logger = logging.getLogger(__name__)
 

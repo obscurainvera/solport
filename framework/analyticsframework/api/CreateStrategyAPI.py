@@ -69,6 +69,7 @@ class CreateStrategyAPI:
                 'additionalinstructions': json.dumps(strategyData.get('additional_instructions', {})),
                 'status': StrategyStatus.ACTIVE.value,
                 'active': True,
+                'superuser': strategyData.get('superuser', False),
                 'createdtime': current_time,
                 'updatedtime': current_time
             }
@@ -123,7 +124,8 @@ class CreateStrategyAPI:
                 'strategy_name': 'strategyname',
                 'description': 'description',
                 'additional_instructions': 'additionalinstructions',
-                'source_type': 'source'
+                'source_type': 'source',
+                'superuser': 'superuser'
             }
             
             for inputKey, dbKey in basicFieldMappings.items():
