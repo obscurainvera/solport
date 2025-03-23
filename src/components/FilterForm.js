@@ -242,16 +242,33 @@ function FilterForm({ onApply, initialFilters = {} }) {
   // Apply filters
   const handleApply = () => {
     const { minMarketCap, maxMarketCap, minTokenAge, maxTokenAge } = processSelectedRanges();
+    
+    // Process the selected tags to ensure they will match correctly in the backend
+    const processedTags = filters.selectedTags.map(tag => {
+      // If it's a PNL or AI tag without a count, add a regex-like suffix
+      if ((tag.startsWith('PNL_') || tag.startsWith('AI_')) && 
+          !tag.match(/_\d+$/)) {
+        // Add wildcard suffix for backend matching
+        return `${tag}_`;
+      }
+      return tag;
+    });
+    
     const appliedFilters = {
       ...filters,
       minMarketCap,
       maxMarketCap,
       minTokenAge,
       maxTokenAge,
+      selectedTags: processedTags,
     };
+    
     const cleanedFilters = Object.fromEntries(
-      Object.entries(appliedFilters).filter(([_, value]) => value !== '')
+      Object.entries(appliedFilters).filter(([_, value]) => 
+        value !== '' && (Array.isArray(value) ? value.length > 0 : true)
+      )
     );
+    
     onApply(cleanedFilters);
   };
 
@@ -291,11 +308,30 @@ function FilterForm({ onApply, initialFilters = {} }) {
   const handleTagToggle = (tag) => {
     console.log('Toggling tag:', tag);
     
+    // Check if this is a PNL or AI tag that would need prefix matching
+    const isPrefixTag = tag.startsWith('PNL_') || tag.startsWith('AI_');
+    
     setFilters(prev => {
-      const newSelectedTags = prev.selectedTags.includes(tag)
-        ? prev.selectedTags.filter(t => t !== tag)
-        : [...prev.selectedTags, tag];
+      let newSelectedTags;
+      
+      if (isPrefixTag) {
+        // If it's a prefix tag, we need to check if any tag with this prefix is already selected
+        const hasPrefix = prev.selectedTags.some(t => t.startsWith(tag));
         
+        if (hasPrefix) {
+          // Remove all tags with this prefix
+          newSelectedTags = prev.selectedTags.filter(t => !t.startsWith(tag));
+        } else {
+          // Add the tag (backend will match it with the actual count)
+          newSelectedTags = [...prev.selectedTags, tag];
+        }
+      } else {
+        // Regular exact match for other tags
+        newSelectedTags = prev.selectedTags.includes(tag)
+          ? prev.selectedTags.filter(t => t !== tag)
+          : [...prev.selectedTags, tag];
+      }
+      
       console.log('New selected tags:', newSelectedTags);
       
       return {
@@ -307,8 +343,24 @@ function FilterForm({ onApply, initialFilters = {} }) {
 
   const formatSelectedTags = () => {
     if (filters.selectedTags.length === 0) return 'Select tags';
-    if (filters.selectedTags.length === 1) return filters.selectedTags[0];
-    return `${filters.selectedTags[0]} +${filters.selectedTags.length - 1} more`;
+    if (filters.selectedTags.length === 1) {
+      // Display the tag name, removing any count suffix for PNL or AI tags
+      const tag = filters.selectedTags[0];
+      if (tag.startsWith('PNL_') || tag.startsWith('AI_')) {
+        // Extract the base tag name before any potential count
+        const baseName = tag.split('_').slice(0, 2).join('_');
+        return baseName;
+      }
+      return tag;
+    }
+    
+    // For multiple tags, show the first one and count of others
+    let firstTag = filters.selectedTags[0];
+    if (firstTag.startsWith('PNL_') || firstTag.startsWith('AI_')) {
+      firstTag = firstTag.split('_').slice(0, 2).join('_');
+    }
+    
+    return `${firstTag} +${filters.selectedTags.length - 1} more`;
   };
 
   return (
@@ -431,12 +483,16 @@ function FilterForm({ onApply, initialFilters = {} }) {
             <h5>Select Tags</h5>
             <div className="tag-filter-options">
               {[
-                'BALANCE_500K', 'BALANCE_1M',
+                'BALANCE_100K', 'BALANCE_500K', 'BALANCE_1M',
                 'HUGE_1D_CHANGE', 'HUGE_7D_CHANGE', 'HUGE_30D_CHANGE',
                 'PRICE_WITHIN_RANGE', 
                 'SMART_300K_10K_1', 'SMART_300K_10K_2', 'SMART_300K_10K_3', 
                 'SMART_500K_30K_1', 'SMART_500K_30K_2', 'SMART_500K_30K_3', 
-                'SMART_1M_100K_1', 'SMART_1M_100K_2', 'SMART_1M_100K_3'
+                'SMART_1M_100K_1', 'SMART_1M_100K_2', 'SMART_1M_100K_3',
+                // PNL range tags
+                'PNL_0-400K', 'PNL_400K-1M', 'PNL_>1M',
+                // Amount Invested (AI) range tags
+                'AI_1K-10K', 'AI_10K-50K', 'AI_50K-100K', 'AI_100K-500K', 'AI_>500K'
               ].map((tag) => (
                 <div
                   key={tag}
