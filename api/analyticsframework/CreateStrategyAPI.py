@@ -32,6 +32,13 @@ def addStrategy():
         analyticsHandler = AnalyticsHandler(db)
         strategyApi = CreateStrategyAPI(analyticsHandler)
         
+        # Log incoming data for debugging
+        logger.debug(f"Received strategy creation data: {data}")
+        
+        # Process superuser field - ensure it's a boolean
+        if 'superuser' in data:
+            data['superuser'] = bool(data['superuser'])
+        
         strategyId = strategyApi.addStrategy(data)
         
         if not strategyId:

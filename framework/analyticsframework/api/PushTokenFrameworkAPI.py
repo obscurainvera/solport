@@ -11,6 +11,7 @@ from framework.analyticsframework.strategies.VolumeStrategy import VolumeStrateg
 from framework.analyticsframework.strategies.PumpfunStrategy import PumpFunStrategy
 from framework.analyticsframework.StrategyFramework import StrategyFramework
 from framework.analyticsframework.enums.SourceTypeEnum import SourceType
+from framework.analyticsframework.enums.PushSourceEnum import PushSource
 from framework.analyticsframework.models.StrategyModels import StrategyConfig
 from framework.analyticshandlers.AnalyticsHandler import AnalyticsHandler
 from logs.logger import get_logger
@@ -70,20 +71,21 @@ class PushTokenAPI:
         }
         return PortSummaryTokenData(**mappedData)
     
-    def pushToken(self, tokenData: BaseTokenData, sourceType: str) -> bool:
+    def pushToken(self, tokenData: BaseTokenData, sourceType: str, pushSource: PushSource = PushSource.SCHEDULER) -> bool:
         """
         Analyze a token through all applicable strategies
         
         Args:
             tokenData: Token data from source
             sourceType: Type of data source
+            pushSource: Source that pushed the token (API or SCHEDULER)
             
         Returns:
             bool: Success status
         """
         try:
             # Get active strategies for token's source type
-            allActiveStrategies: List[Dict] = self.analyticsHandler.getAllActiveStrategies(sourceType)
+            allActiveStrategies: List[Dict] = self.analyticsHandler.getAllActiveStrategies(sourceType, pushSource)
             
             if not allActiveStrategies:
                 logger.info(f"No active strategies found for source {sourceType}")
@@ -270,19 +272,20 @@ class PushTokenAPI:
         }
         return SmartMoneyTokenData(**mappedData)
 
-    def pushAllTokens(self, sourceType: str) -> Tuple[bool, Dict[str, Any]]:
+    def pushAllTokens(self, sourceType: str, pushSource: PushSource = PushSource.SCHEDULER) -> Tuple[bool, Dict[str, Any]]:
         """
         Push all tokens from a specific source type to the analytics framework
         
         Args:
             sourceType: Source type (e.g., PORTSUMMARY, ATTENTION, etc.)
+            pushSource: Source that pushed the token (API or SCHEDULER)
             
         Returns:
             Tuple containing success status and statistics
         """
         try:
             if sourceType == SourceType.PORTSUMMARY.value:
-                return self.pushAllPortSummaryTokens()
+                return self.pushAllPortSummaryTokens(pushSource)
             else:
                 logger.warning(f"Source type {sourceType} is not yet supported for bulk token pushing")
                 return False, {'error': f"Source type {sourceType} is not yet supported for bulk token pushing"}
@@ -290,10 +293,13 @@ class PushTokenAPI:
             logger.error(f"Failed to push all tokens for source {sourceType}: {str(e)}", exc_info=True)
             return False, {'error': str(e)}
             
-    def pushAllPortSummaryTokens(self) -> Tuple[bool, Dict[str, Any]]:
+    def pushAllPortSummaryTokens(self, pushSource: PushSource = PushSource.SCHEDULER) -> Tuple[bool, Dict[str, Any]]:
         """
         Push all portfolio summary tokens to the analytics framework
         
+        Args:
+            pushSource: Source that pushed the token (API or SCHEDULER)
+            
         Returns:
             Tuple containing success status and statistics
         """
@@ -321,7 +327,8 @@ class PushTokenAPI:
                     # Push to strategy framework
                     success = self.pushToken(
                         tokenData=tokenData,
-                        sourceType=SourceType.PORTSUMMARY.value
+                        sourceType=SourceType.PORTSUMMARY.value,
+                        pushSource=pushSource
                     )
                     
                     if success:

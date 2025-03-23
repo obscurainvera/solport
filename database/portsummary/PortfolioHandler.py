@@ -192,34 +192,32 @@ class PortfolioHandler(BaseSQLiteHandler):
                 cur.execute(query, params)
 
     def getTokenData(self, token_ids: List[str]) -> List[PortfolioSummary]:
+        """
+        Get token data by token IDs without filtering by status
+        
+        Args:
+            token_ids: List of token IDs to retrieve
+            
+        Returns:
+            List of PortfolioSummary objects for the requested token IDs
+        """
         placeholders = ','.join('?' * len(token_ids))
         query = f"""
             SELECT * FROM portsummary 
             WHERE tokenid IN ({placeholders})
-            AND status = ?
         """
         
         with self.conn_manager.transaction() as cursor:
             try:
                 # Log the query and parameters for debugging
                 logger.debug(f"Executing query: {query}")
-                logger.debug(f"Parameters: token_ids={token_ids}, status={PortfolioStatus.ACTIVE.statuscode}")
+                logger.debug(f"Parameters: token_ids={token_ids}")
                 
-                cursor.execute(query, (*token_ids, PortfolioStatus.ACTIVE.statuscode))
+                cursor.execute(query, token_ids)
                 rows = cursor.fetchall()
                 
                 # Log the number of rows returned
                 logger.debug(f"Found {len(rows)} rows for token_ids {token_ids}")
-                
-                # If no rows found, let's check if the token exists with any status
-                if not rows:
-                    cursor.execute(f"""
-                        SELECT tokenid, status FROM portsummary 
-                        WHERE tokenid IN ({placeholders})
-                    """, token_ids)
-                    existing_tokens = cursor.fetchall()
-                    if existing_tokens:
-                        logger.info(f"Tokens found but with different status: {[dict(row) for row in existing_tokens]}")
                 
                 return [PortfolioSummary(**dict(row)) for row in rows]
                 
@@ -236,6 +234,15 @@ class PortfolioHandler(BaseSQLiteHandler):
             return [dict(row) for row in cursor.fetchall()]
 
     def getTokenDataFromPortSummary(self, tokenId: str) -> Optional[Dict]:
+        """
+        Get token data by token ID without filtering by status
+        
+        Args:
+            tokenId: Token identifier
+            
+        Returns:
+            Dict containing token data or None if not found
+        """
         try:
             with self.conn_manager.transaction() as cursor:
                 cursor.execute("""
@@ -245,8 +252,7 @@ class PortfolioHandler(BaseSQLiteHandler):
                         status
                     FROM portsummary
                     WHERE tokenid = ?
-                    AND status = ?
-                """, (tokenId, PortfolioStatus.ACTIVE.statuscode))
+                """, (tokenId,))
                 
                 row = cursor.fetchone()
                 return dict(row) if row else None
@@ -380,23 +386,30 @@ class PortfolioHandler(BaseSQLiteHandler):
             """, (token_id, limit))
             return [PortfolioSummary(**dict(row)) for row in cursor.fetchall()]
 
-    def getTokenDataForAnalysis(self, tokenId: str) -> Optional[Dict]:
+    def getTokenDataForAnalysis(self, tokenId: str, status: Optional[int] = None) -> Optional[Dict]:
         """
         Get comprehensive token data for analytics framework
         
         Args:
             tokenId: Token identifier
+            status: Optional status filter. If provided, only returns tokens with this status
             
         Returns:
             Dict containing token data or None if not found
         """
         try:
             with self.conn_manager.transaction() as cursor:
-                cursor.execute("""
-                    SELECT * FROM portsummary
-                    WHERE tokenid = ?
-                    AND status = ?
-                """, (tokenId, PortfolioStatus.ACTIVE.statuscode))
+                if status is not None:
+                    cursor.execute("""
+                        SELECT * FROM portsummary
+                        WHERE tokenid = ?
+                        AND status = ?
+                    """, (tokenId, status))
+                else:
+                    cursor.execute("""
+                        SELECT * FROM portsummary
+                        WHERE tokenid = ?
+                    """, (tokenId,))
                 
                 row = cursor.fetchone()
                 if not row:

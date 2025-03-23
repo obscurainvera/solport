@@ -6,6 +6,7 @@ from logs.logger import get_logger
 from framework.analyticsframework.enums.StrategyStatusEnum import StrategyStatus
 from framework.analyticsframework.enums.ExecutionStatusEnum import ExecutionStatus
 from framework.analyticsframework.enums.TradeTypeEnum import TradeType
+from framework.analyticsframework.enums.PushSourceEnum import PushSource
 from framework.analyticsframework.models.BaseModels import ExecutionState, BaseStrategyConfig
 from framework.analyticsframework.models.StrategyModels import InvestmentInstructions, ProfitTakingInstructions,RiskManagementInstructions
 from framework.analyticsframework.models.BaseModels import TradeLog
@@ -40,6 +41,7 @@ class AnalyticsHandler(BaseSQLiteHandler):
                     additionalinstructions TEXT,
                     status INTEGER DEFAULT 1,
                     active INTEGER DEFAULT 1,
+                    superuser INTEGER DEFAULT 0,
                     createdat TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     updatedat TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
@@ -97,8 +99,8 @@ class AnalyticsHandler(BaseSQLiteHandler):
                         strategyname, source, description,
                         strategyentryconditions, chartconditions, investmentinstructions,
                         profittakinginstructions, riskmanagementinstructions,
-                        moonbaginstructions, additionalinstructions, status, active, createdat, updatedat
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        moonbaginstructions, additionalinstructions, status, active, superuser, createdat, updatedat
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ''', (
                     strategyConfig['strategyname'],
                     strategyConfig['source'],
@@ -112,6 +114,7 @@ class AnalyticsHandler(BaseSQLiteHandler):
                     strategyConfig.get('additionalinstructions'),
                     strategyConfig.get('status', StrategyStatus.ACTIVE.value),
                     strategyConfig.get('active', True),
+                    1 if strategyConfig.get('superuser', False) else 0,
                     strategyConfig.get('createdat', datetime.now()),
                     strategyConfig.get('updatedat', datetime.now())
                 ))
@@ -120,25 +123,40 @@ class AnalyticsHandler(BaseSQLiteHandler):
             logger.error(f"Failed to create strategy: {str(e)}")
             return None
 
-    def getAllActiveStrategies(self, source: str) -> List[Dict]:
+    def getAllActiveStrategies(self, source: str, pushSource: PushSource = PushSource.SCHEDULER) -> List[Dict]:
         """
         Get all active strategies for a specific source
         
         Args:
             source: Source type to filter strategies
+            pushSource: Source that pushed the token into the framework
             
         Returns:
             List[Dict]: List of active strategies for the source
         """
         try:
             with self.conn_manager.transaction() as cursor:
-                cursor.execute('''
-                    SELECT * FROM strategyconfig 
-                    WHERE source = ? AND active = 1 AND status = ?
-                ''', (source, StrategyStatus.ACTIVE.value))
+                # If token was pushed via API, include only superuser strategies
+                # If token was pushed via Scheduler, include only non-superuser strategies
+                if pushSource == PushSource.API:
+                    cursor.execute('''
+                        SELECT * FROM strategyconfig 
+                        WHERE source = ? AND active = 1 AND status = ? AND superuser = 1
+                    ''', (source, StrategyStatus.ACTIVE.value))
+                else:
+                    cursor.execute('''
+                        SELECT * FROM strategyconfig 
+                        WHERE source = ? AND active = 1 AND status = ? AND superuser = 0
+                    ''', (source, StrategyStatus.ACTIVE.value))
                 
                 columns = [col[0] for col in cursor.description]
-                strategies = [dict(zip(columns, row)) for row in cursor.fetchall()]
+                strategies = []
+                
+                for row in cursor.fetchall():
+                    strategy_dict = dict(zip(columns, row))
+                    # Convert superuser from int to bool
+                    strategy_dict['superuser'] = bool(strategy_dict['superuser'])
+                    strategies.append(strategy_dict)
                 
                 return strategies
         except Exception as e:

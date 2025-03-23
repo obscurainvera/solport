@@ -1,6 +1,7 @@
 from flask import Blueprint, jsonify, request
 from framework.analyticsframework.api.PushTokenFrameworkAPI import PushTokenAPI
 from framework.analyticsframework.enums.SourceTypeEnum import SourceType
+from framework.analyticsframework.enums.PushSourceEnum import PushSource
 from framework.analyticsframework.models.BaseModels import BaseTokenData
 from framework.analyticsframework.models.SourceModels import (
     PortSummaryTokenData, AttentionTokenData, SmartMoneyTokenData,
@@ -106,8 +107,8 @@ def pushToken():
         analyticsHandler = AnalyticsHandler(db)
         pushTokenApiInstance = PushTokenAPI(analyticsHandler)
 
-        # Analyze token with source type
-        success = pushTokenApiInstance.pushToken(tokenData, sourceType)
+        # Analyze token with source type, setting push source as API
+        success = pushTokenApiInstance.pushToken(tokenData, sourceType, PushSource.API)
         
         if success:
             return jsonify({

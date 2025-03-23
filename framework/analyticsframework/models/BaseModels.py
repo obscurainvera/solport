@@ -33,6 +33,7 @@ class BaseStrategyConfig:
       additionalinstructions: Optional[Dict[str, Any]] = None
       status: int = 1
       active: bool = True
+      superuser: bool = False
       createdat: datetime = field(default_factory=datetime.now)
       updatedat: datetime = field(default_factory=datetime.now)
  

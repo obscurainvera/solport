@@ -83,6 +83,8 @@ class WalletsInvestedAction:
             )
             
             if parsedItems:
+
+                self.persistWalletsInvestedData(parsedItems)
                 # Get current active wallets from the database for this token
                 investedWallets = self.db.walletsInvested.getActiveWalletsByTokenId(tokenId)
                 
@@ -98,8 +100,7 @@ class WalletsInvestedAction:
                 if walletsToInactivate:
                     logger.info(f"Marking {len(walletsToInactivate)} wallets as inactive for token {tokenId}")
                     self.db.walletsInvested.markWalletsAsInactive(tokenId, walletsToInactivate)
-                
-                self.persistWalletsInvestedData(parsedItems)
+            
                 logger.debug(f"Successfully processed token analysis for {tokenId}")
                 executionTime = time.time() - startTime
                 logger.debug(f"Action completed in {executionTime:.2f} seconds for token {tokenId}")

@@ -30,7 +30,16 @@ def handlePortSummaryUpdate():
 
         response = jsonify({
             'success': True,
-            'message': 'Portfolio summary updated successfully'
+            'message': 'Portfolio summary updated successfully',
+            'stats': {
+                'categoriesProcessed': result.get('categoriesProcessed', 0),
+                'totalTokensProcessed': result.get('totalTokensProcessed', 0),
+                'uniqueTokensProcessed': result.get('uniqueTokensProcessed', 0),
+                'tokensInserted': result.get('tokensInserted', 0),
+                'tokensUpdated': result.get('tokensUpdated', 0),
+                'tokensReactivated': result.get('tokensReactivated', 0),
+                'tokensMarkedInactive': result.get('tokensMarkedInactive', 0)
+            }
         })
         response.headers.add('Access-Control-Allow-Origin', '*')
         return response
