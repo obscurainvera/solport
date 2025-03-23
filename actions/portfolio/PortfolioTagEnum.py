@@ -149,21 +149,108 @@ class PortfolioTokenTag(Enum):
                         continue
                         
                     # Calculate net investment from walletsinvested table
-                    invested = Decimal(str(wallet['totalinvestedamount']))
-                    takenOut = Decimal(str(wallet['amounttakenout']))
+                    # Handle cases where values might be None, null, or 0
+                    invested = Decimal('0')
+                    if wallet.get('totalinvestedamount') is not None and wallet['totalinvestedamount'] != '':
+                        invested = Decimal(str(wallet['totalinvestedamount']))
+                    
+                    takenOut = Decimal('0')
+                    if wallet.get('amounttakenout') is not None and wallet['amounttakenout'] != '':
+                        takenOut = Decimal(str(wallet['amounttakenout']))
+                    
                     netInvestment = invested - takenOut
                     
                     if netInvestment >= minInvestment:
                         smartWallets += 1
                         
-                except (TypeError, ValueError) as e:
-                    logger.error(f"Error processing wallet {wallet['walletaddress']}: {str(e)}")
+                except Exception as e:
+                    # Catch all exceptions to ensure processing continues
+                    logger.error(f"Error processing wallet {wallet.get('walletaddress', 'unknown')}: {str(e)}")
                     continue
                     
             return smartWallets
             
         except Exception as e:
             logger.error(f"Error getting smart wallets for {token.tokenid}: {str(e)}")
+            return 0
+
+    def _getWalletsInPnlRange(token: PortfolioSummary, db: SQLitePortfolioDB,
+                             minPnl: Decimal, maxPnl: Optional[Decimal],
+                             walletData: List[Dict]) -> int:
+        """Helper function to count wallets in specific PNL range"""
+        try:
+            if not walletData:
+                return 0
+                
+            walletsCount = 0
+            for wallet in walletData:
+                try:
+                    # Skip if no PNL data
+                    if wallet.get('chainedgepnl') is None:
+                        continue
+                        
+                    pnl = Decimal(str(wallet['chainedgepnl']))
+                    
+                    # Check if PNL is in range
+                    if pnl < minPnl:
+                        continue
+                        
+                    # If maxPnl is specified, check upper bound too
+                    if maxPnl is not None and pnl >= maxPnl:
+                        continue
+                        
+                    walletsCount += 1
+                        
+                except Exception as e:
+                    logger.error(f"Error processing wallet PNL for {wallet.get('walletaddress', 'unknown')}: {str(e)}")
+                    continue
+                    
+            return walletsCount
+            
+        except Exception as e:
+            logger.error(f"Error counting wallets in PNL range for {token.tokenid}: {str(e)}")
+            return 0
+
+    def _getWalletsInInvestmentRange(token: PortfolioSummary, db: SQLitePortfolioDB,
+                                    minInvestment: Decimal, maxInvestment: Optional[Decimal],
+                                    walletData: List[Dict]) -> int:
+        """Helper function to count wallets with investment in specific range"""
+        try:
+            if not walletData:
+                return 0
+                
+            walletsCount = 0
+            for wallet in walletData:
+                try:
+                    # Calculate net investment from walletsinvested table
+                    invested = Decimal('0')
+                    if wallet.get('totalinvestedamount') is not None and wallet['totalinvestedamount'] != '':
+                        invested = Decimal(str(wallet['totalinvestedamount']))
+                    
+                    takenOut = Decimal('0')
+                    if wallet.get('amounttakenout') is not None and wallet['amounttakenout'] != '':
+                        takenOut = Decimal(str(wallet['amounttakenout']))
+                    
+                    netInvestment = invested - takenOut
+                    
+                    # Check if investment is in range
+                    if netInvestment < minInvestment:
+                        continue
+                        
+                    # If maxInvestment is specified, check upper bound too
+                    if maxInvestment is not None and netInvestment >= maxInvestment:
+                        continue
+                        
+                    walletsCount += 1
+                        
+                except Exception as e:
+                    logger.error(f"Error processing wallet investment for {wallet.get('walletaddress', 'unknown')}: {str(e)}")
+                    continue
+                    
+            return walletsCount
+            
+        except Exception as e:
+            logger.error(f"Error counting wallets in investment range for {token.tokenid}: {str(e)}")
             return 0
 
     def _check300kTo10k(token: PortfolioSummary, db: SQLitePortfolioDB, walletData: Optional[List[Dict]] = None) -> Set[str]:
@@ -237,6 +324,166 @@ class PortfolioTokenTag(Enum):
         except Exception as e:
             logger.error(f"Error checking 1M/100K wallets for {token.tokenid}: {str(e)}")
             return set()
+
+    def _checkPnl0To400k(token: PortfolioSummary, db: SQLitePortfolioDB, walletData: Optional[List[Dict]] = None) -> Set[str]:
+        """Count wallets with PNL between 0-400K"""
+        try:
+            if not walletData:
+                return set()
+                
+            walletCount = PortfolioTokenTag._getWalletsInPnlRange(
+                token, db,
+                minPnl=Decimal('0'),
+                maxPnl=Decimal('400000'),
+                walletData=walletData
+            )
+            
+            if walletCount > 0:
+                return {f"PNL_0-400K_{walletCount}"}
+            return set()
+        except Exception as e:
+            logger.error(f"Error checking PNL 0-400K wallets for {token.tokenid}: {str(e)}")
+            return set()
+
+    def _checkPnl400kTo1m(token: PortfolioSummary, db: SQLitePortfolioDB, walletData: Optional[List[Dict]] = None) -> Set[str]:
+        """Count wallets with PNL between 400K-1M"""
+        try:
+            if not walletData:
+                return set()
+                
+            walletCount = PortfolioTokenTag._getWalletsInPnlRange(
+                token, db,
+                minPnl=Decimal('400000'),
+                maxPnl=Decimal('1000000'),
+                walletData=walletData
+            )
+            
+            if walletCount > 0:
+                return {f"PNL_400K-1M_{walletCount}"}
+            return set()
+        except Exception as e:
+            logger.error(f"Error checking PNL 400K-1M wallets for {token.tokenid}: {str(e)}")
+            return set()
+
+    def _checkPnlAbove1m(token: PortfolioSummary, db: SQLitePortfolioDB, walletData: Optional[List[Dict]] = None) -> Set[str]:
+        """Count wallets with PNL above 1M"""
+        try:
+            if not walletData:
+                return set()
+                
+            walletCount = PortfolioTokenTag._getWalletsInPnlRange(
+                token, db,
+                minPnl=Decimal('1000000'),
+                maxPnl=None,
+                walletData=walletData
+            )
+            
+            if walletCount > 0:
+                return {f"PNL_>1M_{walletCount}"}
+            return set()
+        except Exception as e:
+            logger.error(f"Error checking PNL >1M wallets for {token.tokenid}: {str(e)}")
+            return set()
+
+    def _checkAi1kTo10k(token: PortfolioSummary, db: SQLitePortfolioDB, walletData: Optional[List[Dict]] = None) -> Set[str]:
+        """Count wallets with investment between 1K-10K"""
+        try:
+            if not walletData:
+                return set()
+                
+            walletCount = PortfolioTokenTag._getWalletsInInvestmentRange(
+                token, db,
+                minInvestment=Decimal('1000'),
+                maxInvestment=Decimal('10000'),
+                walletData=walletData
+            )
+            
+            if walletCount > 0:
+                return {f"AI_1K-10K_{walletCount}"}
+            return set()
+        except Exception as e:
+            logger.error(f"Error checking AI 1K-10K wallets for {token.tokenid}: {str(e)}")
+            return set()
+
+    def _checkAi10kTo50k(token: PortfolioSummary, db: SQLitePortfolioDB, walletData: Optional[List[Dict]] = None) -> Set[str]:
+        """Count wallets with investment between 10K-50K"""
+        try:
+            if not walletData:
+                return set()
+                
+            walletCount = PortfolioTokenTag._getWalletsInInvestmentRange(
+                token, db,
+                minInvestment=Decimal('10000'),
+                maxInvestment=Decimal('50000'),
+                walletData=walletData
+            )
+            
+            if walletCount > 0:
+                return {f"AI_10K-50K_{walletCount}"}
+            return set()
+        except Exception as e:
+            logger.error(f"Error checking AI 10K-50K wallets for {token.tokenid}: {str(e)}")
+            return set()
+
+    def _checkAi50kTo100k(token: PortfolioSummary, db: SQLitePortfolioDB, walletData: Optional[List[Dict]] = None) -> Set[str]:
+        """Count wallets with investment between 50K-100K"""
+        try:
+            if not walletData:
+                return set()
+                
+            walletCount = PortfolioTokenTag._getWalletsInInvestmentRange(
+                token, db,
+                minInvestment=Decimal('50000'),
+                maxInvestment=Decimal('100000'),
+                walletData=walletData
+            )
+            
+            if walletCount > 0:
+                return {f"AI_50K-100K_{walletCount}"}
+            return set()
+        except Exception as e:
+            logger.error(f"Error checking AI 50K-100K wallets for {token.tokenid}: {str(e)}")
+            return set()
+
+    def _checkAi100kTo500k(token: PortfolioSummary, db: SQLitePortfolioDB, walletData: Optional[List[Dict]] = None) -> Set[str]:
+        """Count wallets with investment between 100K-500K"""
+        try:
+            if not walletData:
+                return set()
+                
+            walletCount = PortfolioTokenTag._getWalletsInInvestmentRange(
+                token, db,
+                minInvestment=Decimal('100000'),
+                maxInvestment=Decimal('500000'),
+                walletData=walletData
+            )
+            
+            if walletCount > 0:
+                return {f"AI_100K-500K_{walletCount}"}
+            return set()
+        except Exception as e:
+            logger.error(f"Error checking AI 100K-500K wallets for {token.tokenid}: {str(e)}")
+            return set()
+
+    def _checkAiAbove500k(token: PortfolioSummary, db: SQLitePortfolioDB, walletData: Optional[List[Dict]] = None) -> Set[str]:
+        """Count wallets with investment above 500K"""
+        try:
+            if not walletData:
+                return set()
+                
+            walletCount = PortfolioTokenTag._getWalletsInInvestmentRange(
+                token, db,
+                minInvestment=Decimal('500000'),
+                maxInvestment=None,
+                walletData=walletData
+            )
+            
+            if walletCount > 0:
+                return {f"AI_>500K_{walletCount}"}
+            return set()
+        except Exception as e:
+            logger.error(f"Error checking AI >500K wallets for {token.tokenid}: {str(e)}")
+            return set()
     
     # Balance tags
     BALANCE_100K = ("BALANCE_100K", _checkBalance100k)
@@ -260,6 +507,18 @@ class PortfolioTokenTag(Enum):
     SMART_300K_10K = ("SMART_300K_10K", _check300kTo10k)
     SMART_500K_30K = ("SMART_500K_30K", _check500kTo30k)
     SMART_1M_100K = ("SMART_1M_100K", _check1mTo100k)
+    
+    # PNL range tags - count wallets in each PNL range
+    PNL_0_400K = ("PNL_0_400K", _checkPnl0To400k)
+    PNL_400K_1M = ("PNL_400K_1M", _checkPnl400kTo1m)
+    PNL_ABOVE_1M = ("PNL_ABOVE_1M", _checkPnlAbove1m)
+    
+    # Amount Invested (AI) range tags - count wallets in each investment range
+    AI_1K_10K = ("AI_1K_10K", _checkAi1kTo10k)
+    AI_10K_50K = ("AI_10K_50K", _checkAi10kTo50k)
+    AI_50K_100K = ("AI_50K_100K", _checkAi50kTo100k)
+    AI_100K_500K = ("AI_100K_500K", _checkAi100kTo500k)
+    AI_ABOVE_500K = ("AI_ABOVE_500K", _checkAiAbove500k)
 
     def __init__(self, tagName: str, conditionFunc: TagCondition):
         self.tagName = tagName

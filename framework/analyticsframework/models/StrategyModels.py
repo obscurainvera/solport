@@ -5,7 +5,6 @@ from datetime import datetime
 from enum import Enum
 import json
 import logging
-from framework.analyticsframework.models.BaseModels import BaseStrategyConfig
 
 logger = logging.getLogger(__name__)
 
@@ -270,6 +269,7 @@ class StrategyConfig:
     additionalinstructions: Optional[Dict[str, Any]] = None
     status: int = 1
     active: bool = True
+    superuser: bool = False
     createdat: datetime = field(default_factory=datetime.now)
     updatedat: datetime = field(default_factory=datetime.now)
 
