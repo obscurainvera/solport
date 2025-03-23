@@ -47,6 +47,7 @@ function Analytics() {
   const [allocatedAmount, setAllocatedAmount] = useState('');
   const [riskEnabled, setRiskEnabled] = useState(false);
   const [stopLossPct, setStopLossPct] = useState('');
+  const [superuser, setSuperuser] = useState(false);
   const [profitTargets, setProfitTargets] = useState([{ priceTargetPct: '', sellAmountPct: '' }]);
   const [status, setStatus] = useState({ message: '', isError: false });
   const [tagOptions, setTagOptions] = useState([]);
@@ -237,7 +238,8 @@ function Analytics() {
         risk_management_instructions: {
           enabled: riskEnabled,
           stop_loss_pct: parseFloat(stopLossPct) || 0
-        }
+        },
+        superuser: superuser
       };
 
       const response = await axios.post('http://localhost:8080/api/strategy/create', formData);
@@ -260,6 +262,7 @@ function Analytics() {
         setProfitTargets([{ priceTargetPct: '', sellAmountPct: '' }]);
         setRiskEnabled(false);
         setStopLossPct('');
+        setSuperuser(false);
       } else {
         setStatus({
           message: `Error: ${response.data.message || 'Unknown error'}`,
@@ -468,6 +471,27 @@ function Analytics() {
                   onChange={(e) => setDescription(e.target.value)}
                   placeholder="Describe your strategy's goal and approach"
                 ></textarea>
+              </div>
+              <div className="form-field">
+                <div className="superuser-header">
+                  <label className="form-label">Superuser Strategy</label>
+                  <div className="toggle-container">
+                    <span className={`toggle-label ${!superuser ? 'active' : ''}`}>No</span>
+                    <div className="toggle-switch">
+                      <input 
+                        type="checkbox" 
+                        id="superuser-enabled"
+                        checked={superuser}
+                        onChange={(e) => setSuperuser(e.target.checked)}
+                      />
+                      <label className="slider" htmlFor="superuser-enabled"></label>
+                    </div>
+                    <span className={`toggle-label ${superuser ? 'active' : ''}`}>Yes</span>
+                  </div>
+                </div>
+                <div className="form-text">
+                  Superuser strategies are only applied when tokens are pushed through the API.
+                </div>
               </div>
               <div className="form-nav">
                 <button 
