@@ -46,15 +46,24 @@ function PortSummaryReportTable({ data, onSort, sortConfig, onRowClick }) {
       'Balance': tags.filter(tag => tag.startsWith('BALANCE_')),
       'Price Change': tags.filter(tag => tag.startsWith('HUGE_') || tag === 'PRICE_WITHIN_RANGE'),
       'Smart Wallets': tags.filter(tag => tag.startsWith('SMART_')),
-      'PNL Ranges': tags.filter(tag => tag.startsWith('PNL_')),
-      'Investment Ranges': tags.filter(tag => tag.startsWith('AI_')),
+      'Conviction': tags.filter(tag => 
+        tag.startsWith('[PNL :') && 
+        tag.includes('Avg :') && 
+        tag.includes(' - ')
+      ),
+      'Taken Profit': tags.filter(tag => 
+        tag.startsWith('[PNL :') && 
+        !tag.includes('Avg :') && 
+        !tag.includes(' - ')
+      ),
       'Other': tags.filter(tag => 
         !tag.startsWith('BALANCE_') && 
         !tag.startsWith('HUGE_') && 
         tag !== 'PRICE_WITHIN_RANGE' &&
         !tag.startsWith('SMART_') &&
         !tag.startsWith('PNL_') &&
-        !tag.startsWith('AI_')
+        !tag.startsWith('AI_') &&
+        !tag.startsWith('[PNL :')
       )
     };
     

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import axios from 'axios';
 import FilterForm from './FilterForm';
 import PortSummaryReportTable from './PortSummaryReportTable';
@@ -28,6 +28,25 @@ function PortSummaryReport() {
     sort_order: 'desc'
   });
   const [retryCount, setRetryCount] = useState(0);
+
+  // Extract unique tags from data
+  const availableTags = useMemo(() => {
+    if (!data || data.length === 0) return [];
+    
+    const tagSet = new Set();
+    data.forEach(item => {
+      if (item.tags && Array.isArray(item.tags)) {
+        item.tags.forEach(tag => {
+          // Skip dynamic PNL tags (which are formatted as [PNL : range]-[...)
+          if (!tag.startsWith('[PNL :')) {
+            tagSet.add(tag);
+          }
+        });
+      }
+    });
+    
+    return Array.from(tagSet);
+  }, [data]);
 
   // Define fetchData with useCallback to memoize it and avoid unnecessary re-renders
   const fetchData = useCallback(async () => {
@@ -268,7 +287,11 @@ function PortSummaryReport() {
               <button className="close-filter-button" onClick={toggleFilters}>
                 <FaTimes />
               </button>
-              <FilterForm onApply={handleApplyFilters} initialFilters={filters} />
+              <FilterForm 
+                onApply={handleApplyFilters} 
+                initialFilters={filters} 
+                availableTags={availableTags}
+              />
             </div>
           </>
         )}
