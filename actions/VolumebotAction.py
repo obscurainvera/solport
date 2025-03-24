@@ -16,6 +16,9 @@ from logs.logger import get_logger
 from database.volume.VolumeHandler import VolumeHandler
 from services.AuthService import AuthService
 from database.auth.ServiceCredentialsEnum import ServiceCredentials, CredentialType
+from framework.analyticsframework.api.PushTokenFrameworkAPI import PushTokenAPI
+from framework.analyticshandlers.AnalyticsHandler import AnalyticsHandler
+from framework.analyticsframework.enums.SourceTypeEnum import SourceType
 
 logger = get_logger(__name__)
 
@@ -145,6 +148,7 @@ class VolumebotAction:
     def pushVolumeTokensToStrategyFramework(self, volumeTokens: List[VolumeToken]) -> bool:
         """
         Maps volume tokens to VolumeTokenData objects and pushes them to the strategy framework
+        Only pushes tokens that have timeago within 5 minutes from the current time
         
         Args:
             volumeTokens: List of VolumeToken objects to push to the strategy framework
@@ -157,12 +161,12 @@ class VolumebotAction:
                 logger.info("No volume tokens to push to strategy framework")
                 return False
                 
-            logger.info(f"Pushing {len(volumeTokens)} volume tokens to strategy framework")
+            logger.info(f"Checking {len(volumeTokens)} volume tokens for recent timeago")
             
-            # Import required modules
-            from framework.analyticsframework.api.PushTokenFrameworkAPI import PushTokenAPI
-            from framework.analyticshandlers.AnalyticsHandler import AnalyticsHandler
-            from framework.analyticsframework.enums.SourceTypeEnum import SourceType
+            # Get current time
+            current_time = datetime.now()
+            # Define the time threshold (5 minutes = 300 seconds)
+            time_threshold_seconds = 300
             
             # Initialize analytics handler and push token API
             analyticsHandler = AnalyticsHandler()
@@ -170,8 +174,23 @@ class VolumebotAction:
             
             # Process each token
             success_count = 0
+            filtered_count = 0
             for token in volumeTokens:
                 try:
+                    # Check if timeago is within the threshold
+                    if token.timeago is None:
+                        logger.warning(f"Token {token.tokenid} has no timeago value, skipping")
+                        continue
+                    
+                    # Calculate time difference in seconds
+                    time_diff = (current_time - token.timeago).total_seconds()
+                    
+                    # Skip if timeago is older than 5 minutes
+                    if time_diff > time_threshold_seconds:
+                        logger.info(f"Token {token.tokenid} timeago is {time_diff} seconds old, exceeds threshold of {time_threshold_seconds} seconds")
+                        filtered_count += 1
+                        continue
+                        
                     # Get the current state of the token from the database
                     tokenState = self.db.volume.getTokenState(token.tokenid)
                     if not tokenState:
@@ -198,7 +217,7 @@ class VolumebotAction:
                     
                     if success:
                         success_count += 1
-                        logger.info(f"Successfully pushed token {tokenData.tokenid} ({tokenData.tokenname}) to strategy framework")
+                        logger.info(f"Successfully pushed token {tokenData.tokenid} ({tokenData.tokenname}) to strategy framework (timeago: {time_diff} seconds)")
                     else:
                         logger.warning(f"Failed to push token {tokenData.tokenid} ({tokenData.tokenname}) to strategy framework")
                 
@@ -206,7 +225,7 @@ class VolumebotAction:
                     logger.error(f"Error processing token {token.tokenid}: {str(token_error)}")
                     continue
             
-            logger.info(f"Successfully pushed {success_count}/{len(volumeTokens)} tokens to strategy framework")
+            logger.info(f"Successfully pushed {success_count}/{len(volumeTokens)} tokens to strategy framework. Filtered out {filtered_count} tokens older than 5 minutes.")
             return success_count > 0
             
         except Exception as e:

@@ -55,22 +55,34 @@ def updateJobTiming():
             error_response.headers.add('Access-Control-Allow-Origin', '*')
             return error_response, 404
             
+        # Map timing_type to the correct parameter name for CronTrigger
+        cron_param_map = {
+            'minutes': 'minute',
+            'hours': 'hour',
+            'days': 'day',
+            'months': 'month'
+        }
+        
+        # Get the correct parameter name for CronTrigger
+        cron_param = cron_param_map.get(timingType, timingType)
+        
         # Get current trigger args
         triggerArgs = {}
         for field in job.trigger.fields:
-            if field.name != timingType:
-                triggerArgs[field.name] = str(field)
+            field_name = field.name
+            if field_name != cron_param:
+                triggerArgs[field_name] = str(field)
         
         # Add new timing value
-        triggerArgs[timingType] = value
+        triggerArgs[cron_param] = value
         
         # Reschedule job
         job.reschedule(trigger='cron', **triggerArgs)
-        logger.info(f"Successfully updated {timingType} to {value} for job {jobId}")
+        logger.info(f"Successfully updated {cron_param} to {value} for job {jobId}")
         
         response = jsonify({
             'success': True,
-            'message': f'Successfully updated {timingType} for job {jobId}'
+            'message': f'Successfully updated {cron_param} for job {jobId}'
         })
         response.headers.add('Access-Control-Allow-Origin', '*')
         return response
