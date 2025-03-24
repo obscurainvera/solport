@@ -248,4 +248,74 @@ def _convertToBps(value) -> Optional[int]:
         
     except Exception as e:
         logger.error(f"Failed to convert bps value: {str(e)}, value: {value}")
-        return None 
+        return None
+
+
+def parseSolanaAttentionData(apiResponse: Dict[str, Any]) -> Optional[List[AttentionData]]:
+    """
+    Parse Solana attention data from the API response of attention_score_query_sol endpoint.
+    
+    Args:
+        apiResponse: The JSON response from the API
+        
+    Returns:
+        Optional[List[AttentionData]]: List of parsed attention data items or None if no valid items
+    """
+    # Get current time in IST
+    ist = pytz.timezone('Asia/Kolkata')
+    currentTime = datetime.now(ist)
+    parsedItems = []
+    
+    logger.info(f"Processing Solana attention score API response")
+    
+    # The API returns data with key 'data10' and visualization data with key 'sol_default_30d'
+    # We only care about the 'data10' part for parsing
+    dataItems = apiResponse.get('data10', [])
+    
+    if not dataItems or not isinstance(dataItems, list):
+        logger.warning(f"No valid data found in 'data10' key or it's not a list")
+        return None
+        
+    logger.info(f"Found {len(dataItems)} items in 'data10'")
+    
+    # Track count of successfully parsed items
+    successfully_parsed = 0
+    
+    # Process each item in data10
+    for item in dataItems:
+        try:
+            # The Solana API format typically has token_id_x and chain_x 
+            if 'token_id_x' in item and 'chain_x' in item:
+                token_id = item.get('token_id_x', '')
+                token_symbol = item.get('token_symbol', '')
+                
+                logger.debug(f"Processing Solana token {token_symbol} ({token_id})")
+                
+                # Get attention score
+                attention_score = _get_attention_score(item)
+                
+                # Create AttentionData object
+                attentionData = AttentionData(
+                    tokenid=str(token_id),
+                    name=str(token_symbol),
+                    chain='solana',  # Always use 'solana' for this endpoint
+                    attentionscore=Decimal(str(attention_score)),
+                    recordedat=currentTime,
+                    datasource='chainedge',  # Distinguish from the original datasource
+                    change1dbps=_convertToBps(item.get('1d_chg_bps')),
+                    change7dbps=_convertToBps(item.get('7d_chg_bps')),
+                    change30dbps=_convertToBps(item.get('30d_chg_bps'))
+                )
+                
+                if attentionData:
+                    parsedItems.append(attentionData)
+                    successfully_parsed += 1
+            else:
+                logger.warning(f"Item missing required fields: {item}")
+                
+        except Exception as e:
+            logger.error(f"Failed to parse Solana attention item: {str(e)}, raw item: {item}")
+            continue
+    
+    logger.info(f"Successfully parsed {successfully_parsed} Solana attention data items")
+    return parsedItems if parsedItems else None 

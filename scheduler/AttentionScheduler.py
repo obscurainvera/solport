@@ -58,3 +58,36 @@ class AttentionScheduler:
         except Exception as e:
             logger.error(f"Failed to execute attention analysis: {str(e)}") 
             return False
+
+    def persistAttentionDataForSolFromAPI(self):
+        """Execute Solana-specific attention score collection and analysis"""
+        validCookies = [
+            cookie for cookie in COOKIE_MAP.get('attention', {})
+            if isValidCookie(cookie, 'attention')
+        ]
+
+        if not validCookies:
+            logger.warning("No valid cookies available for Solana attention API")
+            return False
+
+        try:
+            for cookie in validCookies:
+                logger.info(f"Using cookie for Solana API: {cookie[:15]}...")
+                
+                # Get and process Solana attention scores
+                attentionData = self.action.persistAttentionDataForSolFromAPI(cookie=cookie)
+
+                # Update inactive tokens after processing new data
+                self.db.attention.updateInactiveTokens()
+                logger.info("Updated status of inactive Solana tokens")
+                
+                if attentionData and len(attentionData) > 0:
+                    logger.info(f"Successfully processed {len(attentionData)} Solana attention scores")
+                    return len(attentionData)
+                
+                logger.warning("No Solana attention data received")
+                return False
+                
+        except Exception as e:
+            logger.error(f"Failed to execute Solana attention analysis: {str(e)}") 
+            return False

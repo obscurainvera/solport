@@ -6,7 +6,7 @@ from typing import List, Optional, Dict, Any
 from datetime import datetime, timedelta
 from decimal import Decimal
 from database.operations.sqlite_handler import SQLitePortfolioDB
-from parsers.AttentionParser import parseAttentionData
+import parsers.AttentionParser as attentionParser
 from database.operations.schema import AttentionData
 import requests
 import time
@@ -65,7 +65,7 @@ class AttentionAction:
             self._logAPIResponseStructure(responseJson)
 
             # Parse the response
-            attentionData = parseAttentionData(responseJson)
+            attentionData = attentionParser.parseAttentionData(responseJson)
             
             if attentionData:
                 # Store the data in the database
@@ -164,5 +164,73 @@ class AttentionAction:
         except Exception as e:
             logger.error(f"Failed to process attention data item {item.name}: {str(e)}")
 
-   
+    def persistAttentionDataForSolFromAPI(self, cookie: str) -> Optional[List[AttentionData]]:
+        """
+        Execute attention score request and process the response
+        
+        Args:
+            cookie: Authentication cookie for the API
+            
+        Returns:
+            Optional[List[AttentionData]]: List of processed attention data or None if failed
+        """
+        startTime = time.time()
+        try:
+            # Fetch data from API
+            responseJson = self._fetchDataForSolFromAPI(cookie)
+            if not responseJson:
+                return None
+                
+            # Log API response structure
+            self._logAPIResponseStructure(responseJson)
+
+            # Parse the response
+            attentionData = attentionParser.parseSolanaAttentionData(responseJson)
+            
+            if attentionData:
+                # Store the data in the database
+                self.persistAttentionData(attentionData)
+                
+                # Log success
+                logger.info(f"Successfully processed {len(attentionData)} attention scores at {datetime.now()}")
+                executionTime = time.time() - startTime
+                logger.info(f"Action completed in {executionTime:.2f} seconds")
+                return attentionData
+            
+            return None
+            
+        except Exception as e:
+            logger.error(f"Failed to fetch attention scores: {str(e)}")
+            executionTime = time.time() - startTime
+            logger.error(f"Action failed after {executionTime:.2f} seconds")
+            return None
+        
+
+    def _fetchDataForSolFromAPI(self, cookie: str) -> Optional[Dict[str, Any]]:
+        """
+        Fetch data from the API
+        
+        Args:
+            cookie: Authentication cookie for the API
+            
+        Returns:
+            Optional[Dict[str, Any]]: API response as JSON or None if failed
+        """
+        try:
+            response = self.session.post(
+                "https://app.chainedge.io/attention_score_query_sol/",
+                headers={**self.headers, 'Cookie': cookie},
+                timeout=self.timeout
+            )
+            
+            response.raise_for_status()
+            
+            if not response.content:
+                raise ValueError("Empty response received")
+                
+            return response.json()
+            
+        except Exception as e:
+            logger.error(f"API request failed: {str(e)}")
+            return None
     
