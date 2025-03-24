@@ -1269,4 +1269,77 @@ body {
 
 .close-status:hover {
   color: #fff;
+}
+
+/* Vertical alignment for description columns */
+.description-col {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.section-row {
+  display: flex;
+  align-items: center;
+}
+
+.section-description {
+  margin: 20px 0;
+  font-size: 16px;
+  line-height: 1.6;
+  color: #555;
+}
+
+/* Floating navigation */
+.floating-nav {
+  position: fixed;
+  right: 30px;
+  bottom: 30px;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  z-index: 9999;
+  opacity: 1;
+  transition: opacity 0.3s ease, transform 0.3s ease;
+  pointer-events: all;
+  will-change: transform;
+}
+
+/* Keep this class for backward compatibility */
+.floating-nav.visible {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: all;
+}
+
+.floating-nav-button {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  background-color: rgba(30, 30, 30, 0.95);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+  transition: background-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.floating-nav-button:hover {
+  background-color: #333;
+  transform: translateY(-5px);
+  box-shadow: 0 12px 20px rgba(0, 0, 0, 0.4);
+}
+
+.floating-nav-button svg {
+  font-size: 1.5rem;
+}
+
+/* Apply description-col to all sections */
+.section .col:first-child {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 } 

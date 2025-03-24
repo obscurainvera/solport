@@ -22,13 +22,36 @@ import {
   FaPause,
   FaHistory,
   FaExchangeAlt,
-  FaBrain
+  FaBrain,
+  FaArrowUp,
+  FaBars
 } from 'react-icons/fa';
 import './Operations.css';
 
 function Operations() {
   // Base API URL
   const API_BASE_URL = 'http://localhost:8080';
+  
+  // State for floating navigation
+  const [showFloatingNav, setShowFloatingNav] = useState(true);
+  const [scrollPosition, setScrollPosition] = useState(0);
+  
+  // Show/hide floating nav based on scroll position
+  useEffect(() => {
+    const handleScroll = () => {
+      const currentScrollPos = window.pageYOffset;
+      setShowFloatingNav(true); // Always show floating nav
+      setScrollPosition(currentScrollPos);
+    };
+    
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+  
+  // Function to scroll to top and show nav panel
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
   
   // Utility functions for date formatting
   const formatDateToIST = (timestamp) => {
@@ -892,6 +915,44 @@ function Operations() {
     xhr.send(JSON.stringify({}));
   };
 
+  // Solana Attention Analysis function
+  const analyzeSolanaAttention = () => {
+    showLoading('solana-attention-analysis');
+    console.log(`Sending XHR request to: ${API_BASE_URL}/api/attention/solana/analyze`);
+    
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', `${API_BASE_URL}/api/attention/solana/analyze`, true);
+    xhr.setRequestHeader('Content-Type', 'application/json');
+    xhr.setRequestHeader('Accept', 'application/json');
+    
+    xhr.onload = function() {
+      console.log('XHR status:', xhr.status);
+      
+      if (xhr.status >= 200 && xhr.status < 300) {
+        try {
+          const data = JSON.parse(xhr.responseText);
+          console.log('XHR parsed data:', data);
+          const tokenCount = data.tokens_processed || 'Unknown';
+          showStatus('solana-attention-analysis-status', `Successfully processed ${tokenCount} tokens for Solana attention analysis`);
+        } catch (e) {
+          console.error('Error parsing response:', e);
+          showStatus('solana-attention-analysis-status', 'Error parsing response', true);
+        }
+      } else {
+        showStatus('solana-attention-analysis-status', `Error: ${xhr.status} ${xhr.statusText}`, true);
+      }
+      hideLoading('solana-attention-analysis');
+    };
+    
+    xhr.onerror = function() {
+      console.error('XHR error occurred');
+      showStatus('solana-attention-analysis-status', 'Network error occurred', true);
+      hideLoading('solana-attention-analysis');
+    };
+    
+    xhr.send(JSON.stringify({}));
+  };
+
   // Scheduler functions
   const updateJobSchedule = async () => {
     if (!selectedJobId) {
@@ -918,7 +979,7 @@ function Operations() {
       return;
     }
     
-    setLoading(prev => ({ ...prev, 'job-schedule': true }));
+    setLoading(prev => ({ ...prev, 'update-timing': true }));
     
     const requestBody = {
       job_id: selectedJobId,
@@ -938,7 +999,8 @@ function Operations() {
       });
       
       if (!response.ok) {
-        throw new Error(`Failed to update job schedule: ${response.statusText}`);
+        const errorData = await response.json();
+        throw new Error(errorData.error || `Failed to update job schedule: ${response.statusText}`);
       }
       
       const data = await response.json();
@@ -946,10 +1008,10 @@ function Operations() {
       
       setStatusMessages(prev => ({
         ...prev,
-        'job-schedule-status': {
+        'update-timing-status': {
           visible: true,
           isError: false,
-          message: 'Job schedule updated successfully'
+          message: `Job schedule updated successfully: ${data.message || ''}`
         }
       }));
       
@@ -959,14 +1021,14 @@ function Operations() {
       console.error('Error updating job schedule:', error);
       setStatusMessages(prev => ({
         ...prev,
-        'job-schedule-status': {
+        'update-timing-status': {
           visible: true,
           isError: true,
           message: `Error updating job schedule: ${error.message}`
         }
       }));
     } finally {
-      setLoading(prev => ({ ...prev, 'job-schedule': false }));
+      setLoading(prev => ({ ...prev, 'update-timing': false }));
     }
   };
 
@@ -1449,7 +1511,7 @@ function Operations() {
       </div>
       
       {/* Navigation Tiles - Apple-style */}
-      <nav className="luxury-nav">
+      <nav className="luxury-nav" id="nav-panel">
         <div className="nav-container">
           <div className="nav-tiles">
             <button 
@@ -1523,6 +1585,13 @@ function Operations() {
               <span>Attention</span>
             </button>
             <button 
+              className={`nav-tile ${activeSection === 'solana-attention-section' ? 'active' : ''}`}
+              onClick={() => scrollToSection('solana-attention-section')}
+            >
+              <FaRegLightbulb />
+              <span>Solana Attention</span>
+            </button>
+            <button 
               className={`nav-tile ${activeSection === 'scheduler-section' ? 'active' : ''}`}
               onClick={() => scrollToSection('scheduler-section')}
             >
@@ -1539,7 +1608,7 @@ function Operations() {
         <section className="section" id="portfolio-section">
           <div className="section-content">
             <div className="section-row">
-              <div className="col">
+              <div className="col description-col">
                 <h1 className="premium-title">PORT SUMMARY</h1>
                 <p className="premium-subtitle">Analyze and track your portfolio performance</p>
                 <div className="section-description">
@@ -2100,12 +2169,53 @@ function Operations() {
                   <button 
                     className="luxury-button" 
                     onClick={analyzeAttention}
-                      disabled={loading['attention']}
+                      disabled={loading['attention-analysis']}
                   >
                       Analyze Attention
-                      {loading['attention'] && <div className="loading-spinner"></div>}
+                      {loading['attention-analysis'] && <div className="loading-spinner"></div>}
                   </button>
-                    <div id="attention-status" className="status-message"></div>
+                    <div id="attention-analysis-status" className="status-message"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Solana Attention Section */}
+        <section className="section" id="solana-attention-section">
+          <div className="section-content">
+            <div className="section-row">
+              <div className="col">
+                <h1 className="premium-title">SOLANA ATTENTION</h1>
+                <p className="premium-subtitle">Analyze Solana market attention patterns</p>
+                <div className="section-description">
+                  <p>
+                    Analyze Solana market attention patterns to identify potential investment opportunities.
+                    Track Solana social media trends, search volumes, and other attention metrics.
+                  </p>
+                </div>
+              </div>
+              <div className="col">
+                <div className="luxury-card">
+                  <div className="card-content">
+                    <div className="card-header">
+                      <h3>Solana Attention Analysis</h3>
+                      <div className="badge badge-blue">Analytics</div>
+                    </div>
+                    <div className="pattern pattern-grid"></div>
+                    <p>
+                      Analyze Solana market attention patterns to identify potential opportunities.
+                    </p>
+                    <button 
+                      className="luxury-button" 
+                      onClick={analyzeSolanaAttention}
+                      disabled={loading['solana-attention-analysis']}
+                    >
+                      Analyze Solana Attention
+                      {loading['solana-attention-analysis'] && <div className="loading-spinner"></div>}
+                    </button>
+                    <div id="solana-attention-analysis-status" className="status-message"></div>
                   </div>
                 </div>
               </div>
@@ -2440,6 +2550,16 @@ function Operations() {
           </div>
         </section>
       </main>
+      
+      {/* Floating navigation */}
+      <div className={`floating-nav ${showFloatingNav ? 'visible' : ''}`}>
+        <button className="floating-nav-button" onClick={scrollToTop}>
+          <FaArrowUp />
+        </button>
+        <button className="floating-nav-button" onClick={() => scrollToSection('nav-panel')}>
+          <FaBars />
+        </button>
+      </div>
     </div>
   );
 }
