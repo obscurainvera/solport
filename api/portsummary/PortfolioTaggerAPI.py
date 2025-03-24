@@ -116,4 +116,56 @@ def evaluateTokenTags():
         logger.error(f"API Error in token tag evaluation: {str(e)}")
         response = jsonify({'error': str(e)})
         response.headers.add('Access-Control-Allow-Origin', 'http://localhost:3000')
+        return response, 500
+
+@portfolio_tagger_bp.route('/api/portfoliotagger/dynamictags', methods=['GET', 'OPTIONS'])
+def getDynamicTags():
+    """API endpoint to get all dynamic tags currently in use"""
+    if request.method == 'OPTIONS':
+        response = jsonify({})
+        response.headers.add('Access-Control-Allow-Origin', 'http://localhost:3000')
+        response.headers.add('Access-Control-Allow-Methods', 'GET, OPTIONS')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type, Accept')
+        return response, 200
+        
+    try:
+        db = SQLitePortfolioDB('portfolio.db')
+        
+        # Query to get all unique tags
+        with db.conn_manager.transaction() as cursor:
+            cursor.execute("SELECT tags FROM portfoliosummary WHERE tags IS NOT NULL AND tags != ''")
+            allTagsRows = cursor.fetchall()
+        
+        # Extract and flatten all tags
+        allTags = set()
+        for row in allTagsRows:
+            if row['tags']:
+                tags = row['tags'].split(',')
+                allTags.update(tags)
+        
+        # Filter for dynamic tags (starting with [ and containing :)
+        dynamicTags = [tag for tag in allTags if tag.startswith('[') and ':' in tag]
+        
+        # Group by PNL range
+        groupedTags = {}
+        for tag in dynamicTags:
+            if '[PNL :' in tag:
+                # Extract PNL range
+                pnlRange = tag.split('[PNL :')[1].split(']')[0].strip()
+                if pnlRange not in groupedTags:
+                    groupedTags[pnlRange] = []
+                groupedTags[pnlRange].append(tag)
+        
+        response = jsonify({
+            'success': True,
+            'dynamicTags': dynamicTags,
+            'groupedByPnl': groupedTags
+        })
+        response.headers.add('Access-Control-Allow-Origin', 'http://localhost:3000')
+        return response
+
+    except Exception as e:
+        logger.error(f"API Error getting dynamic tags: {str(e)}")
+        response = jsonify({'error': str(e)})
+        response.headers.add('Access-Control-Allow-Origin', 'http://localhost:3000')
         return response, 500 

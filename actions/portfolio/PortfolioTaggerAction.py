@@ -50,6 +50,51 @@ class PortfolioTaggerAction:
         except Exception as e:
             logger.error(f"Error fetching wallet data for {tokenId}: {str(e)}")
             return []
+    
+    def separateStaticAndDynamicTags(self, tags: Set[str]) -> Dict[str, Set[str]]:
+        """
+        Separate static and dynamic tags based on tag format
+        
+        Args:
+            tags: Set of tags to separate
+            
+        Returns:
+            Dict with 'static' and 'dynamic' keys containing respective sets of tags
+        """
+        staticTags = set()
+        dynamicTags = set()
+        
+        for tag in tags:
+            # Dynamic tags start with [ and contain : characters
+            if tag.startswith('[') and ':' in tag:
+                dynamicTags.add(tag)
+            else:
+                staticTags.add(tag)
+                
+        return {
+            'static': staticTags,
+            'dynamic': dynamicTags
+        }
+    
+    def updateTagsWithPreservingDynamicTags(self, currentTags: Set[str], newStaticTags: Set[str], newDynamicTags: Set[str]) -> Set[str]:
+        """
+        Update tags while preserving dynamic tags that still apply
+        
+        Args:
+            currentTags: Current tags from the database
+            newStaticTags: New static tags from evaluation
+            newDynamicTags: New dynamic tags from evaluation
+            
+        Returns:
+            Updated set of tags
+        """
+        # Separate current tags
+        currentSeparated = self.separateStaticAndDynamicTags(currentTags)
+        
+        # Keep all new tags
+        updatedTags = newStaticTags.union(newDynamicTags)
+        
+        return updatedTags
             
     def evaluateNewTags(self, token: PortfolioSummary) -> Set[str]:
         """Evaluate and get new tags for a token"""
@@ -96,7 +141,7 @@ class PortfolioTaggerAction:
                 for token in activeTokens:
                     try:
                         result = self.evaluateAndUpdateTokenTags(token, cursor)
-                        if result['tags_changed']:
+                        if result['tagsChanged']:
                             logger.info(f"Updated tags for token {token.tokenid}")
                         else:
                             logger.debug(f"No tag changes for token {token.tokenid}")
@@ -123,24 +168,34 @@ class PortfolioTaggerAction:
         """
         try:
             # Get current tags
-            current_tags = self.getCurrentTags(token)
+            currentTags = self.getCurrentTags(token)
             
             # Evaluate new tags
-            new_tags = self.evaluateNewTags(token)
+            newTags = self.evaluateNewTags(token)
+            
+            # Separate tags by type
+            currentSeparated = self.separateStaticAndDynamicTags(currentTags)
+            newSeparated = self.separateStaticAndDynamicTags(newTags)
+            
+            # Calculate effective tags set (all new tags)
+            effectiveTags = newTags
+            
+            # Flag to track changes
+            tagsChanged = effectiveTags != currentTags
             
             result = {
-                'token_id': token.tokenid,
-                'current_tags': list(current_tags),
-                'new_tags': list(new_tags),
-                'tags_changed': new_tags != current_tags,
+                'tokenId': token.tokenid,
+                'currentTags': list(currentTags),
+                'newTags': list(newTags),
+                'tagsChanged': tagsChanged,
                 'updated': False
             }
             
             # Compare tags
-            if new_tags != current_tags:
+            if tagsChanged:
                 logger.info(f"Tags changed for token {token.tokenid}")
-                logger.info(f"Old tags: {current_tags}")
-                logger.info(f"New tags: {new_tags}")
+                logger.info(f"Old tags: {currentTags}")
+                logger.info(f"New tags: {newTags}")
                 
                 # Use transaction if cursor provided, otherwise create new one
                 with self.db.transaction() as cur:
@@ -149,8 +204,8 @@ class PortfolioTaggerAction:
                     # First, persist current state to history
                     self.db.portfolio.insertHistory(token, cursor)
                     
-                    # Update tags in main table wisth IST timestamp
-                    tags = ','.join(sorted(new_tags)) if new_tags else ''
+                    # Update tags in main table with IST timestamp
+                    tags = ','.join(sorted(effectiveTags)) if effectiveTags else ''
                     currentTime = datetime.now(IST)
                     self.db.portfolio.updateTokenTags(cursor, token.tokenid, tags, currentTime)
                     
