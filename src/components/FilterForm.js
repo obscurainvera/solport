@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { FaSearch, FaTimes, FaFilter, FaChevronDown, FaCheck } from 'react-icons/fa';
 import './FilterForm.css';
 
@@ -49,6 +49,30 @@ function FilterForm({ onApply, initialFilters = {} }) {
   const [selectedTokenAgeRanges, setSelectedTokenAgeRanges] = useState([]);
   const [customMarketCap, setCustomMarketCap] = useState({ min: '', max: '' });
   const [customTokenAge, setCustomTokenAge] = useState({ min: '', max: '' });
+  const [tagSearchTerm, setTagSearchTerm] = useState('');
+
+  // Define all available tags
+  const allTags = [
+    'BALANCE_100K', 'BALANCE_500K', 'BALANCE_1M',
+    'HUGE_1D_CHANGE', 'HUGE_7D_CHANGE', 'HUGE_30D_CHANGE',
+    'PRICE_WITHIN_RANGE', 
+    'SMART_300K_10K_1', 'SMART_300K_10K_2', 'SMART_300K_10K_3', 
+    'SMART_500K_30K_1', 'SMART_500K_30K_2', 'SMART_500K_30K_3', 
+    'SMART_1M_100K_1', 'SMART_1M_100K_2', 'SMART_1M_100K_3',
+    // PNL range tags
+    'PNL_0-400K', 'PNL_400K-1M', 'PNL_>1M',
+    // Amount Invested (AI) range tags
+    'AI_1K-10K', 'AI_10K-50K', 'AI_50K-100K', 'AI_100K-500K', 'AI_>500K'
+  ];
+
+  // Filter tags based on search term
+  const filteredTags = useMemo(() => {
+    if (!tagSearchTerm) return allTags;
+    
+    return allTags.filter(tag => 
+      tag.toLowerCase().includes(tagSearchTerm.toLowerCase())
+    );
+  }, [tagSearchTerm, allTags]);
 
   // Refs for click-outside detection
   const marketCapPopupRef = useRef(null);
@@ -342,25 +366,28 @@ function FilterForm({ onApply, initialFilters = {} }) {
   };
 
   const formatSelectedTags = () => {
-    if (filters.selectedTags.length === 0) return 'Select tags';
-    if (filters.selectedTags.length === 1) {
-      // Display the tag name, removing any count suffix for PNL or AI tags
-      const tag = filters.selectedTags[0];
-      if (tag.startsWith('PNL_') || tag.startsWith('AI_')) {
-        // Extract the base tag name before any potential count
-        const baseName = tag.split('_').slice(0, 2).join('_');
-        return baseName;
-      }
-      return tag;
-    }
+    if (filters.selectedTags.length === 0) return (
+      <span>Select tags</span>
+    );
     
-    // For multiple tags, show the first one and count of others
-    let firstTag = filters.selectedTags[0];
-    if (firstTag.startsWith('PNL_') || firstTag.startsWith('AI_')) {
-      firstTag = firstTag.split('_').slice(0, 2).join('_');
-    }
-    
-    return `${firstTag} +${filters.selectedTags.length - 1} more`;
+    return (
+      <div className="selected-tags-container">
+        {filters.selectedTags.map(tag => {
+          // For PNL or AI tags, format for display by removing any count suffix
+          let displayTag = tag;
+          if (tag.startsWith('PNL_') || tag.startsWith('AI_')) {
+            // Extract the base tag name before any potential count
+            displayTag = tag.split('_').slice(0, 2).join('_');
+          }
+          
+          return (
+            <div key={tag} className="selected-tag-chip">
+              {displayTag}
+            </div>
+          );
+        })}
+      </div>
+    );
   };
 
   return (
@@ -481,30 +508,44 @@ function FilterForm({ onApply, initialFilters = {} }) {
           <div className="filter-dropdown-overlay" onClick={() => setShowTagPopup(false)} />
           <div className="filter-popup tag-filter-popup" ref={tagPopupRef}>
             <h5>Select Tags</h5>
+            <div className="search-container">
+              <FaSearch className="search-icon" />
+              <input
+                type="text"
+                placeholder="Search tags..."
+                className="search-input"
+                value={tagSearchTerm}
+                onChange={(e) => {
+                  setTagSearchTerm(e.target.value);
+                }}
+              />
+              {tagSearchTerm && (
+                <FaTimes 
+                  className="search-clear-icon" 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setTagSearchTerm('');
+                  }} 
+                />
+              )}
+            </div>
             <div className="tag-filter-options">
-              {[
-                'BALANCE_100K', 'BALANCE_500K', 'BALANCE_1M',
-                'HUGE_1D_CHANGE', 'HUGE_7D_CHANGE', 'HUGE_30D_CHANGE',
-                'PRICE_WITHIN_RANGE', 
-                'SMART_300K_10K_1', 'SMART_300K_10K_2', 'SMART_300K_10K_3', 
-                'SMART_500K_30K_1', 'SMART_500K_30K_2', 'SMART_500K_30K_3', 
-                'SMART_1M_100K_1', 'SMART_1M_100K_2', 'SMART_1M_100K_3',
-                // PNL range tags
-                'PNL_0-400K', 'PNL_400K-1M', 'PNL_>1M',
-                // Amount Invested (AI) range tags
-                'AI_1K-10K', 'AI_10K-50K', 'AI_50K-100K', 'AI_100K-500K', 'AI_>500K'
-              ].map((tag) => (
-                <div
-                  key={tag}
-                  className={`filter-popup-option ${
-                    filters.selectedTags.includes(tag) ? 'selected' : ''
-                  }`}
-                  onClick={() => handleTagToggle(tag)}
-                >
-                  {tag}
-                  {filters.selectedTags.includes(tag) && <FaCheck className="filter-check-icon" />}
-                </div>
-              ))}
+              {filteredTags.length > 0 ? (
+                filteredTags.map((tag) => (
+                  <div
+                    key={tag}
+                    className={`tag-option ${
+                      filters.selectedTags.includes(tag) ? 'selected' : ''
+                    }`}
+                    onClick={() => handleTagToggle(tag)}
+                  >
+                    <span>{tag}</span>
+                    {filters.selectedTags.includes(tag) && <FaCheck className="check-icon" />}
+                  </div>
+                ))
+              ) : (
+                <div className="no-tags-message">No matching tags found</div>
+              )}
             </div>
           </div>
         </>
@@ -579,9 +620,11 @@ function FilterForm({ onApply, initialFilters = {} }) {
         <div className="filter-row">
           <div className="filter-group full-width">
             <label>Tags</label>
-            <div className="filter-selector" onClick={toggleTagPopup}>
+            <div className="filter-dropdown-selector" onClick={toggleTagPopup}>
               {formatSelectedTags()}
-              <FaChevronDown className={`filter-dropdown-icon ${showTagPopup ? 'open' : ''}`} />
+              <span className={`dropdown-icon ${showTagPopup ? 'open' : ''}`}>
+                <FaChevronDown />
+              </span>
             </div>
           </div>
         </div>

@@ -412,39 +412,138 @@
 
 /* Tags styling */
 .tags-cell {
-  display: flex;
-  flex-wrap: nowrap;
-  gap: 6px;
-  overflow-x: auto;
-  padding: 4px 0;
   position: relative;
+  overflow-x: auto;
+  white-space: nowrap;
+  padding: 5px 10px;
   max-width: 100%;
-  scrollbar-width: none; /* Firefox */
-  -ms-overflow-style: none; /* IE and Edge */
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 5px;
+  transition: all 0.3s ease;
 }
 
 .tags-cell::-webkit-scrollbar {
-  display: none; /* Chrome, Safari, Opera */
+  height: 4px;
+}
+
+.tags-cell::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.tags-cell::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+}
+
+.tags-cell::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.tags-cell.expanded {
+  height: auto;
+  max-height: 300px;
+  overflow-y: auto;
+  background-color: rgba(20, 20, 20, 0.9);
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  transition: all 0.3s ease;
+  z-index: 20;
+  padding: 0;
+  position: absolute;
+  width: calc(100% - 20px);
+  margin-left: -5px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.tags-cell.expanded::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.tags-cell.expanded::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 3px;
+}
+
+.tags-cell.expanded::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 3px;
+}
+
+.tags-cell.expanded::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
 }
 
 .tag-badge {
   display: inline-flex;
   align-items: center;
-  padding: 3px 8px;
-  border-radius: 4px;
-  font-size: 0.7rem;
-  font-weight: 500;
-  background-color: rgba(255, 255, 255, 0.08);
+  background: rgba(64, 64, 64, 0.5);
   color: rgba(255, 255, 255, 0.8);
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  margin-right: 5px;
   white-space: nowrap;
-  transition: all 0.2s ease;
   border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: all 0.2s ease;
 }
 
 .report-table tbody tr:hover .tag-badge {
-  background-color: rgba(255, 255, 255, 0.12);
+  background: rgba(75, 75, 75, 0.6);
   border-color: rgba(255, 255, 255, 0.15);
-  color: rgba(255, 255, 255, 0.9);
+}
+
+.tag-badge:hover {
+  background: rgba(85, 85, 85, 0.7) !important;
+  transform: translateY(-1px);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+/* Specific tag colors for different categories */
+.tag-badge.BALANCE_100K,
+.tag-badge.BALANCE_500K,
+.tag-badge.BALANCE_1M {
+  background: rgba(63, 81, 181, 0.2);
+  border-color: rgba(63, 81, 181, 0.3);
+}
+
+.tag-badge.HUGE_1D_CHANGE,
+.tag-badge.HUGE_7D_CHANGE,
+.tag-badge.HUGE_30D_CHANGE,
+.tag-badge.PRICE_WITHIN_RANGE {
+  background: rgba(76, 175, 80, 0.2);
+  border-color: rgba(76, 175, 80, 0.3);
+}
+
+.tag-badge[class*="SMART_"] {
+  background: rgba(255, 152, 0, 0.2);
+  border-color: rgba(255, 152, 0, 0.3);
+}
+
+.tag-badge[class*="PNL_"] {
+  background: rgba(233, 30, 99, 0.2);
+  border-color: rgba(233, 30, 99, 0.3);
+}
+
+.tag-badge[class*="AI_"] {
+  background: rgba(156, 39, 176, 0.2);
+  border-color: rgba(156, 39, 176, 0.3);
+}
+
+/* Animation for expanded view */
+@keyframes expandTags {
+  from {
+    opacity: 0;
+    max-height: 40px;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    max-height: 300px;
+    transform: translateY(0);
+  }
 }
 
 /* Responsive adjustments */
@@ -531,4 +630,86 @@
 @keyframes spin {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
+}
+
+/* Expandable Tags */
+.tags-content {
+  width: 100%;
+}
+
+.tags-toggle {
+  display: flex;
+  align-items: flex-start;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: background-color 0.2s ease;
+}
+
+.tags-toggle:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+.tags-arrow {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.5);
+  margin-top: 4px;
+  margin-right: 6px;
+  transition: transform 0.2s ease;
+}
+
+.tags-toggle.expanded .tags-arrow {
+  transform: rotate(90deg);
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.tags-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  flex: 1;
+}
+
+.more-tags-badge {
+  font-size: 11px;
+  background-color: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.7);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.expanded-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.expanded-tags-view {
+  padding: 8px;
+  animation: fadeIn 0.3s ease forwards;
+  margin-top: 5px;
+}
+
+.tags-category {
+  margin-bottom: 12px;
+}
+
+.tags-category:last-child {
+  margin-bottom: 0;
+}
+
+.category-name {
+  font-size: 11px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.6);
+  margin-bottom: 4px;
+  padding-bottom: 2px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.category-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  padding-left: 6px;
 }

@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { FaSort, FaSortUp, FaSortDown, FaTags, FaCopy, FaCheck, FaArrowUp, FaArrowDown, FaChevronDown, FaChevronUp } from 'react-icons/fa';
+import { FaSort, FaSortUp, FaSortDown, FaTags, FaCopy, FaCheck, FaArrowUp, FaArrowDown, FaChevronDown, FaChevronUp, FaChevronRight } from 'react-icons/fa';
 import './PortSummaryReportTable.css';
 
 function PortSummaryReportTable({ data, onSort, sortConfig, onRowClick }) {
   const [hoveredRow, setHoveredRow] = useState(null);
   const [copiedId, setCopiedId] = useState(null);
   const [tagScrollStates, setTagScrollStates] = useState({});
+  const [expandedTags, setExpandedTags] = useState({});
   const tagCellRefs = useRef({});
   const tableContainerRef = useRef(null);
 
@@ -29,6 +30,37 @@ function PortSummaryReportTable({ data, onSort, sortConfig, onRowClick }) {
     window.addEventListener('resize', checkTableScroll);
     return () => window.removeEventListener('resize', checkTableScroll);
   }, [data]);
+
+  // Toggle tags expansion
+  const toggleTagsExpansion = (e, rowId) => {
+    e.stopPropagation();
+    setExpandedTags(prev => ({
+      ...prev,
+      [rowId]: !prev[rowId]
+    }));
+  };
+
+  // Categorize tags into groups
+  const categorizeTags = (tags) => {
+    const categories = {
+      'Balance': tags.filter(tag => tag.startsWith('BALANCE_')),
+      'Price Change': tags.filter(tag => tag.startsWith('HUGE_') || tag === 'PRICE_WITHIN_RANGE'),
+      'Smart Wallets': tags.filter(tag => tag.startsWith('SMART_')),
+      'PNL Ranges': tags.filter(tag => tag.startsWith('PNL_')),
+      'Investment Ranges': tags.filter(tag => tag.startsWith('AI_')),
+      'Other': tags.filter(tag => 
+        !tag.startsWith('BALANCE_') && 
+        !tag.startsWith('HUGE_') && 
+        tag !== 'PRICE_WITHIN_RANGE' &&
+        !tag.startsWith('SMART_') &&
+        !tag.startsWith('PNL_') &&
+        !tag.startsWith('AI_')
+      )
+    };
+    
+    // Remove empty categories
+    return Object.entries(categories).filter(([_, tagList]) => tagList.length > 0);
+  };
 
   // Check if tag cells are scrollable and update indicators
   const checkTagCellScroll = (rowId) => {
@@ -362,17 +394,46 @@ function PortSummaryReportTable({ data, onSort, sortConfig, onRowClick }) {
                     ref={el => { tagCellRefs.current[rowId] = el; }}
                     className={`tags-cell ${scrollState.scrollable ? 'scrollable' : ''} 
                               ${scrollState.showLeftIndicator ? 'show-left-indicator' : ''} 
-                              ${scrollState.showRightIndicator ? 'show-right-indicator' : ''}`}
+                              ${scrollState.showRightIndicator ? 'show-right-indicator' : ''}
+                              ${expandedTags[rowId] ? 'expanded' : ''}`}
                     onScroll={() => handleTagCellScroll(rowId)}
                   >
-                    {Array.isArray(row.tags) && row.tags.length > 0 ? (
-                      formatTags(row.tags).map((tag, i) => (
-                        <span key={i} className={`tag-badge ${tag}`}>{tag}</span>
-                      ))
-                    ) : typeof row.tags === 'string' && row.tags.length > 0 ? (
-                      formatTags(row.tags).map((tag, i) => (
-                        <span key={i} className={`tag-badge ${tag}`}>{tag}</span>
-                      ))
+                    {Array.isArray(row.tags) && row.tags.length > 0 || 
+                    (typeof row.tags === 'string' && row.tags.length > 0) ? (
+                      <div className="tags-content">
+                        <div 
+                          className={`tags-toggle ${expandedTags[rowId] ? 'expanded' : ''}`}
+                          onClick={(e) => toggleTagsExpansion(e, rowId)}
+                        >
+                          <FaChevronRight className="tags-arrow" />
+                          <div className="tags-summary">
+                            {!expandedTags[rowId] && formatTags(row.tags).slice(0, 3).map((tag, i) => (
+                              <span key={i} className={`tag-badge ${tag}`}>{tag}</span>
+                            ))}
+                            {!expandedTags[rowId] && formatTags(row.tags).length > 3 && (
+                              <span className="more-tags-badge">+{formatTags(row.tags).length - 3} more</span>
+                            )}
+                            {expandedTags[rowId] && (
+                              <span className="expanded-label">Tags ({formatTags(row.tags).length})</span>
+                            )}
+                          </div>
+                        </div>
+                        
+                        {expandedTags[rowId] && (
+                          <div className="expanded-tags-view" onClick={e => e.stopPropagation()}>
+                            {categorizeTags(formatTags(row.tags)).map(([category, tags], i) => (
+                              <div key={i} className="tags-category">
+                                <div className="category-name">{category}</div>
+                                <div className="category-tags">
+                                  {tags.map((tag, j) => (
+                                    <span key={j} className={`tag-badge ${tag}`}>{tag}</span>
+                                  ))}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
                     ) : (
                       <span className="no-tags">No tags</span>
                     )}
