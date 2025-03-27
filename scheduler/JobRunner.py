@@ -139,7 +139,7 @@ class JobRunner:
             func=handlePortfolioSummary,
             args=[self.db_path],
             trigger='cron',
-            hour='*/6',     # Every 4 hours (0, 4, 8, 12, 16, 20)
+            hour='*/1',     # Every 4 hours (0, 4, 8, 12, 16, 20)
             minute='0',
             id='portfolio_summary_analysis',
             name='Portfolio Summary Analysis',
@@ -154,7 +154,7 @@ class JobRunner:
             func=handleWalletsInvestedInPortSummaryTokens,
             args=[self.db_path],
             trigger='cron',
-            hour='*/6',     # Every 4 hours (0, 4, 8, 12, 16, 20)
+            hour='*/2',     # Every 4 hours (0, 4, 8, 12, 16, 20)
             minute='0',
             id='wallets_invested_in_a_token',
             name='Wallets Invested in a Token',
@@ -197,34 +197,34 @@ class JobRunner:
         logger.info("Scheduled token deactivation job (daily at midnight)")
 
     def addVolumeBotJobs(self):
-        """Add volume bot job - runs every 30 seconds using cron"""
+        """Add volume bot job - runs every 2 minutes using cron"""
         self.scheduler.add_job(
             func=handleVolumeBotAnalysis,
             args=[self.db_path],
             trigger='cron',
-            second='*/30',  # Run every 30 seconds
+            minute='*/2',
             id='volume_bot_analysis',
             name='Volume Bot Analysis',
             replace_existing=True,
             max_instances=1,
             coalesce=True
         )
-        logger.info("Scheduled volume bot job (every 30 seconds)")
+        logger.info("Scheduled volume bot job (every 2 minutes)")
 
     def addPumpFunJobs(self):
-        """Add pump fun job - runs every 30 seconds using cron"""
+        """Add pump fun job - runs every 2 minutes using cron"""
         self.scheduler.add_job(
             func=handlePumpFunAnalysis,
             args=[self.db_path],
             trigger='cron',
-            second='*/30',  # Run every 30 seconds
+            minute='*/2',
             id='pump_fun_analysis',
             name='Pump Fun Analysis',
             replace_existing=True,
             max_instances=1,
             coalesce=True
         )
-        logger.info("Scheduled pump fun job (every 30 seconds)")
+        logger.info("Scheduled pump fun job (every 2 minutes)")
 
     def addExecutionMonitoringJobs(self):
         """Add execution monitoring job - runs every minute"""

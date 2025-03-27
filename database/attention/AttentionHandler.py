@@ -28,7 +28,8 @@ class AttentionHandler(BaseSQLiteHandler):
                     lastseenat TIMESTAMP NOT NULL,
                     currentstatus VARCHAR(20) DEFAULT 'NEW',
                     attentioncount INT DEFAULT 1,
-                    createdat TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    createdat TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updatedat TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
             ''')
             
@@ -47,6 +48,8 @@ class AttentionHandler(BaseSQLiteHandler):
                     recordedat TIMESTAMP NOT NULL,
                     datasource VARCHAR(50) NOT NULL,
                     registryid INTEGER,
+                    createdat TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updatedat TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     FOREIGN KEY (registryid) REFERENCES attentiontokenregistry(id)
                 )
             ''')
@@ -143,10 +146,11 @@ class AttentionHandler(BaseSQLiteHandler):
         cursor.execute("""
             UPDATE attentiontokenregistry 
             SET lastseenat = ?,
+                updatedat = ?,
                 attentioncount = attentioncount + 1,
                 currentstatus = ?
             WHERE tokenid = ?
-        """, (currentTime, AttentionStatusEnum.ACTIVE.value, tokenId))
+        """, (currentTime, currentTime, AttentionStatusEnum.ACTIVE.value, tokenId))
 
     def _createNewTokenRegistryEntry(self, cursor, data: AttentionData, currentTime: datetime) -> Optional[int]:
         """
@@ -293,14 +297,15 @@ class AttentionHandler(BaseSQLiteHandler):
             cursor: Database cursor
             record: Record to store in history
         """
+        currentTime = self.getCurrentIstTime()
         cursor.execute("""
             INSERT INTO attentiondatahistory (
                 attentiondataid, tokenid, name, chain,
                 attentionscore, change1hbps,
                 change1dbps, change7dbps,
                 change30dbps, recordedat,
-                datasource
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                datasource, createdat, updatedat
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, (
             record['id'], 
             record['tokenid'] if record['tokenid'] else None, 
@@ -312,7 +317,9 @@ class AttentionHandler(BaseSQLiteHandler):
             record['change7dbps'],
             record['change30dbps'], 
             record['recordedat'],
-            record['datasource']
+            record['datasource'],
+            currentTime,
+            currentTime
         ))
     
     def _updateExistingRecord(self, cursor, recordId: int, data: AttentionData, change1hbps: Optional[int], registry_id: Optional[int] = None) -> None:
@@ -326,6 +333,7 @@ class AttentionHandler(BaseSQLiteHandler):
             change1hbps: Hourly change in basis points
             registry_id: ID of the token registry entry
         """
+        current_time = self.getCurrentIstTime()
         cursor.execute("""
             UPDATE attentiondata SET
                 attentionscore = ?,
@@ -334,7 +342,8 @@ class AttentionHandler(BaseSQLiteHandler):
                 change7dbps = ?,
                 change30dbps = ?,
                 datasource = ?,
-                registryid = ?
+                registryid = ?,
+                updatedat = ?
             WHERE id = ?
         """, (
             str(data.attentionscore), 
@@ -344,6 +353,7 @@ class AttentionHandler(BaseSQLiteHandler):
             data.change30dbps, 
             data.datasource,
             registry_id,
+            current_time,
             recordId
         ))
     
@@ -357,14 +367,16 @@ class AttentionHandler(BaseSQLiteHandler):
             change1hbps: Hourly change in basis points
             registry_id: ID of the token registry entry
         """
+        current_time = self.getCurrentIstTime()
         cursor.execute("""
             INSERT INTO attentiondata (
                 tokenid, name, chain,
                 attentionscore, change1hbps,
                 change1dbps, change7dbps,
                 change30dbps, recordedat,
-                datasource, registryid
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                datasource, registryid,
+                createdat, updatedat
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, (
             data.tokenid if data.tokenid else None, 
             data.name if data.name else None, 
@@ -376,7 +388,9 @@ class AttentionHandler(BaseSQLiteHandler):
             data.change30dbps, 
             data.recordedat,
             data.datasource,
-            registryId
+            registryId,
+            current_time,
+            current_time
         ))
 
     def _storeAttentionDataHistory(self, cursor, attentiondataid: int, data: AttentionData, change1hbps: Optional[int] = None) -> None:

@@ -16,6 +16,9 @@ from framework.analyticsframework.models.StrategyModels import StrategyConfig
 from framework.analyticshandlers.AnalyticsHandler import AnalyticsHandler
 from logs.logger import get_logger
 from database.operations.sqlite_handler import SQLitePortfolioDB
+from datetime import datetime, timedelta
+from decimal import Decimal
+import pytz
 logger = get_logger(__name__)
 
 class PushTokenAPI:
@@ -71,7 +74,7 @@ class PushTokenAPI:
         }
         return PortSummaryTokenData(**mappedData)
     
-    def pushToken(self, tokenData: BaseTokenData, sourceType: str, pushSource: PushSource = PushSource.SCHEDULER) -> bool:
+    def pushToken(self, tokenData: BaseTokenData, sourceType: str, pushSource: PushSource = PushSource.SCHEDULER, description: Optional[str] = None) -> bool:
         """
         Analyze a token through all applicable strategies
         
@@ -79,6 +82,7 @@ class PushTokenAPI:
             tokenData: Token data from source
             sourceType: Type of data source
             pushSource: Source that pushed the token (API or SCHEDULER)
+            description: Optional description to be added to the execution
             
         Returns:
             bool: Success status
@@ -106,7 +110,8 @@ class PushTokenAPI:
                 executionId = self.strategyFramework.handleStrategy(
                     strategy=strategyHandler,
                     tokenData=tokenData,
-                    strategyConfig=strategyConfig
+                    strategyConfig=strategyConfig,
+                    description=description
                 )
                 
                 if executionId:
@@ -175,25 +180,14 @@ class PushTokenAPI:
             'holders': 0,  # Volume data doesn't typically have holders
             
             # VolumeTokenData specific fields
-            'name': tokenData.get('name', ''),  # Trading symbol
-            'liquidity': tokenData.get('liquidity', 0),
-            'volume24h': tokenData.get('volume24h', 0),
             'buysolqty': tokenData.get('buysolqty', 0),
             'occurrencecount': tokenData.get('occurrencecount', 0),
-            'percentilerankpeats': tokenData.get('percentilerankpeats', 0),
+            'percentilerankpepeats': tokenData.get('percentilerankpeats', 0),
             'percentileranksol': tokenData.get('percentileranksol', 0),
             'dexstatus': tokenData.get('dexstatus', False),
             'change1hpct': tokenData.get('change1hpct', 0),
-            'tokendecimals': tokenData.get('tokendecimals'),
-            'circulatingsupply': tokenData.get('circulatingsupply'),
-            'tokenage': tokenData.get('tokenage'),
-            'twitterlink': tokenData.get('twitterlink'),
-            'telegramlink': tokenData.get('telegramlink'),
-            'websitelink': tokenData.get('websitelink'),
-            'firstseenat': tokenData.get('firstseenat'),
-            'lastupdatedat': tokenData.get('lastupdatedat'),
-            'createdat': tokenData.get('createdat'),
-            'fdv': tokenData.get('fdv')
+            'avgvolume24h': tokenData.get('volume24h', 0),  # Using volume24h from DB as avgvolume24h
+            'volumespikepct': tokenData.get('change1hpct', 0)  # Using change1hpct as volumespikepct
         }
         return VolumeTokenData(**mappedData)
 
@@ -218,25 +212,14 @@ class PushTokenAPI:
             'holders': 0,  # Pump fun data doesn't typically have holders
             
             # PumpFunTokenData specific fields
-            'name': tokenData.get('name', ''),  # Trading symbol
-            'liquidity': tokenData.get('liquidity', 0),
-            'volume24h': tokenData.get('volume24h', 0),
             'buysolqty': tokenData.get('buysolqty', 0),
             'occurrencecount': tokenData.get('occurrencecount', 0),
-            'percentilerankpeats': tokenData.get('percentilerankpeats', 0),
+            'percentilerankpepeats': tokenData.get('percentilerankpeats', 0),
             'percentileranksol': tokenData.get('percentileranksol', 0),
             'dexstatus': tokenData.get('dexstatus', False),
             'change1hpct': tokenData.get('change1hpct', 0),
-            'tokendecimals': tokenData.get('tokendecimals'),
-            'circulatingsupply': tokenData.get('circulatingsupply'),
-            'tokenage': tokenData.get('tokenage'),
-            'twitterlink': tokenData.get('twitterlink'),
-            'telegramlink': tokenData.get('telegramlink'),
-            'websitelink': tokenData.get('websitelink'),
-            'firstseenat': tokenData.get('firstseenat'),
-            'lastupdatedat': tokenData.get('lastupdatedat'),
-            'createdat': tokenData.get('createdat'),
-            'rugcount': tokenData.get('rugcount')
+            'avgvolume24h': tokenData.get('volume24h', 0),  # Using volume24h from DB as avgvolume24h
+            'volumespikepct': tokenData.get('change1hpct', 0)  # Using change1hpct as volumespikepct
         }
         return PumpFunTokenData(**mappedData)
 

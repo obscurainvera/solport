@@ -86,7 +86,7 @@ class StrategyFramework:
             logger.error(f"Error processing token {tokenData.tokenid}: {str(e)}")
             return []
             
-    def handleStrategy(self, strategy: BaseStrategy, tokenData: BaseTokenData, strategyConfig: BaseStrategyConfig) -> Optional[int]:
+    def handleStrategy(self, strategy: BaseStrategy, tokenData: BaseTokenData, strategyConfig: BaseStrategyConfig, description: Optional[str] = None) -> Optional[int]:
         """Process token through a single strategy"""
         try:
             # Check if this token is already being processed by this strategy
@@ -99,7 +99,7 @@ class StrategyFramework:
                 return None
 
             # Create execution with ACTIVE status
-            executionId = self.createExecution(strategy, tokenData, strategyConfig)
+            executionId = self.createExecution(strategy, tokenData, strategyConfig, description)
             if not executionId:
                 return None
 
@@ -138,7 +138,7 @@ class StrategyFramework:
             return None
 
     def createExecution(self, strategy: BaseStrategy, tokenData: BaseTokenData, 
-                         strategyConfig: BaseStrategyConfig) -> Optional[int]:
+                         strategyConfig: BaseStrategyConfig, description: Optional[str] = None) -> Optional[int]:
         """Create a new strategy execution"""
         try:
             # Create execution state with only required initial details
@@ -149,6 +149,7 @@ class StrategyFramework:
                 tokenname=tokenData.tokenname,
                 allotedamount=strategyConfig.investmentinstructions.allocatedamount,
                 status=ExecutionStatus.ACTIVE,
+                description=description or strategyConfig.description,
                 createdat=datetime.now(),
                 updatedat=datetime.now()
             )

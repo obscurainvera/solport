@@ -17,31 +17,29 @@ TOKEN_REFRESH_BUFFER_MINUTES = 1
 RELOGIN_BUFFER_MINUTES = 5
 
 # Define the Chainedge cookie
-CHAINEDGE_COOKIE = '_ga=GA1.1.60016713.1730025993; __stripe_mid=86d76ae8-5f87-4e05-8e8e-c5eaf0b99f8895f778; _ga_D6FYDK42KW=deleted; csrftoken=Er5AXkgzSRdP1gAPSFQJ9UDZ5ioZk9n6; sessionid=skrdq3stou4wro3a9evwuqwtylawv6p3; _ga_30LVG9BH2W=GS1.1.1742745195.240.1.1742749845.0.0.0; _ga_BRMXHSC2T7=GS1.1.1742745195.200.1.1742749845.0.0.0; _ga_QSLT10C1WE=GS1.1.1742745195.73.1.1742749845.0.0.0; _ga_D6FYDK42KW=GS1.1.1742782479.575.1.1742782489.0.0.0'
-SOLSCAN_COOKIE ='_ga=GA1.1.1697493596.1730686033; _ga_PS3V7B7KV0=GS1.1.1742782518.222.0.1742782518.0.0.0; cf_clearance=STDWXppoAaOpPR0zu8F3BYHU0btLOlvqwidaDa9mL4Y-1742792051-1.2.1.1-eWHpUDnHAhFeQe532xFSURLIIEd_ZMk8SlulvpwgrgSrSGFbeCK76RWsW15y.7moH3lbg4_5UTt68wcufbMGaHUWLpsZAg9EvKoNHZbMDQTNGo15Nls4qU9UUtTONnm7woPuB30wCzJ4_FsM1kMp9nsOb8nDdD7usxNh8fd0hQnz8lm_UwpdibKLaKlNVnzQiIztWQL2Wg1I2lWdCU2jigH9UnWGd6YOxMYxqbYssE6X2f4B50.Dr4Ij9nPKZT2u8zxn9G9Ne1BtHB1wyA2xQbuyalhrcUgnOeFkbT9tW_fmKEAwyrZZQnNxebCGONHP7qCm1jkdAn3GZfVgjKb2R0l2K255D1oa2bGYmkUBVlqrUTFlFXYdNr_JE2_wzvAlvLH8qcgJNqvnkrM_bu_xaCPQxcvU5DDlrMDlOREYwcg'
-TRADING_TERMINAL_COOKIE = '_ga=GA1.1.60016713.1730025993; csrftoken=A5UKYKMCXslzw6dLztJ8M29j4gaBxfKe; _ga_D6FYDK42KW=GS1.1.1742813046.582.1.1742813141.0.0.0; _ga_30LVG9BH2W=GS1.1.1742817171.246.0.1742817172.0.0.0; _ga_BRMXHSC2T7=GS1.1.1742817171.206.0.1742817172.0.0.0; _ga_QSLT10C1WE=GS1.1.1742817171.79.0.1742817172.0.0.0'
-
-
+CHAINEDGE_COOKIE = '_ga=GA1.1.60016713.1730025993; __stripe_mid=86d76ae8-5f87-4e05-8e8e-c5eaf0b99f8895f778; _ga_D6FYDK42KW=deleted; csrftoken=D8PPfI0qG4881oVYI8cCV8emdctpmUB6; sessionid=t1v7s5kfl1adb2wtaiycnldy4eadt2yn; _ga_30LVG9BH2W=GS1.1.1743069860.261.0.1743069860.0.0.0; _ga_BRMXHSC2T7=GS1.1.1743069860.221.0.1743069860.0.0.0; _ga_QSLT10C1WE=GS1.1.1743069860.94.0.1743069860.0.0.0; _ga_D6FYDK42KW=GS1.1.1743069792.597.1.1743070111.0.0.0'
+SOLSCAN_COOKIE ='_ga=GA1.1.1697493596.1730686033; cf_clearance=2h73fFAlFEkpP0riGxoxOtWNeRs4.L9HGRvZ85LQLHo-1743070265-1.2.1.1-xfGya8fVfCy6IJ8Y42pA.aS_Q.qBCQpmN9KGLS1RP6FAS6.lnGRsIEjkwS6LIN3A41LCHs4vGLNcUIVIPkEMeOVklhA1te7wMy1a3sAvEwarotezwnPQtOPEkz5ruAR1YOk0BBw09_5Cfy_Yr.op4ujrCIHZGPGm_KWedzjz7Ga2m81s7HdrBUGqf.BxeB5n7TGq0Nfh2F_Ta77cLnosVmBQ7HDZ.0Q.kwsg4.iYjurKHgpw1alOswa_X52ELbIJI3UweAsWfpWz319H5KFnfEwpngExYwEEpRUX5KpNMfpHUrpFR6FHmivZodSrK7m6fixTXFaP5DjAyTdFgkFFLHwXA3U5uB.McxA6XqqvFBJ5XMWGZ_np5eSVPENmnz0XOEr4GD29sYf91M.0jpTYD8x4q5UQQzMHjQKQZbzv0Sk; _ga_PS3V7B7KV0=GS1.1.1743069789.231.1.1743070355.0.0.0'
+TRADING_TERMINAL_COOKIE = '_ga=GA1.1.60016713.1730025993; csrftoken=A5UKYKMCXslzw6dLztJ8M29j4gaBxfKe; _ga_D6FYDK42KW=GS1.1.1743021911.594.1.1743021989.0.0.0; _ga_30LVG9BH2W=GS1.1.1743021915.258.1.1743022064.0.0.0; _ga_BRMXHSC2T7=GS1.1.1743021915.218.1.1743022064.0.0.0; _ga_QSLT10C1WE=GS1.1.1743021915.91.1.1743022064.0.0.0'
 COOKIE_MAP = {
     # Action-specific cookies
     'portfolio': {
         CHAINEDGE_COOKIE: {
-            'expiry': datetime(2025, 3, 25)
+            'expiry': datetime(2025, 3, 28)
         }
     },
     'walletsinvested': {
         CHAINEDGE_COOKIE: {
-            'expiry': datetime(2025, 3, 25)
+            'expiry': datetime(2025, 3, 28)
         }
     },
     'solscan': {
         SOLSCAN_COOKIE: {
-            'expiry': datetime(2025, 3, 25)
+            'expiry': datetime(2025, 3, 28)
         }
     },
     'smartmoneywallets': {
         CHAINEDGE_COOKIE: {
-            'expiry': datetime(2025, 3, 25)
+            'expiry': datetime(2025, 3, 26)
         }
     },
     'smwallettoppnltoken': {
@@ -51,17 +49,17 @@ COOKIE_MAP = {
     },
     'attention': {
         CHAINEDGE_COOKIE: {
-            'expiry': datetime(2025, 3, 25)
+            'expiry': datetime(2025, 3, 28)
         }
     },
     'volumebot': {
         TRADING_TERMINAL_COOKIE: {
-            'expiry': datetime(2025, 3, 25)
+            'expiry': datetime(2025, 3, 26)
         },
     },
     'pumpfun': {    
         TRADING_TERMINAL_COOKIE: {
-            'expiry': datetime(2025, 3, 25)
+            'expiry': datetime(2025, 3, 26)
         }
     }
 }

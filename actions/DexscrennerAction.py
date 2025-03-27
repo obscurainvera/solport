@@ -97,7 +97,7 @@ class DexScreenerAction:
 
     def parseResponseForRaydium(self, pairs: List[Dict[str, Any]]) -> Optional[TokenPrice]:
         """
-        Parse response to find Raydium pool data
+        Parse response to find Raydium or Pumpswap pool data
         
         Args:
             pairs: List of pairs from API response
@@ -106,22 +106,24 @@ class DexScreenerAction:
             TokenPrice object with price information or None if not found
         """
         try:
-            # Find Raydium pair with highest liquidity
-            raydiumPairs = [
+            # Find Raydium or Pumpswap pairs with highest liquidity
+            validPairs = [
                 pair for pair in pairs 
-                if pair.get('dexId') == 'raydium' and 
+                if pair.get('dexId') in ['raydium', 'pumpswap'] and 
                 pair.get('quoteToken', {}).get('symbol') in ['USDC', 'SOL']
             ]
             
-            if not raydiumPairs:
-                logger.warning("No Raydium pairs found")
+            if not validPairs:
+                logger.warning("No Raydium or Pumpswap pairs found")
                 return None
                 
             # Sort by liquidity and get the highest liquidity pair
             highestLiquidityPair = max(
-                raydiumPairs, 
+                validPairs, 
                 key=lambda x: float(x.get('liquidity', {}).get('usd', 0))
             )
+            
+            logger.info(f"Selected {highestLiquidityPair.get('dexId')} pair with highest liquidity: {highestLiquidityPair.get('liquidity', {}).get('usd', 0)} USD")
             
             return TokenPrice(
                 price=float(highestLiquidityPair['priceUsd']),

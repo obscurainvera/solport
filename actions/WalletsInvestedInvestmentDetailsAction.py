@@ -31,8 +31,7 @@ class WalletsInvestedInvestmentDetailsAction:
         self.solscanService = SolscanServiceHandler(db)
         self.cieloService = CieloServiceHandler(db)
 
-    def updateInvestmentData(self, cookie: str, walletAddress: str, tokenId: str, 
-                            walletInvestedId: int, service: str = 'cielo') -> bool:
+    def updateInvestmentData(self, cookie: str, walletAddress: str, tokenId: str, walletInvestedId: int, service: str = 'cielo') -> bool:
 
         try:
             # Get current transaction count from database

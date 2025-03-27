@@ -28,29 +28,29 @@ def get_attention_report():
         sortOrder = request.args.get('sortOrder', 'desc')
 
         # Use the handler to get the data
-        with SQLitePortfolioDB() as db:
-            handler = AttentionReportHandler(db)
+        db = SQLitePortfolioDB()
+        handler = AttentionReportHandler(db)
             
-            # Check if handler is None
-            if handler is None:
-                logger.error("Handler 'attention_report' not found")
-                response = jsonify({
-                    'error': 'Configuration error',
-                    'message': "Handler 'attention_report' not found"
-                })
-                response.headers.add('Access-Control-Allow-Origin', '*')
-                return response, 500
+        # Check if handler is None
+        if handler is None:
+            logger.error("Handler 'attention_report' not found")
+            response = jsonify({
+                'error': 'Configuration error',
+                'message': "Handler 'attention_report' not found"
+            })
+            response.headers.add('Access-Control-Allow-Origin', '*')
+            return response, 500
                 
-            attentionData = handler.getAttentionReport(
-                tokenId=tokenId,
-                name=name,
-                chain=chain,
-                currentStatus=currentStatus,
-                minAttentionCount=minAttentionCount,
-                maxAttentionCount=maxAttentionCount,
-                sortBy=sortBy,
-                sortOrder=sortOrder
-            )
+        attentionData = handler.getAttentionReport(
+            tokenId=tokenId,
+            name=name,
+            chain=chain,
+            currentStatus=currentStatus,
+            minAttentionCount=minAttentionCount,
+            maxAttentionCount=maxAttentionCount,
+            sortBy=sortBy,
+            sortOrder=sortOrder
+        )
 
         # Create response with proper CORS headers
         response = jsonify(attentionData)

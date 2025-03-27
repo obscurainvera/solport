@@ -19,7 +19,8 @@ from database.auth.ServiceCredentialsEnum import ServiceCredentials, CredentialT
 from framework.analyticsframework.api.PushTokenFrameworkAPI import PushTokenAPI
 from framework.analyticshandlers.AnalyticsHandler import AnalyticsHandler
 from framework.analyticsframework.enums.SourceTypeEnum import SourceType
-
+from database.auth.TokenHandler import TokenHandler
+import pytz
 logger = get_logger(__name__)
 
 class VolumebotAction:
@@ -34,6 +35,7 @@ class VolumebotAction:
         self.db = db
         self.service = ServiceCredentials.CHAINEDGE
         self.baseUrl = self.service.metadata['base_url']
+        self.tokenHandler = TokenHandler(self.db.conn_manager)
 
     def processVolumebotTokens(self, cookie: str) -> bool:
         """
@@ -74,7 +76,7 @@ class VolumebotAction:
         try:
             # Get fresh access token using service credentials
             authService = AuthService(
-                self.db.tokenHandler, 
+                self.tokenHandler, 
                 self.db,
                 self.service
             )
@@ -163,44 +165,49 @@ class VolumebotAction:
                 
             logger.info(f"Checking {len(volumeTokens)} volume tokens for recent timeago")
             
-            # Get current time
-            current_time = datetime.now()
+            # Get current time in UTC
+            currentTime = datetime.now(pytz.UTC)
             # Define the time threshold (5 minutes = 300 seconds)
-            time_threshold_seconds = 300
+            timeThresholdSeconds = 300
             
             # Initialize analytics handler and push token API
-            analyticsHandler = AnalyticsHandler()
+            analyticsHandler = AnalyticsHandler(self.db)
             pushTokenAPI = PushTokenAPI(analyticsHandler)
             
             # Process each token
-            success_count = 0
-            filtered_count = 0
+            successCount = 0
+            filteredCount = 0
             for token in volumeTokens:
                 try:
                     # Check if timeago is within the threshold
                     if token.timeago is None:
-                        logger.warning(f"Token {token.tokenid} has no timeago value, skipping")
+                        logger.warning(f"Token {token.tokenname} has no timeago value, skipping")
                         continue
                     
+                    # Ensure timeago is timezone-aware (UTC)
+                    tokenTimeago = token.timeago
+                    if tokenTimeago.tzinfo is None:
+                        tokenTimeago = pytz.UTC.localize(tokenTimeago)
+                    
                     # Calculate time difference in seconds
-                    time_diff = (current_time - token.timeago).total_seconds()
+                    timeDiff = (currentTime - tokenTimeago).total_seconds()
                     
                     # Skip if timeago is older than 5 minutes
-                    if time_diff > time_threshold_seconds:
-                        logger.info(f"Token {token.tokenid} timeago is {time_diff} seconds old, exceeds threshold of {time_threshold_seconds} seconds")
-                        filtered_count += 1
+                    if timeDiff > timeThresholdSeconds:
+                        logger.info(f"Token {token.tokenname} timeago is {timeDiff} seconds old (UTC), exceeds threshold of {timeThresholdSeconds} seconds")
+                        filteredCount += 1
                         continue
                         
                     # Get the current state of the token from the database
                     tokenState = self.db.volume.getTokenState(token.tokenid)
                     if not tokenState:
-                        logger.warning(f"Token state not found for {token.tokenid}, skipping")
+                        logger.warning(f"Token state not found for {token.tokenname}, skipping")
                         continue
                         
                     # Get token info
                     tokenInfo = self.db.volume.getTokenInfo(token.tokenid)
                     if not tokenInfo:
-                        logger.warning(f"Token info not found for {token.tokenid}, skipping")
+                        logger.warning(f"Token info not found for {token.tokenname}, skipping")
                         continue
                     
                     # Combine token state and info into a single dictionary
@@ -216,8 +223,8 @@ class VolumebotAction:
                     )
                     
                     if success:
-                        success_count += 1
-                        logger.info(f"Successfully pushed token {tokenData.tokenid} ({tokenData.tokenname}) to strategy framework (timeago: {time_diff} seconds)")
+                        successCount += 1
+                        logger.info(f"Successfully pushed token {tokenData.tokenid} ({tokenData.tokenname}) to strategy framework (timeago: {timeDiff} seconds)")
                     else:
                         logger.warning(f"Failed to push token {tokenData.tokenid} ({tokenData.tokenname}) to strategy framework")
                 
@@ -225,8 +232,8 @@ class VolumebotAction:
                     logger.error(f"Error processing token {token.tokenid}: {str(token_error)}")
                     continue
             
-            logger.info(f"Successfully pushed {success_count}/{len(volumeTokens)} tokens to strategy framework. Filtered out {filtered_count} tokens older than 5 minutes.")
-            return success_count > 0
+            logger.info(f"Successfully pushed {successCount}/{len(volumeTokens)} tokens to strategy framework. Filtered out {filteredCount} tokens older than 5 minutes.")
+            return successCount > 0
             
         except Exception as e:
             logger.error(f"Failed to push volume tokens to strategy framework: {str(e)}", exc_info=True)
