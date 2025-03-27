@@ -55,8 +55,8 @@
 
 .App-header {
   background-color: rgba(0, 0, 0, 0.8);
-  backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(20px);
   min-height: 60px;
   display: flex;
   align-items: center;
@@ -262,6 +262,7 @@ nav {
   padding: 2rem;
   background: rgba(0, 0, 0, 0.2);
   border-radius: 12px;
+  -webkit-backdrop-filter: blur(10px);
   backdrop-filter: blur(10px);
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
   position: relative;
@@ -317,8 +318,8 @@ nav {
 /* Update header styles */
 .App-header {
   background-color: rgba(0, 0, 0, 0.8);
-  backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(20px);
   min-height: 60px;
   display: flex;
   align-items: center;

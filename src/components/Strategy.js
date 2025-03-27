@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { FaHome, FaChartBar, FaTags, FaRobot, FaUpload, FaTimes } from 'react-icons/fa';
+import { FaHome, FaChartBar, FaTags, FaRobot, FaUpload, FaTimes, FaSave, FaTimesCircle } from 'react-icons/fa';
 import './Strategy.css';
 
 function Strategy() {
@@ -19,6 +19,28 @@ function Strategy() {
   const [evaluateTokenId, setEvaluateTokenId] = useState('');
   const [sourceType, setSourceType] = useState('');
   const [bulkSourceType, setBulkSourceType] = useState('');
+  const [tokenDescription, setTokenDescription] = useState('');
+  
+  // State for description modal
+  const [isDescriptionModalOpen, setIsDescriptionModalOpen] = useState(false);
+  const [tempDescription, setTempDescription] = useState('');
+
+  // Open description modal with current description
+  const openDescriptionModal = () => {
+    setTempDescription(tokenDescription);
+    setIsDescriptionModalOpen(true);
+  };
+
+  // Save description and close modal
+  const saveDescription = () => {
+    setTokenDescription(tempDescription);
+    setIsDescriptionModalOpen(false);
+  };
+
+  // Cancel and close modal
+  const cancelDescriptionEdit = () => {
+    setIsDescriptionModalOpen(false);
+  };
 
   // Handler functions
   const tagAllPortfolioTokens = async () => {
@@ -166,7 +188,8 @@ function Strategy() {
         },
         body: JSON.stringify({ 
           token_id: tokenId,
-          source_type: sourceType 
+          source_type: sourceType,
+          description: tokenDescription
         }),
       });
       
@@ -391,6 +414,28 @@ function Strategy() {
                   </select>
                 </div>
                 
+                <div className="input-group">
+                  <div 
+                    className="luxury-input description-textarea-container" 
+                    onClick={openDescriptionModal}
+                  >
+                    {tokenDescription ? (
+                      <div className="description-preview">
+                        {tokenDescription.length > 100 
+                          ? tokenDescription.substring(0, 100) + '...' 
+                          : tokenDescription}
+                      </div>
+                    ) : (
+                      <div className="description-placeholder">
+                        Click to add description (optional)
+                      </div>
+                    )}
+                  </div>
+                  <div className="input-note">
+                    Add a description to provide context for this token execution
+                  </div>
+                </div>
+                
                 <button 
                   className="luxury-button" 
                   onClick={pushTokenToAnalytics}
@@ -462,6 +507,40 @@ function Strategy() {
           </div>
         </div>
       </div>
+
+      {/* Description Modal */}
+      {isDescriptionModalOpen && (
+        <div className="description-modal-overlay" onClick={cancelDescriptionEdit}>
+          <div className="description-modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="description-modal-header">
+              <h2>Token Description</h2>
+              <div className="description-modal-actions">
+                <button 
+                  className="modal-action-button save-button" 
+                  onClick={saveDescription}
+                  title="Save description"
+                >
+                  <FaSave /> Save
+                </button>
+                <button 
+                  className="modal-action-button cancel-button" 
+                  onClick={cancelDescriptionEdit}
+                  title="Cancel"
+                >
+                  <FaTimesCircle /> Cancel
+                </button>
+              </div>
+            </div>
+            <textarea
+              className="description-modal-textarea"
+              value={tempDescription}
+              onChange={(e) => setTempDescription(e.target.value)}
+              placeholder="Enter a detailed description for this token execution..."
+              autoFocus
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

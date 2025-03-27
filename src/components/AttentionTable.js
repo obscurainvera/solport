@@ -154,11 +154,11 @@ const AttentionTable = ({ data }) => {
     
     // Sort by date ascending
     const sortedData = [...historicalData].sort(
-      (a, b) => new Date(a.recordedAt) - new Date(b.recordedAt)
+      (a, b) => new Date(a.updatedAt) - new Date(b.updatedAt)
     );
     
     const labels = sortedData.map(item => {
-      const date = new Date(item.recordedAt);
+      const date = new Date(item.updatedAt);
       return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
     });
     

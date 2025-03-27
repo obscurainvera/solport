@@ -105,6 +105,7 @@
 .filters-panel {
   background: rgba(28, 28, 30, 0.95);
   backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   border-radius: 12px;
   padding: 25px;
   margin-bottom: 30px;
@@ -283,6 +284,7 @@
   min-height: 300px;
   padding: 50px 20px;
   background: rgba(28, 28, 30, 0.6);
+  -webkit-backdrop-filter: blur(10px);
   backdrop-filter: blur(10px);
   border-radius: 12px;
   text-align: center;
@@ -647,4 +649,24 @@
   .attention-filters .col-md-3.d-flex {
     flex-direction: column;
   }
+}
+
+.attention-chart-container {
+  margin-top: 2rem;
+  padding: 1.5rem;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.attention-chart {
+  height: 400px;
+  width: 100%;
+  position: relative;
+}
+
+.attention-chart canvas {
+  width: 100% !important;
+  height: 100% !important;
 } 

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { FaChevronDown, FaChevronUp, FaCopy, FaCheck, FaExternalLinkAlt, FaChevronRight } from 'react-icons/fa';
+import { FaChevronDown, FaChevronUp, FaCopy, FaCheck, FaExternalLinkAlt, FaChevronRight, FaTimes } from 'react-icons/fa';
 import './StrategyExecutionTable.css';
 
 // Execution status definitions from the enum
@@ -18,6 +18,9 @@ function StrategyExecutionTable({ data, onSort, sortConfig }) {
   const [copiedId, setCopiedId] = useState(null);
   const [expandedDescriptions, setExpandedDescriptions] = useState({});
   const tableContainerRef = useRef(null);
+  const [showDescriptionModal, setShowDescriptionModal] = useState(false);
+  const [selectedExecution, setSelectedExecution] = useState(null);
+  const modalRef = useRef(null);
 
   // Check if table container is scrollable
   useEffect(() => {
@@ -39,6 +42,25 @@ function StrategyExecutionTable({ data, onSort, sortConfig }) {
     window.addEventListener('resize', checkTableScroll);
     return () => window.removeEventListener('resize', checkTableScroll);
   }, [data]);
+
+  // Close modal when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (modalRef.current && !modalRef.current.contains(event.target)) {
+        setShowDescriptionModal(false);
+      }
+    }
+
+    if (showDescriptionModal) {
+      document.addEventListener('mousedown', handleClickOutside);
+    } else {
+      document.removeEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showDescriptionModal]);
 
   // Clear copied state after 2 seconds
   useEffect(() => {
@@ -178,6 +200,18 @@ function StrategyExecutionTable({ data, onSort, sortConfig }) {
       <p key={i} className="description-line">{line}</p>
     ));
   };
+  
+  const handleRowClick = (execution) => {
+    if (execution && execution.description) {
+      setSelectedExecution(execution);
+      setShowDescriptionModal(true);
+    }
+  };
+
+  const closeModal = () => {
+    setShowDescriptionModal(false);
+    setSelectedExecution(null);
+  };
 
   if (!data || data.length === 0) {
     return (
@@ -190,144 +224,142 @@ function StrategyExecutionTable({ data, onSort, sortConfig }) {
   }
 
   return (
-    <div className="strategy-table-wrapper" ref={tableContainerRef}>
-      <table className="executions-table">
-        <thead>
-          <tr>
-            <th className="token-id-header">
-              <div className="th-content">Token ID</div>
-            </th>
-            <th onClick={() => onSort('strategyname')} className="sortable">
-              <div className="th-content">Name {getSortIndicator('strategyname')}</div>
-            </th>
-            <th onClick={() => onSort('tokenname')} className="sortable">
-              <div className="th-content">Token {getSortIndicator('tokenname')}</div>
-            </th>
-            <th onClick={() => onSort('avgentryprice')} className="sortable">
-              <div className="th-content">Avg Entry {getSortIndicator('avgentryprice')}</div>
-            </th>
-            <th onClick={() => onSort('investedamount')} className="sortable">
-              <div className="th-content">Invested {getSortIndicator('investedamount')}</div>
-            </th>
-            <th onClick={() => onSort('amounttakenout')} className="sortable">
-              <div className="th-content">Taken Out {getSortIndicator('amounttakenout')}</div>
-            </th>
-            <th onClick={() => onSort('status')} className="sortable">
-              <div className="th-content">Status {getSortIndicator('status')}</div>
-            </th>
-            <th onClick={() => onSort('remainingValue')} className="sortable">
-              <div className="th-content">Remaining {getSortIndicator('remainingValue')}</div>
-            </th>
-            <th onClick={() => onSort('realizedPnl')} className="sortable">
-              <div className="th-content">Realized PNL {getSortIndicator('realizedPnl')}</div>
-            </th>
-            <th onClick={() => onSort('pnl')} className="sortable">
-              <div className="th-content">Total PNL {getSortIndicator('pnl')}</div>
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          {data.map((execution, index) => {
-            const rowId = execution.executionid || `row-${index}`;
-            const isExpanded = !!expandedDescriptions[rowId];
-            
-            // Use API values directly instead of calculating
-            const realizedPNL = execution.realizedPnl;
-            const totalPNL = execution.pnl;
-            
-            return (
-              <tr 
-                key={rowId}
-                onMouseEnter={() => handleRowHover(rowId)}
-                onMouseLeave={handleRowLeave}
-                className={`${hoveredRow === rowId ? 'hovered' : ''}`}
-              >
-                <td className="token-id-cell">
-                  <div className="token-actions">
-                    <span 
-                      className={`token-id ${copiedId === execution.tokenid ? 'copied' : ''}`}
-                      onClick={(e) => handleCopyTokenId(execution.tokenid, e)}
-                      title="Click to copy token ID"
-                    >
-                      {execution.tokenid ? execution.tokenid.substring(0, 4) + '...' : '-'}
-                      {copiedId === execution.tokenid ? 
-                        <FaCheck className="action-icon copied" /> : 
-                        <FaCopy className="action-icon" />}
-                    </span>
-                    <button 
-                      className="link-button" 
-                      onClick={(e) => openExternalLink(execution.tokenid, e)}
-                      title="View on explorer"
-                    >
-                      <FaExternalLinkAlt />
-                    </button>
-                  </div>
-                </td>
-                <td className="strategy-name">
-                  <div className="truncate-text" title={execution.strategyname}>
-                    {execution.strategyname || '-'}
-                  </div>
-                </td>
-                <td className="token-name">
-                  {execution.description ? (
-                    <div className="description-container">
-                      <div 
-                        className={`description-toggle ${isExpanded ? 'expanded' : ''}`}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          toggleDescription(rowId);
-                        }}
+    <>
+      <div className="strategy-table-wrapper" ref={tableContainerRef}>
+        <table className="executions-table">
+          <thead>
+            <tr>
+              <th className="token-id-header">
+                <div className="th-content">Token ID</div>
+              </th>
+              <th onClick={() => onSort('strategyname')} className="sortable">
+                <div className="th-content">Name {getSortIndicator('strategyname')}</div>
+              </th>
+              <th onClick={() => onSort('tokenname')} className="sortable">
+                <div className="th-content">Token {getSortIndicator('tokenname')}</div>
+              </th>
+              <th onClick={() => onSort('avgentryprice')} className="sortable">
+                <div className="th-content">Avg Entry {getSortIndicator('avgentryprice')}</div>
+              </th>
+              <th onClick={() => onSort('investedamount')} className="sortable">
+                <div className="th-content">Invested {getSortIndicator('investedamount')}</div>
+              </th>
+              <th onClick={() => onSort('amounttakenout')} className="sortable">
+                <div className="th-content">Taken Out {getSortIndicator('amounttakenout')}</div>
+              </th>
+              <th onClick={() => onSort('status')} className="sortable">
+                <div className="th-content">Status {getSortIndicator('status')}</div>
+              </th>
+              <th onClick={() => onSort('remainingValue')} className="sortable">
+                <div className="th-content">Remaining {getSortIndicator('remainingValue')}</div>
+              </th>
+              <th onClick={() => onSort('realizedPnl')} className="sortable">
+                <div className="th-content">Realized PNL {getSortIndicator('realizedPnl')}</div>
+              </th>
+              <th onClick={() => onSort('pnl')} className="sortable">
+                <div className="th-content">Total PNL {getSortIndicator('pnl')}</div>
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {data.map((execution, index) => {
+              const rowId = execution.executionid || `row-${index}`;
+              
+              // Use API values directly instead of calculating
+              const realizedPNL = execution.realizedPnl;
+              const totalPNL = execution.pnl;
+              
+              return (
+                <tr 
+                  key={rowId}
+                  onMouseEnter={() => handleRowHover(rowId)}
+                  onMouseLeave={handleRowLeave}
+                  className={`${hoveredRow === rowId ? 'hovered' : ''} ${execution.description ? 'has-description' : ''}`}
+                  onClick={() => handleRowClick(execution)}
+                >
+                  <td className="token-id-cell">
+                    <div className="token-actions">
+                      <span 
+                        className={`token-id ${copiedId === execution.tokenid ? 'copied' : ''}`}
+                        onClick={(e) => handleCopyTokenId(execution.tokenid, e)}
+                        title="Click to copy token ID"
                       >
-                        <FaChevronRight className="description-arrow" />
-                        <div className="truncate-text" title={execution.tokenname}>
-                          {execution.tokenname || 'Unknown Token'}
-                        </div>
-                      </div>
-                      {isExpanded && execution.description && (
-                        <div className="expanded-description" onClick={e => e.stopPropagation()}>
-                          {formatDescription(execution.description)}
-                        </div>
-                      )}
+                        {execution.tokenid ? execution.tokenid.substring(0, 4) + '...' : '-'}
+                        {copiedId === execution.tokenid ? 
+                          <FaCheck className="action-icon copied" /> : 
+                          <FaCopy className="action-icon" />}
+                      </span>
+                      <button 
+                        className="link-button" 
+                        onClick={(e) => openExternalLink(execution.tokenid, e)}
+                        title="View on explorer"
+                      >
+                        <FaExternalLinkAlt />
+                      </button>
                     </div>
-                  ) : (
+                  </td>
+                  <td className="strategy-name">
+                    <div className="truncate-text" title={execution.strategyname}>
+                      {execution.strategyname || '-'}
+                    </div>
+                  </td>
+                  <td className="token-name">
                     <div className="truncate-text" title={execution.tokenname}>
                       {execution.tokenname || '-'}
+                      {execution.description && <span className="description-indicator" title="Click for details"></span>}
                     </div>
-                  )}
-                </td>
-                <td className="text-center">{formatCurrency(execution.avgentryprice)}</td>
-                <td className="text-center" title={execution.investedamount ? formatCurrency(execution.investedamount) : '-'}>
-                  {formatLargeNumber(execution.investedamount) || '-'}
-                </td>
-                <td className="text-center" title={execution.amounttakenout ? formatCurrency(execution.amounttakenout) : '-'}>
-                  {formatLargeNumber(execution.amounttakenout) || '-'}
-                </td>
-                <td className="status-cell">
-                  {getStatusBadge(execution.status)}
-                </td>
-                <td className="text-center" title={execution.remainingValue ? formatCurrency(execution.remainingValue) : '-'}>
-                  {formatLargeNumber(execution.remainingValue) || '-'}
-                </td>
-                <td className={`text-center ${realizedPNL > 0 ? 'positive' : realizedPNL < 0 ? 'negative' : ''}`} 
-                    title={realizedPNL !== null ? formatCurrency(realizedPNL) : '-'}>
-                  {realizedPNL !== null ? formatLargeNumber(realizedPNL) : '-'}
-                </td>
-                <td className={`text-center ${totalPNL > 0 ? 'positive' : totalPNL < 0 ? 'negative' : ''}`} 
-                    title={totalPNL !== null ? formatCurrency(totalPNL) : '-'}>
-                  {totalPNL !== null ? formatLargeNumber(totalPNL) : '-'}
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-      <div className="table-footer">
-        <div className="table-info">
-          Showing {data.length} {data.length === 1 ? 'execution' : 'executions'}
+                  </td>
+                  <td className="text-center">{formatCurrency(execution.avgentryprice)}</td>
+                  <td className="text-center" title={execution.investedamount ? formatCurrency(execution.investedamount) : '-'}>
+                    {formatLargeNumber(execution.investedamount) || '-'}
+                  </td>
+                  <td className="text-center" title={execution.amounttakenout ? formatCurrency(execution.amounttakenout) : '-'}>
+                    {formatLargeNumber(execution.amounttakenout) || '-'}
+                  </td>
+                  <td className="status-cell">
+                    {getStatusBadge(execution.status)}
+                  </td>
+                  <td className="text-center" title={execution.remainingValue ? formatCurrency(execution.remainingValue) : '-'}>
+                    {formatLargeNumber(execution.remainingValue) || '-'}
+                  </td>
+                  <td className={`text-center ${realizedPNL > 0 ? 'positive' : realizedPNL < 0 ? 'negative' : ''}`} 
+                      title={realizedPNL !== null ? formatCurrency(realizedPNL) : '-'}>
+                    {realizedPNL !== null ? formatLargeNumber(realizedPNL) : '-'}
+                  </td>
+                  <td className={`text-center ${totalPNL > 0 ? 'positive' : totalPNL < 0 ? 'negative' : ''}`} 
+                      title={totalPNL !== null ? formatCurrency(totalPNL) : '-'}>
+                    {totalPNL !== null ? formatLargeNumber(totalPNL) : '-'}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+        <div className="table-footer">
+          <div className="table-info">
+            Showing {data.length} {data.length === 1 ? 'execution' : 'executions'}
+          </div>
         </div>
       </div>
-    </div>
+
+      {/* Description Modal */}
+      {showDescriptionModal && selectedExecution && (
+        <div className="description-modal-backdrop" onClick={closeModal}>
+          <div className="description-modal" ref={modalRef} onClick={(e) => e.stopPropagation()}>
+            <div className="description-modal-header">
+              <h3>{selectedExecution.tokenname}</h3>
+              <button className="close-modal-button" onClick={closeModal}>
+                <FaTimes />
+              </button>
+            </div>
+            <div className="description-modal-body">
+              {formatDescription(selectedExecution.description)}
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
 
-export default StrategyExecutionTable; 
+export default StrategyExecutionTable;
