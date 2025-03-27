@@ -49,13 +49,13 @@ class VolumeStrategy(BaseStrategy):
             
             tokenData.price = realTimePrice
             
-            if investmentInstructions.entrytype == EntryType.BULK:
+            if investmentInstructions.entrytype == EntryType.BULK.name:
                 return self._executeBulkInvestment(
                     executionId,
                     tokenData,
                     investmentInstructions
                 )
-            elif investmentInstructions.entrytype == EntryType.DCA:
+            elif investmentInstructions.entrytype == EntryType.DCA.name:
                 return self._executeDCAInvestment(
                     executionId,
                     tokenData,
@@ -73,16 +73,10 @@ class VolumeStrategy(BaseStrategy):
         """Execute a bulk investment with volume-based position sizing"""
         try:
             # Calculate position size based on volume metrics
-            baseSize = investmentInstructions.allocatedamount
+            baseSize = Decimal(str(investmentInstructions.allocatedamount))
 
-            # volumeMultiplier = min(
-            #     Decimal('2.0'),
-            #     Decimal('1.0') + (tokenData.volumespikepct / Decimal('1000.0'))
-            # )
-            # positionSize = min(
-            #     baseSize * volumeMultiplier,
-            #     investmentInstructions.maxpositionsize
-            # )
+            # Ensure price is Decimal
+            tokenPrice = Decimal(str(tokenData.price))
 
             tradeRecord = TradeLog(
                 tradeid=None,
@@ -91,8 +85,8 @@ class VolumeStrategy(BaseStrategy):
                 tokenname=tokenData.tokenname,
                 tradetype=TradeType.BUY.value,
                 amount=baseSize,
-                tokenprice=tokenData.price,
-                coins=baseSize / tokenData.price,
+                tokenprice=tokenPrice,
+                coins=baseSize / tokenPrice,
                 description=f"Bulk entry (Volume Spike: {tokenData.volumespikepct}%)",
                 createdat=datetime.now()
             )
@@ -113,12 +107,15 @@ class VolumeStrategy(BaseStrategy):
             dcaRules = investmentInstructions.dcarules
             currentTime = datetime.now()
 
+            # Ensure price is Decimal
+            tokenPrice = Decimal(str(tokenData.price))
+
             # Adjust DCA amount based on volume metrics
             volumeMultiplier = min(
                 Decimal('1.5'),
                 Decimal('1.0') + (tokenData.volumespikepct / Decimal('2000.0'))
             )
-            adjustedAmount = dcaRules.amountperinterval * volumeMultiplier
+            adjustedAmount = Decimal(str(dcaRules.amountperinterval)) * volumeMultiplier
 
             firstEntry = TradeLog(
                 tradeid=None,
@@ -127,8 +124,8 @@ class VolumeStrategy(BaseStrategy):
                 tokenname=tokenData.tokenname,
                 tradetype=TradeType.BUY.value,
                 amount=adjustedAmount,
-                tokenprice=tokenData.price,
-                coins=adjustedAmount / tokenData.price,
+                tokenprice=tokenPrice,
+                coins=adjustedAmount / tokenPrice,
                 description=f"DCA entry 1/{dcaRules.intervals} (Volume Spike: {tokenData.volumespikepct}%)",
                 createdat=currentTime
             )

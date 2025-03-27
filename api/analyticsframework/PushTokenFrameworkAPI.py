@@ -47,15 +47,23 @@ def getSourceTokenDataHandler(sourceType: str, tokenId: str) -> Optional[BaseTok
                 
         elif sourceType == SourceType.VOLUME.value:
             volumeHandler = db.volume
-            tokenData = volumeHandler.getTokenState(tokenId)
-            if tokenData:
-                return PushTokenAPI.mapVolumeTokenData(tokenData)
+            # Get both state and info
+            tokenState = volumeHandler.getTokenState(tokenId)
+            tokenInfo = volumeHandler.getTokenInfo(tokenId)
+            if tokenState and tokenInfo:
+                # Combine state and info
+                combinedTokenData = {**tokenState, **tokenInfo}
+                return PushTokenAPI.mapVolumeTokenData(combinedTokenData)
                 
         elif sourceType == SourceType.PUMPFUN.value:
             pumpfunHandler = db.pumpfun
-            tokenData = pumpfunHandler.getTokenState(tokenId)
-            if tokenData:
-                return PushTokenAPI.mapPumpFunTokenData(tokenData)
+            # Get both state and info
+            tokenState = pumpfunHandler.getTokenState(tokenId)
+            tokenInfo = pumpfunHandler.getTokenInfo(tokenId)
+            if tokenState and tokenInfo:
+                # Combine state and info
+                combinedTokenData = {**tokenState, **tokenInfo}
+                return PushTokenAPI.mapPumpFunTokenData(combinedTokenData)
                 
         elif sourceType == SourceType.SMARTMONEY.value:
             # For smart money, we need to handle it differently as it's wallet-based
@@ -102,19 +110,26 @@ def pushToken():
                 'message': f'Token {tokenId} not found in {sourceType} source'
             }), 404
 
+        # Get optional description
+        description = data.get('description')
+
         # Initialize analytics framework with database connection
         db = SQLitePortfolioDB()
         analyticsHandler = AnalyticsHandler(db)
         pushTokenApiInstance = PushTokenAPI(analyticsHandler)
 
         # Analyze token with source type, setting push source as API
-        success = pushTokenApiInstance.pushToken(tokenData, sourceType, PushSource.API)
+        success = pushTokenApiInstance.pushToken(tokenData, sourceType, PushSource.SCHEDULER, description)
         
         if success:
             return jsonify({
                 'status': 'success',
                 'message': 'Token pushed to framework successfully',
-                'data': {'token_id': tokenId, 'source': sourceType}
+                'data': {
+                    'token_id': tokenId, 
+                    'source': sourceType,
+                    'description': description
+                }
             }), 200
         else:
             return jsonify({

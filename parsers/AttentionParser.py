@@ -30,7 +30,8 @@ def parseAttentionData(apiResponse: Dict[str, Any]) -> Optional[List[AttentionDa
         'chain_x_format': 0,
         'token_id_x_format': 0,
         'perps_format': 0,
-        'unknown_format': 0
+        'unknown_format': 0,
+        'skipped_att_score_norm': 0
     }
     
     # Process all data keys that contain token information
@@ -48,6 +49,12 @@ def parseAttentionData(apiResponse: Dict[str, Any]) -> Optional[List[AttentionDa
         # Process each item in the data key
         for item in dataItems:
             try:
+                # Skip items that contain att_score_norm
+                if 'att_score_norm' in item:
+                    formatCounts['skipped_att_score_norm'] += 1
+                    logger.debug(f"Skipping item with att_score_norm: {item.get('token_symbol', 'unknown')}")
+                    continue
+
                 attentionData = None
                 
                 # Process based on format type
@@ -59,7 +66,7 @@ def parseAttentionData(apiResponse: Dict[str, Any]) -> Optional[List[AttentionDa
                     attentionData = _parse_token_id_x_format(item, currentTime)
                     formatCounts['token_id_x_format'] += 1
                 
-                elif 'token_symbol' in item and ('att_score_pct' in item or 'att_score_norm' in item): #for all perps tokens
+                elif 'token_symbol' in item and ('att_score_pct' in item): #for all perps tokens
                     attentionData = _parse_perps_format(item, currentTime)
                     formatCounts['perps_format'] += 1
                 
@@ -80,7 +87,8 @@ def parseAttentionData(apiResponse: Dict[str, Any]) -> Optional[List[AttentionDa
     logger.info(f"Format counts - Chain_x: {formatCounts['chain_x_format']}, " +
                 f"Token_id_x: {formatCounts['token_id_x_format']}, " +
                 f"Perps: {formatCounts['perps_format']}, " +
-                f"Unknown: {formatCounts['unknown_format']}")
+                f"Unknown: {formatCounts['unknown_format']}, " +
+                f"Skipped att_score_norm: {formatCounts['skipped_att_score_norm']}")
     
     logger.info(f"Successfully parsed {len(parsedItems)} attention data items")
     return parsedItems if parsedItems else None
@@ -197,6 +205,7 @@ def _parse_perps_format(item: Dict[str, Any], currentTime: datetime) -> Optional
 def _get_attention_score(item: Dict[str, Any]) -> float:
     """
     Extract the attention score from an item.
+    Only accepts att_score_pct as valid score type.
     
     Args:
         item: The item to extract the attention score from
@@ -204,11 +213,7 @@ def _get_attention_score(item: Dict[str, Any]) -> float:
     Returns:
         float: The attention score or 0 if not found
     """
-    if 'att_score_pct' in item:
-        return item.get('att_score_pct', 0)
-    elif 'att_score_norm' in item:
-        return item.get('att_score_norm', 0)
-    return 0
+    return item.get('att_score_pct', 0)
 
 
 def _convertToBps(value) -> Optional[int]:

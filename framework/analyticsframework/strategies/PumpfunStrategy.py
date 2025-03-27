@@ -50,13 +50,13 @@ class PumpFunStrategy(BaseStrategy):
             
             tokenData.price = realTimePrice
             
-            if investmentInstructions.entrytype == EntryType.BULK:
+            if investmentInstructions.entrytype == EntryType.BULK.name:
                 return self._executeBulkInvestment(
                     executionId,
                     tokenData,
                     investmentInstructions
                 )
-            elif investmentInstructions.entrytype == EntryType.DCA:
+            elif investmentInstructions.entrytype == EntryType.DCA.name:
                 return self._executeDCAInvestment(
                     executionId,
                     tokenData,
@@ -74,19 +74,10 @@ class PumpFunStrategy(BaseStrategy):
         """Execute a bulk investment with pump-based position sizing"""
         try:
             # Calculate position size based on pump and meme scores
-            baseSize = investmentInstructions.allocatedamount
-            # pumpMultiplier = min(
-            #     Decimal('2.0'),
-            #     Decimal('1.0') + (tokenData.pumpscore / Decimal('100.0'))
-            # )
-            # memeMultiplier = min(
-            #     Decimal('1.5'),
-            #     Decimal('1.0') + (tokenData.memescore / Decimal('100.0'))
-            # )
-            # positionSize = min(
-            #     baseSize * pumpMultiplier * memeMultiplier,
-            #     investmentInstructions.maxpositionsize
-            # )
+            baseSize = Decimal(str(investmentInstructions.allocatedamount))
+
+            # Ensure price is Decimal
+            tokenPrice = Decimal(str(tokenData.price))
 
             tradeRecord = TradeLog(
                 tradeid=None,
@@ -95,8 +86,8 @@ class PumpFunStrategy(BaseStrategy):
                 tokenname=tokenData.tokenname,
                 tradetype=TradeType.BUY.value,
                 amount=baseSize,
-                tokenprice=tokenData.price,
-                coins=baseSize / tokenData.price,
+                tokenprice=tokenPrice,
+                coins=baseSize / tokenPrice,
                 description=f"Bulk entry (Pump Score: {tokenData.pumpscore}, Meme Score: {tokenData.memescore})",
                 createdat=datetime.now()
             )
@@ -117,12 +108,15 @@ class PumpFunStrategy(BaseStrategy):
             dcaRules = investmentInstructions.dcarules
             currentTime = datetime.now()
 
+            # Ensure price is Decimal
+            tokenPrice = Decimal(str(tokenData.price))
+
             # Adjust DCA amount based on pump metrics
             pumpMultiplier = min(
                 Decimal('1.5'),
                 Decimal('1.0') + (tokenData.pumpscore / Decimal('200.0'))
             )
-            adjustedAmount = dcaRules.amountperinterval * pumpMultiplier
+            adjustedAmount = Decimal(str(dcaRules.amountperinterval)) * pumpMultiplier
 
             firstEntry = TradeLog(
                 tradeid=None,
@@ -131,28 +125,14 @@ class PumpFunStrategy(BaseStrategy):
                 tokenname=tokenData.tokenname,
                 tradetype=TradeType.BUY.value,
                 amount=adjustedAmount,
-                tokenprice=tokenData.price,
-                coins=adjustedAmount / tokenData.price,
+                tokenprice=tokenPrice,
+                coins=adjustedAmount / tokenPrice,
                 description=f"DCA entry 1/{dcaRules.intervals} (Pump Score: {tokenData.pumpscore})",
                 createdat=currentTime
             )
 
             if not self.analyticsHandler.logTrade(firstEntry):
                 return False
-
-            # Schedule remaining DCA entries
-            # for i in range(1, dcaRules.intervals):
-            #     nextEntryTime = currentTime + timedelta(
-            #         minutes=dcaRules.interval_delay_minutes * i
-            #     )
-                
-            #     self.analyticsHandler.schedule_dca_entry(
-            #         execution_id=executionId,
-            #         entry_number=i + 1,
-            #         amount=adjustedAmount,
-            #         scheduled_time=nextEntryTime,
-            #         price_deviation_limit_pct=dcaRules.price_deviation_limit_pct
-            #     )
 
             return True
 

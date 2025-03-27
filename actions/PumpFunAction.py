@@ -17,6 +17,8 @@ from database.auth.ServiceCredentialsEnum import ServiceCredentials
 from framework.analyticsframework.api.PushTokenFrameworkAPI import PushTokenAPI
 from framework.analyticsframework.enums.SourceTypeEnum import SourceType
 from framework.analyticshandlers.AnalyticsHandler import AnalyticsHandler
+from database.auth.TokenHandler import TokenHandler
+import pytz
 
 logger = get_logger(__name__)
 
@@ -32,6 +34,7 @@ class PumpFunAction:
         self.db = db
         self.service = ServiceCredentials.CHAINEDGE
         self.baseUrl = self.service.metadata['base_url']
+        self.tokenHandler = TokenHandler(self.db.conn_manager)
 
     def processPumpFunTokens(self, cookie: str) -> bool:
         """
@@ -72,7 +75,7 @@ class PumpFunAction:
         try:
             # Get fresh access token using service credentials
             authService = AuthService(
-                self.db.tokenHandler, 
+                self.tokenHandler,
                 self.db,
                 self.service
             )
@@ -147,6 +150,7 @@ class PumpFunAction:
     def pushPumpFunTokensToStrategyFramework(self, pumpFunTokens: List[PumpFunToken]) -> bool:
         """
         Maps pump fun tokens to PumpFunTokenData objects and pushes them to the strategy framework
+        Only pushes tokens that have timeago within 5 minutes from the current time
         
         Args:
             pumpFunTokens: List of PumpFunToken objects to push to the strategy framework
@@ -159,16 +163,41 @@ class PumpFunAction:
                 logger.info("No pump fun tokens to push to strategy framework")
                 return False
                 
-            logger.info(f"Pushing {len(pumpFunTokens)} pump fun tokens to strategy framework")
+            logger.info(f"Checking {len(pumpFunTokens)} pump fun tokens for recent timeago")
+            
+            # Get current time in UTC
+            currentTime = datetime.now(pytz.UTC)
+            # Define the time threshold (5 minutes = 300 seconds)
+            timeThresholdSeconds = 300
             
             # Initialize analytics handler and push token API
-            analyticsHandler = AnalyticsHandler()
+            analyticsHandler = AnalyticsHandler(self.db)
             pushTokenAPI = PushTokenAPI(analyticsHandler)
             
             # Process each token
-            success_count = 0
+            successCount = 0
+            filteredCount = 0
             for token in pumpFunTokens:
                 try:
+                    # Check if timeago is within the threshold
+                    if token.timeago is None:
+                        logger.warning(f"Token {token.tokenid} has no timeago value, skipping")
+                        continue
+                    
+                    # Ensure timeago is timezone-aware (UTC)
+                    tokenTimeago = token.timeago
+                    if tokenTimeago.tzinfo is None:
+                        tokenTimeago = pytz.UTC.localize(tokenTimeago)
+                    
+                    # Calculate time difference in seconds
+                    timeDiff = (currentTime - tokenTimeago).total_seconds()
+                    
+                    # Skip if timeago is older than 5 minutes
+                    if timeDiff > timeThresholdSeconds:
+                        logger.info(f"Token {token.tokenid} timeago is {timeDiff} seconds old (UTC), exceeds threshold of {timeThresholdSeconds} seconds")
+                        filteredCount += 1
+                        continue
+                        
                     # Get the current state of the token from the database
                     tokenState = self.db.pumpfun.getTokenState(token.tokenid)
                     if not tokenState:
@@ -198,8 +227,8 @@ class PumpFunAction:
                     )
                     
                     if success:
-                        success_count += 1
-                        logger.info(f"Successfully pushed token {tokenData.tokenid} ({tokenData.tokenname}) to strategy framework")
+                        successCount += 1
+                        logger.info(f"Successfully pushed token {tokenData.tokenid} ({tokenData.tokenname}) to strategy framework (timeago: {timeDiff} seconds)")
                     else:
                         logger.warning(f"Failed to push token {tokenData.tokenid} ({tokenData.tokenname}) to strategy framework")
                 
@@ -207,8 +236,8 @@ class PumpFunAction:
                     logger.error(f"Error processing token {token.tokenid}: {str(token_error)}")
                     continue
             
-            logger.info(f"Successfully pushed {success_count}/{len(pumpFunTokens)} tokens to strategy framework")
-            return success_count > 0
+            logger.info(f"Successfully pushed {successCount}/{len(pumpFunTokens)} tokens to strategy framework. Filtered out {filteredCount} tokens older than 5 minutes.")
+            return successCount > 0
             
         except Exception as e:
             logger.error(f"Failed to push pump fun tokens to strategy framework: {str(e)}", exc_info=True)

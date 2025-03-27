@@ -69,11 +69,11 @@ class VolumeTokenData(BaseTokenData):
 @dataclass
 class PumpFunTokenData(BaseTokenData):
     """PumpFun-specific token data"""
-    pumpscore: Decimal
-    socialmentions: int
-    memescore: Decimal
-    pricemomentum: Decimal
-    firstpumptime: datetime
-    priceincreaseepct: Decimal
-    pumpduration: timedelta
-    volumeincreasepct: Decimal
+    buysolqty: Decimal
+    occurrencecount: int
+    percentilerankpepeats: Decimal
+    percentileranksol: Decimal
+    dexstatus: str
+    change1hpct: Decimal
+    avgvolume24h: Decimal
+    volumespikepct: Decimal

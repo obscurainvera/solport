@@ -5,6 +5,7 @@ import json
 from database.operations.base_handler import BaseSQLiteHandler
 from database.operations.schema import VolumeToken
 from logs.logger import get_logger
+import pytz
 
 logger = get_logger(__name__)
 
@@ -308,17 +309,22 @@ class VolumeHandler(BaseSQLiteHandler):
         - percentilerankpeats: Ranking based on occurrences
         - percentileranksol: Ranking based on SOL buys
         """
-        currentTime = datetime.now()
+        currentTime = datetime.now(pytz.UTC)
         
         # PRIMARY CONDITION: Check if token was seen within the last 10 minutes using timeago field
         if token.timeago is not None:
-            timeDifference = (currentTime - token.timeago).total_seconds() / 60  # Convert to minutes
+            # Ensure timeago is timezone-aware (UTC)
+            tokenTimeago = token.timeago
+            if tokenTimeago.tzinfo is None:
+                tokenTimeago = pytz.UTC.localize(tokenTimeago)
             
-            if timeDifference > 10:
-                logger.info(f"Token {token.tokenid} was seen {timeDifference:.2f} minutes ago, outside 10-minute threshold, skipping update")
+            timeDifference = (currentTime - tokenTimeago).total_seconds() / 60  # Convert to minutes
+            
+            if timeDifference > 20:
+                logger.info(f"Token {token.tokenid} was seen {timeDifference:.2f} minutes ago (UTC), outside 10-minute threshold, skipping update")
                 return  # Skip update entirely if token was seen more than 10 minutes ago
                 
-            logger.info(f"Token {token.tokenid} was seen {timeDifference:.2f} minutes ago, within 10-minute threshold, checking for changes")
+            logger.info(f"Token {token.tokenid} was seen {timeDifference:.2f} minutes ago (UTC), within 10-minute threshold, checking for changes")
         else:
             # If timeago is None, skip update
             logger.info(f"Token {token.tokenid} has no timeago value, skipping update")

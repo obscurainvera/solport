@@ -85,7 +85,7 @@ class AttentionReportHandler(BaseSQLiteHandler):
             params.append(f"%{chain}%")
         
         if currentStatus:
-            query += " AND r.currentstatus = ?"
+            query += " AND LOWER(r.currentstatus) = LOWER(?)"
             params.append(currentStatus)
         
         if minAttentionCount is not None:
@@ -133,95 +133,104 @@ class AttentionReportHandler(BaseSQLiteHandler):
     
     def getAttentionHistoryById(self, tokenId: str) -> List[Dict[str, Any]]:
         """
-        Get historical attention data for a specific token.
+        Get historical attention data for a specific token, grouped by date.
         
         Args:
             tokenId: The token ID to get history for
             
         Returns:
-            List of historical attention data
+            List of historical attention data grouped by date
         """
-        query = """
+        # Get all historical records
+        history_query = """
             SELECT 
                 h.historyid,
                 h.tokenid,
                 h.attentionscore,
-                h.recordedat
+                h.recordedat,
+                h.updatedat
             FROM attentiondatahistory h
             WHERE h.tokenid = ?
-            ORDER BY h.recordedat ASC
+            ORDER BY h.updatedat ASC
+        """
+        
+        # Get the latest record from attentiondata
+        latest_query = """
+            SELECT 
+                id,
+                tokenid,
+                attentionscore,
+                recordedat,
+                updatedat
+            FROM attentiondata
+            WHERE tokenid = ?
+            ORDER BY updatedat DESC
+            LIMIT 1
         """
         
         with self.transaction() as cursor:
-            cursor.execute(query, (tokenId,))
+            # Get historical records
+            cursor.execute(history_query, (tokenId,))
             history_results = cursor.fetchall()
             
-            # Get the latest record from attentiondata
-            latest_query = """
-                SELECT 
-                    id,
-                    tokenid,
-                    attentionscore,
-                    recordedat
-                FROM attentiondata
-                WHERE tokenid = ?
-                ORDER BY recordedat DESC
-                LIMIT 1
-            """
-            
+            # Get latest record
             cursor.execute(latest_query, (tokenId,))
             latest_record = cursor.fetchone()
             
-            # Convert results to list of dictionaries and handle aggregation by date
+            # Group records by date
             history_data = {}
             
-            # Process historical data first
+            # Process historical records
             for row in history_results:
-                date_part = row[3].split(' ')[0]  # Extract date part from datetime
+                date_part = row[4].split(' ')[0]  # Extract date from updatedat
                 
-                # For duplicate dates, keep the max score
-                if date_part in history_data:
-                    if float(row[2]) > float(history_data[date_part]['attentionScore']):
-                        history_data[date_part] = {
-                            'historyId': row[0],
-                            'tokenId': row[1],
-                            'attentionScore': float(row[2]),
-                            'recordedAt': row[3],
-                            'date': date_part
-                        }
-                else:
+                if date_part not in history_data:
                     history_data[date_part] = {
-                        'historyId': row[0],
-                        'tokenId': row[1],
-                        'attentionScore': float(row[2]),
-                        'recordedAt': row[3],
-                        'date': date_part
+                        'date': date_part,
+                        'records': []
                     }
+                
+                history_data[date_part]['records'].append({
+                    'historyId': row[0],
+                    'tokenId': row[1],
+                    'attentionScore': float(row[2]),
+                    'recordedAt': row[3],
+                    'updatedAt': row[4]
+                })
             
-            # Add latest record if it exists and if the date doesn't exist in history
+            # Add latest record if it exists
             if latest_record:
-                date_part = latest_record[3].split(' ')[0]
+                date_part = latest_record[4].split(' ')[0]
                 
-                if date_part in history_data:
-                    if float(latest_record[2]) > float(history_data[date_part]['attentionScore']):
-                        history_data[date_part] = {
-                            'historyId': latest_record[0],
-                            'tokenId': latest_record[1],
-                            'attentionScore': float(latest_record[2]),
-                            'recordedAt': latest_record[3],
-                            'date': date_part
-                        }
-                else:
+                if date_part not in history_data:
                     history_data[date_part] = {
-                        'historyId': latest_record[0],
-                        'tokenId': latest_record[1],
-                        'attentionScore': float(latest_record[2]),
-                        'recordedAt': latest_record[3],
-                        'date': date_part
+                        'date': date_part,
+                        'records': []
                     }
+                
+                history_data[date_part]['records'].append({
+                    'historyId': latest_record[0],
+                    'tokenId': latest_record[1],
+                    'attentionScore': float(latest_record[2]),
+                    'recordedAt': latest_record[3],
+                    'updatedAt': latest_record[4]
+                })
             
-            # Convert dictionary to list and sort by date
-            result = list(history_data.values())
+            # Process each date group to get the latest record for that date
+            result = []
+            for date, data in history_data.items():
+                # Sort records by updatedAt to get the latest
+                sorted_records = sorted(data['records'], key=lambda x: x['updatedAt'], reverse=True)
+                latest_record = sorted_records[0]
+                
+                result.append({
+                    'date': date,
+                    'attentionScore': latest_record['attentionScore'],
+                    'recordedAt': latest_record['recordedAt'],
+                    'updatedAt': latest_record['updatedAt']
+                })
+            
+            # Sort final result by date
             result.sort(key=lambda x: x['date'])
             
             return result

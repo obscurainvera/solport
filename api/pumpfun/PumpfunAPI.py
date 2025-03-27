@@ -20,7 +20,7 @@ def schedulePumpfunTokensFetch():
          
     try:
         scheduler = PumpFunScheduler()
-        scheduler.handlePumpfunAnalysisFromAPI()
+        scheduler.handlePumpFunAnalysisFromAPI()
         
         response = jsonify({
             'success': True,
