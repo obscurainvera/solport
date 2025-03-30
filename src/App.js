@@ -11,6 +11,7 @@ import Analytics from './components/Analytics';
 import StrategyPerformanceReport from './components/StrategyPerformanceReport';
 import FastTrackingReport from './components/FastTrackingReport';
 import AttentionReport from './components/AttentionReport';
+import PortfolioCalculator from './components/PortfolioCalculator';
 import './App.css';
 import { FaCoins } from 'react-icons/fa';
 
@@ -34,6 +35,7 @@ function App() {
             <NavLink to="/performance" className={({ isActive }) => isActive ? "App-link active" : "App-link"}>Performance</NavLink>
             <NavLink to="/fasttracking" className={({ isActive }) => isActive ? "App-link active" : "App-link"}>Fast Tracking</NavLink>
             <NavLink to="/attention" className={({ isActive }) => isActive ? "App-link active" : "App-link"}>Attention</NavLink>
+            <NavLink to="/calculator" className={({ isActive }) => isActive ? "App-link active" : "App-link"}>Calculator</NavLink>
           </nav>
         </header>
         <main className="container fade-in">
@@ -48,6 +50,7 @@ function App() {
             <Route path="/performance" element={<StrategyPerformanceReport />} />
             <Route path="/fasttracking" element={<FastTrackingReport />} />
             <Route path="/attention" element={<AttentionReport />} />
+            <Route path="/calculator" element={<PortfolioCalculator />} />
             <Route path="/tokenmetrics" element={
               <div className="coming-soon">
                 <h2>Token Metrics</h2>

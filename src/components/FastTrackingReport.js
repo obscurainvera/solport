@@ -113,6 +113,7 @@ const FastTrackingReport = () => {
     let currentAmount = initialAmount;
     let tradeCount = 0;
     const maxIterations = 100;
+    const baseCoinPrice = 1; // Set base price as $1 per coin
 
     while (currentAmount < targetAmount && tradeCount < maxIterations) {
       const tradesForThisRound = [];
@@ -126,24 +127,26 @@ const FastTrackingReport = () => {
       for (let i = 0; i < numTokens; i++) {
         const tokenSuccess = Math.random() * 100 < probability;
         const tokenAmount = currentAmount / numTokens;
+        const numCoins = tokenAmount / baseCoinPrice; // Calculate number of coins based on investment
+        const totalCoinsValue = numCoins * baseCoinPrice; // Calculate total value of coins
         
         if (tokenSuccess) {
           successfulTokens++;
           
           // For successful tokens, we'll systematically hit ALL profit levels
           const profitTakingEntries = [];
-          let remainingTokenPercentage = 100; // Start with 100% of tokens
+          let remainingCoins = numCoins; // Track remaining coins instead of percentage
           
           // Process profit levels in ascending order (already sorted)
           profitLevels.forEach((level, levelIndex) => {
-            // Skip this level if no tokens left to sell
-            if (remainingTokenPercentage <= 0) return;
+            // Skip this level if no coins left to sell
+            if (remainingCoins <= 0) return;
             
-            // Calculate how much to sell at this level (either the sell percentage or whatever is left)
-            const sellAtThisLevel = Math.min(level.sellPercentage, remainingTokenPercentage);
+            // Calculate how many coins to sell at this level
+            const coinsToSell = remainingCoins * (level.sellPercentage / 100);
             
             // Only include profit levels that will sell something
-            if (sellAtThisLevel > 0) {
+            if (coinsToSell > 0) {
               // Record the profit level as hit
               const levelKey = `${level.priceIncrease}%`;
               if (profitLevelsHit[levelKey]) {
@@ -153,22 +156,23 @@ const FastTrackingReport = () => {
               }
               
               // Calculate profit for this level
-              const sellPercentage = sellAtThisLevel / 100;
-              const profitPercentage = level.priceIncrease / 100;
-              const amountSold = tokenAmount * sellPercentage;
-              const profit = amountSold * profitPercentage;
+              const priceAtLevel = baseCoinPrice * (1 + level.priceIncrease / 100);
+              const valueOfCoinsSold = coinsToSell * priceAtLevel;
+              const profit = valueOfCoinsSold - (coinsToSell * baseCoinPrice);
               
               profitTakingEntries.push({
                 level: levelIndex,
                 levelKey,
                 priceIncrease: level.priceIncrease,
-                sellPercentage: sellAtThisLevel,
-                amountSold,
-                profit
+                sellPercentage: level.sellPercentage,
+                coinsSold: coinsToSell,
+                valueOfCoinsSold,
+                profit,
+                priceAtLevel
               });
               
-              // Update remaining tokens
-              remainingTokenPercentage -= sellAtThisLevel;
+              // Update remaining coins
+              remainingCoins -= coinsToSell;
             }
           });
           
@@ -178,7 +182,7 @@ const FastTrackingReport = () => {
           
           profitTakingEntries.forEach(entry => {
             tokenProfit += entry.profit;
-            amountTakenOut += entry.amountSold + entry.profit;
+            amountTakenOut += entry.valueOfCoinsSold;
           });
           
           totalProfit += tokenProfit;
@@ -193,20 +197,24 @@ const FastTrackingReport = () => {
             token: `Token ${i + 1}`,
             outcome: 'Profit',
             profitLevel: profitLevelsText,
-            sellPercentage: `${100 - remainingTokenPercentage}%`,
+            sellPercentage: `${((numCoins - remainingCoins) / numCoins * 100).toFixed(1)}%`,
             invested: tokenAmount.toFixed(2),
             takenOut: amountTakenOut.toFixed(2),
             profit: tokenProfit.toFixed(2),
-            profitLevelsHit: profitTakingEntries
+            profitLevelsHit: profitTakingEntries,
+            numCoins: numCoins.toFixed(2),
+            remainingCoins: remainingCoins.toFixed(2),
+            totalCoinsValue: totalCoinsValue.toFixed(2)
           });
         } else {
           stopLossTokens++;
           
-          const tokenLoss = tokenAmount * (stopLoss / 100);
-          const amountTakenOut = tokenAmount - tokenLoss;
+          const priceAtStopLoss = baseCoinPrice * (1 - stopLoss / 100);
+          const valueAtStopLoss = numCoins * priceAtStopLoss;
+          const tokenLoss = tokenAmount - valueAtStopLoss;
           
           totalProfit -= tokenLoss;
-          totalTakenOut += amountTakenOut;
+          totalTakenOut += valueAtStopLoss;
           
           tradesForThisRound.push({
             token: `Token ${i + 1}`,
@@ -214,8 +222,11 @@ const FastTrackingReport = () => {
             profitLevel: 'N/A',
             sellPercentage: '100%',
             invested: tokenAmount.toFixed(2),
-            takenOut: amountTakenOut.toFixed(2),
-            profit: (-tokenLoss).toFixed(2)
+            takenOut: valueAtStopLoss.toFixed(2),
+            profit: (-tokenLoss).toFixed(2),
+            numCoins: numCoins.toFixed(2),
+            remainingCoins: '0.00',
+            totalCoinsValue: totalCoinsValue.toFixed(2)
           });
         }
       }
@@ -352,6 +363,8 @@ const FastTrackingReport = () => {
                       <th>Token</th>
                       <th>Outcome</th>
                       <th>Invested</th>
+                      <th>Coins</th>
+                      <th>Initial Value</th>
                       <th>Taken Out</th>
                       <th>PNL</th>
                       <th>% Sold</th>
@@ -359,7 +372,6 @@ const FastTrackingReport = () => {
                   </thead>
                   <tbody>
                     {selectedRound.trades.map((trade, index) => {
-                      // Calculate proper PNL
                       const investedAmount = parseFloat(trade.invested);
                       const takenOutAmount = parseFloat(trade.takenOut);
                       const pnl = takenOutAmount - investedAmount;
@@ -371,6 +383,8 @@ const FastTrackingReport = () => {
                             {trade.outcome}
                           </td>
                           <td>${investedAmount.toLocaleString()}</td>
+                          <td>{trade.numCoins}</td>
+                          <td>${trade.totalCoinsValue}</td>
                           <td>${takenOutAmount.toLocaleString()}</td>
                           <td className={`pnl-column ${pnl >= 0 ? 'positive' : 'negative'}`}>
                             ${Math.abs(pnl).toLocaleString()}
@@ -421,15 +435,28 @@ const FastTrackingReport = () => {
                       return (
                         <React.Fragment key={`trade-${tradeIndex}`}>
                           <h5><FaChevronRight className="token-heading-icon" /> {trade.token} - Sequential Profit Taking</h5>
+                          <div className="token-summary-info">
+                            <div className="token-info-item">
+                              <span className="info-label">Total Coins:</span>
+                              <span className="info-value">{trade.numCoins}</span>
+                            </div>
+                            <div className="token-info-item">
+                              <span className="info-label">Initial Value:</span>
+                              <span className="info-value">${trade.totalCoinsValue}</span>
+                            </div>
+                            <div className="token-info-item">
+                              <span className="info-label">Remaining Coins:</span>
+                              <span className="info-value">{trade.remainingCoins}</span>
+                            </div>
+                          </div>
                           
                           {allLevelsHit.length > 0 ? (
                             <div className="token-profit-levels-grid">
                               {allLevelsHit.map((levelHit, levelIndex) => {
-                                // Calculate profit percentage for this level
-                                const amountSold = levelHit.amountSold;
+                                const coinsSold = levelHit.coinsSold;
                                 const profit = levelHit.profit;
-                                const takenOut = amountSold + profit;
-                                const profitPercentage = (profit / amountSold * 100).toFixed(1);
+                                const takenOut = levelHit.valueOfCoinsSold;
+                                const profitPercentage = (profit / (coinsSold * 1) * 100).toFixed(1);
                                 
                                 return (
                                   <div className="profit-level-detail-item" key={`level-${tradeIndex}-${levelIndex}`}>
@@ -438,10 +465,13 @@ const FastTrackingReport = () => {
                                       <FaArrowUp /> {levelHit.priceIncrease}% Increase
                                     </div>
                                     <div className="profit-level-detail-value">
-                                      Sold: {levelHit.sellPercentage}%
+                                      Coins Sold: {coinsSold.toFixed(2)}
                                     </div>
                                     <div className="profit-level-detail-value">
-                                      Amount: ${Math.round(amountSold).toLocaleString()}
+                                      Price at Level: ${levelHit.priceAtLevel.toFixed(2)}
+                                    </div>
+                                    <div className="profit-level-detail-value">
+                                      Value Sold: ${Math.round(takenOut).toLocaleString()}
                                     </div>
                                     <div className="profit-level-detail-value positive">
                                       Profit: ${Math.round(profit).toLocaleString()}
