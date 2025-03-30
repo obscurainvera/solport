@@ -119,7 +119,7 @@ def pushToken():
         pushTokenApiInstance = PushTokenAPI(analyticsHandler)
 
         # Analyze token with source type, setting push source as API
-        success = pushTokenApiInstance.pushToken(tokenData, sourceType, PushSource.SCHEDULER, description)
+        success = pushTokenApiInstance.pushToken(tokenData, sourceType, PushSource.API, description)
         
         if success:
             return jsonify({

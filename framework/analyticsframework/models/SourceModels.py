@@ -3,7 +3,7 @@ from typing import List, Dict, Any, Optional
 from decimal import Decimal
 from datetime import datetime, timedelta
 from framework.analyticsframework.models.BaseModels import BaseTokenData
-
+from framework.analyticsframework.models.StrategyModels import AttentionInfo
 @dataclass
 class AttentionTokenData(BaseTokenData):
     """Attention-specific token data"""
@@ -37,6 +37,7 @@ class PortSummaryTokenData(BaseTokenData):
     qtychange7d: float
     qtychange30d: float
     status: int
+    attentioninfo: Optional[AttentionInfo] = None
     portsummaryid: Optional[int] = None
     tags: Optional[str] = None
     markedinactive: Optional[datetime] = None

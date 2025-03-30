@@ -497,3 +497,56 @@ class AttentionHandler(BaseSQLiteHandler):
             logger.error(f"Failed to get token data for analysis: {str(e)}")
             return None
 
+    def getAttentionInfo(self, tokenId: str) -> Optional[Dict]:
+        """
+        Get attention info for a token
+        
+        Args:
+            tokenId: Token identifier
+            
+        Returns:
+            Dict containing attention info or None if not found
+        """
+        try:
+            with self.conn_manager.transaction() as cursor:
+                # Get the most recent attention data and registry info
+                cursor.execute("""
+                    SELECT 
+                        a.attentionscore,
+                        a.change1hbps,
+                        a.change1dbps,
+                        a.change7dbps,
+                        a.change30dbps,
+                        r.currentstatus,
+                        r.attentioncount,
+                        r.firstseenat,
+                        r.lastseenat
+                    FROM attentiondata a
+                    INNER JOIN attentiontokenregistry r ON a.tokenid = r.tokenid
+                    WHERE a.tokenid = ?
+                    ORDER BY a.updatedat DESC
+                    LIMIT 1
+                """, (tokenId,))
+                
+                row = cursor.fetchone()
+                if not row:
+                    return None
+                
+                # Map to dictionary using attentioncount from registry
+                return {
+                    'attentionscore': float(row[0]) if row[0] else 0,
+                    'change1hbps': row[1],
+                    'change1dbps': row[2],
+                    'change7dbps': row[3],
+                    'change30dbps': row[4],
+                    'currentstatus': row[5],
+                    'attentioncount': row[6],
+                    'firstseenat': row[7],
+                    'lastseenat': row[8],
+                    'consecutiverecords': row[6]  # Using attentioncount from registry
+                }
+                
+        except Exception as e:
+            logger.error(f"Failed to get attention info for token {tokenId}: {str(e)}")
+            return None
+

@@ -88,7 +88,7 @@ class PumpFunStrategy(BaseStrategy):
                 amount=baseSize,
                 tokenprice=tokenPrice,
                 coins=baseSize / tokenPrice,
-                description=f"Bulk entry (Pump Score: {tokenData.pumpscore}, Meme Score: {tokenData.memescore})",
+                description=f"Bulk entry (Repeats: {tokenData.percentilerankpepeats}, Sol Spent: {tokenData.percentileranksol})",
                 createdat=datetime.now()
             )
             

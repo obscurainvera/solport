@@ -17,29 +17,34 @@ TOKEN_REFRESH_BUFFER_MINUTES = 1
 RELOGIN_BUFFER_MINUTES = 5
 
 # Define the Chainedge cookie
-CHAINEDGE_COOKIE = '_ga=GA1.1.60016713.1730025993; __stripe_mid=86d76ae8-5f87-4e05-8e8e-c5eaf0b99f8895f778; _ga_D6FYDK42KW=deleted; csrftoken=D8PPfI0qG4881oVYI8cCV8emdctpmUB6; sessionid=t1v7s5kfl1adb2wtaiycnldy4eadt2yn; _ga_30LVG9BH2W=GS1.1.1743069860.261.0.1743069860.0.0.0; _ga_BRMXHSC2T7=GS1.1.1743069860.221.0.1743069860.0.0.0; _ga_QSLT10C1WE=GS1.1.1743069860.94.0.1743069860.0.0.0; _ga_D6FYDK42KW=GS1.1.1743069792.597.1.1743070111.0.0.0'
-SOLSCAN_COOKIE ='_ga=GA1.1.1697493596.1730686033; cf_clearance=2h73fFAlFEkpP0riGxoxOtWNeRs4.L9HGRvZ85LQLHo-1743070265-1.2.1.1-xfGya8fVfCy6IJ8Y42pA.aS_Q.qBCQpmN9KGLS1RP6FAS6.lnGRsIEjkwS6LIN3A41LCHs4vGLNcUIVIPkEMeOVklhA1te7wMy1a3sAvEwarotezwnPQtOPEkz5ruAR1YOk0BBw09_5Cfy_Yr.op4ujrCIHZGPGm_KWedzjz7Ga2m81s7HdrBUGqf.BxeB5n7TGq0Nfh2F_Ta77cLnosVmBQ7HDZ.0Q.kwsg4.iYjurKHgpw1alOswa_X52ELbIJI3UweAsWfpWz319H5KFnfEwpngExYwEEpRUX5KpNMfpHUrpFR6FHmivZodSrK7m6fixTXFaP5DjAyTdFgkFFLHwXA3U5uB.McxA6XqqvFBJ5XMWGZ_np5eSVPENmnz0XOEr4GD29sYf91M.0jpTYD8x4q5UQQzMHjQKQZbzv0Sk; _ga_PS3V7B7KV0=GS1.1.1743069789.231.1.1743070355.0.0.0'
-TRADING_TERMINAL_COOKIE = '_ga=GA1.1.60016713.1730025993; csrftoken=A5UKYKMCXslzw6dLztJ8M29j4gaBxfKe; _ga_D6FYDK42KW=GS1.1.1743021911.594.1.1743021989.0.0.0; _ga_30LVG9BH2W=GS1.1.1743021915.258.1.1743022064.0.0.0; _ga_BRMXHSC2T7=GS1.1.1743021915.218.1.1743022064.0.0.0; _ga_QSLT10C1WE=GS1.1.1743021915.91.1.1743022064.0.0.0'
+CHAINEDGE_COOKIE = '_ga=GA1.1.60016713.1730025993; __stripe_mid=86d76ae8-5f87-4e05-8e8e-c5eaf0b99f8895f778; _ga_D6FYDK42KW=deleted; _ga_30LVG9BH2W=GS1.1.1743076739.262.1.1743076755.0.0.0; _ga_BRMXHSC2T7=GS1.1.1743076739.222.1.1743076755.0.0.0; _ga_QSLT10C1WE=GS1.1.1743076739.95.1.1743076755.0.0.0; csrftoken=JyNsRiFe42faLsaT253vjJegLanYDKP7; sessionid=crmghucb2qesjm7puxhkjp4p1atd5885; _ga_D6FYDK42KW=GS1.1.1743132922.599.1.1743132928.0.0.0'
+SOLSCAN_COOKIE ='_ga=GA1.1.1697493596.1730686033; cf_clearance=arUFVu41lqaSJgjeEV1S3.QAOrBonwJgvulS0AD2_Sc-1743132979-1.2.1.1-Vj7Yz9njGvl1tnDSews5Piy9pePuA81quIKNAG3ApTW9CZS7fDZIKZqeJiG1g.p6yttzUbKIxtM8_AQtIe4AAX5d.MjJ19NNY56e5uGtgQdHS4I1kar6EoUQBAcV4Er0BdJ_Iikbp3n6Buufbqs_gx956HjhFYZppj7CEa5ktq0SoI2aY9ass36LkdtlsE6QGXLi4qfbj3etBgdQEnpI_l3xgeVW16g0dh_kNb9oHGYJpApjqaOCllMH7IA7g.ZcCtT6QtL2lw5BVZXJ8ExWrReUFiCA6D3i78y8Vodc1pkIa6JGRPh1SpRA6DW36h5pvviCSk0neJALOZYXmZinj7cNuSsOFHl23AkZpBvnByaSu_ww7XI7TQtxvHx_Rx.fV6Q0vz3VvJCVdnhIGLl0IAFX2ATPykY33PHYpnoxlQA; _ga_PS3V7B7KV0=GS1.1.1743132979.232.0.1743132987.0.0.0'
+TRADING_TERMINAL_COOKIE = '_ga=GA1.1.60016713.1730025993; csrftoken=A5UKYKMCXslzw6dLztJ8M29j4gaBxfKe; _ga_D6FYDK42KW=GS1.1.1743075332.598.1.1743075352.0.0.0; _ga_30LVG9BH2W=GS1.1.1743076739.262.1.1743076755.0.0.0; _ga_BRMXHSC2T7=GS1.1.1743076739.222.1.1743076755.0.0.0; _ga_QSLT10C1WE=GS1.1.1743076739.95.1.1743076755.0.0.0'
+
+
+
+
+
 COOKIE_MAP = {
     # Action-specific cookies
     'portfolio': {
         CHAINEDGE_COOKIE: {
-            'expiry': datetime(2025, 3, 28)
+            'expiry': datetime(2025, 3, 29)
         }
     },
     'walletsinvested': {
         CHAINEDGE_COOKIE: {
-            'expiry': datetime(2025, 3, 28)
+            'expiry': datetime(2025, 3, 29)
         }
     },
     'solscan': {
         SOLSCAN_COOKIE: {
-            'expiry': datetime(2025, 3, 28)
+            'expiry': datetime(2025, 3, 29)
         }
     },
     'smartmoneywallets': {
         CHAINEDGE_COOKIE: {
-            'expiry': datetime(2025, 3, 26)
+            'expiry': datetime(2025, 3, 29)
         }
     },
     'smwallettoppnltoken': {
@@ -49,17 +54,17 @@ COOKIE_MAP = {
     },
     'attention': {
         CHAINEDGE_COOKIE: {
-            'expiry': datetime(2025, 3, 28)
+            'expiry': datetime(2025, 3, 29)
         }
     },
     'volumebot': {
         TRADING_TERMINAL_COOKIE: {
-            'expiry': datetime(2025, 3, 26)
+            'expiry': datetime(2025, 3, 28)
         },
     },
     'pumpfun': {    
         TRADING_TERMINAL_COOKIE: {
-            'expiry': datetime(2025, 3, 26)
+            'expiry': datetime(2025, 3, 28)
         }
     }
 }

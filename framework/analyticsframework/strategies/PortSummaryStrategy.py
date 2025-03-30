@@ -22,34 +22,85 @@ class PortSummaryStrategy(BaseStrategy):
         self.analyticsHandler = analyticsHandler
         self.dexScreener = DexScreenerAction()
     
+    def _checkRequiredTags(self, tokenData: PortSummaryTokenData, requiredTags: List[str]) -> bool:
+        if not requiredTags:
+            logger.warning("No required tags defined in strategy")
+            return True
+
+        # Convert required tags to set
+        requiredTagsSet = set(requiredTags)
+        
+        # Convert token tags string to list and then to set
+        tokenTags = set(tag.strip() for tag in tokenData.tags.split(',')) if tokenData.tags else set()
+
+        # Check if all required tags are present
+        if not requiredTagsSet.issubset(tokenTags):
+            missingTags = requiredTagsSet - tokenTags
+            logger.info(f"Token {tokenData.tokenname} missing required tags: {missingTags}")
+            return False
+
+        return True
+
+    def _checkTokenAge(self, tokenData: PortSummaryTokenData, minAge: int, maxAge: int) -> bool:
+        if minAge == -1 and maxAge == -1:
+            return True
+
+        try:
+            tokenAge = int(tokenData.tokenage)
+            
+            if minAge != -1 and tokenAge < minAge:
+                logger.info(f"Token {tokenData.tokenname} age ({tokenAge} days) is less than minimum required age ({minAge} days)")
+                return False
+            
+            if maxAge != -1 and tokenAge > maxAge:
+                logger.info(f"Token {tokenData.tokenname} age ({tokenAge} days) exceeds maximum allowed age ({maxAge} days)")
+                return False
+                
+            return True
+            
+        except ValueError:
+            logger.warning(f"Invalid token age format for {tokenData.tokenname}: {tokenData.tokenage}")
+            return False
+
+    def _checkSmartBalance(self, tokenData: PortSummaryTokenData, minSmartBalance: float) -> bool:
+        if tokenData.smartbalance < minSmartBalance:
+            logger.info(f"Token {tokenData.tokenname} smart balance ({tokenData.smartbalance}) is less than minimum required ({minSmartBalance})")
+            return False
+        return True
+    
+    def _checkAttentionStatus(self, tokenData: PortSummaryTokenData, strategyConfig: BaseStrategyConfig) -> bool:
+        if strategyConfig.strategyentryconditions.attentioninfo['isavailable'] == True:
+            if tokenData.attentioninfo.isavailable == False:
+                logger.info(f"Token {tokenData.tokenname} is not available in attention data")
+                return False
+
+        return True
+
     def checkEntryConditions(self, tokenData: PortSummaryTokenData, strategyConfig: BaseStrategyConfig) -> bool:
         """
         Validate entry conditions for PortSummary tokens
-        Primary validation is checking if required tags are present
+        Checks tags, age, and smart balance requirements
         """
         try:
-            # Use strongly typed EntryConditions from strategy_config
             entryConditions = strategyConfig.strategyentryconditions
             
-            # Check if tags are required
-            if not entryConditions.requiredtags:
-                logger.warning(f"No required tags defined in strategy {strategyConfig.strategyid}")
+            # Check tags
+            if not self._checkRequiredTags(tokenData, entryConditions.requiredtags):
                 return False
-
-            # Convert required tags to set
-            requiredTags = set(entryConditions.requiredtags)
+                
+            # Check age
+            if not self._checkTokenAge(tokenData, entryConditions.minage, entryConditions.maxage):
+                return False
+                
+            # Check smart balance
+            if not self._checkSmartBalance(tokenData, entryConditions.minsmartbalance):
+                return False
             
-            # Convert token tags string to list and then to set
-            # Expecting tags in format: "TAG1,TAG2,TAG3"
-            tokenTags = set(tag.strip() for tag in tokenData.tags.split(',')) if tokenData.tags else set()
-
-            # Check if all required tags are present
-            if not requiredTags.issubset(tokenTags):
-                missingTags = requiredTags - tokenTags
-                logger.info(f"Token {tokenData.tokenname} missing required tags: {missingTags}")
+            # Check attention status
+            if not self._checkAttentionStatus(tokenData, strategyConfig):
                 return False
 
-            logger.info(f"Token {tokenData.tokenname} matches all required tags: {requiredTags}")
+            logger.info(f"Token {tokenData.tokenname} matches all entry conditions")
             return True
 
         except Exception as e:

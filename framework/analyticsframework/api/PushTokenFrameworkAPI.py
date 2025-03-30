@@ -19,6 +19,7 @@ from database.operations.sqlite_handler import SQLitePortfolioDB
 from datetime import datetime, timedelta
 from decimal import Decimal
 import pytz
+from framework.analyticsframework.models.StrategyModels import AttentionInfo
 logger = get_logger(__name__)
 
 class PushTokenAPI:
@@ -48,6 +49,22 @@ class PushTokenAPI:
         Returns:
             PortSummaryTokenData: Mapped token data
         """
+        # Get attention info from the attention handler
+        db = SQLitePortfolioDB()
+        attentionInfo = None
+        try:
+            attentionData = db.attention.getAttentionInfo(tokenData['tokenid'])
+            if attentionData:
+                attentionInfo = AttentionInfo(
+                    isavailable=True,
+                    attentionscore=attentionData['attentionscore'],
+                    repeats=attentionData['consecutiverecords'],
+                    attentionstatus=attentionData['currentstatus']
+                )
+        except Exception as e:
+            logger.error(f"Failed to get attention info for token {tokenData['tokenid']}: {str(e)}")
+            attentionInfo = None
+
         mappedData = {
             # BaseTokenData fields
             'tokenid': tokenData['tokenid'],
@@ -70,7 +87,8 @@ class PushTokenAPI:
             'status': tokenData['status'],
             'portsummaryid': tokenData.get('portsummaryid'),
             'tags': tokenData.get('tags'),
-            'markedinactive': tokenData.get('markedinactive')
+            'markedinactive': tokenData.get('markedinactive'),
+            'attentioninfo': attentionInfo
         }
         return PortSummaryTokenData(**mappedData)
     
