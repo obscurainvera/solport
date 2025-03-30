@@ -18,6 +18,8 @@ class TokenPrice:
     price: float  # priceUsd
     fdv: float   # fdv (Fully Diluted Valuation)
     marketCap: float  # marketCap
+    name: str    # token name
+    symbol: str  # token symbol
 
 class DexScreenerAction:
     """Handles DexScreener API request workflow"""
@@ -125,10 +127,14 @@ class DexScreenerAction:
             
             logger.info(f"Selected {highestLiquidityPair.get('dexId')} pair with highest liquidity: {highestLiquidityPair.get('liquidity', {}).get('usd', 0)} USD")
             
+            baseToken = highestLiquidityPair.get('baseToken', {})
+            
             return TokenPrice(
                 price=float(highestLiquidityPair['priceUsd']),
                 fdv=float(highestLiquidityPair['fdv']),
-                marketCap=float(highestLiquidityPair['marketCap'])
+                marketCap=float(highestLiquidityPair['marketCap']),
+                name=baseToken.get('name', ''),
+                symbol=baseToken.get('symbol', '')
             )
             
         except Exception as e:
@@ -209,7 +215,9 @@ class DexScreenerAction:
                     result[tokenAddress] = TokenPrice(
                         price=price,
                         fdv=fdv,
-                        marketCap=market_cap
+                        marketCap=market_cap,
+                        name=pairData.get('baseToken', {}).get('name', ''),
+                        symbol=pairData.get('baseToken', {}).get('symbol', '')
                     )
                 
                 # Check for missing tokens in the response

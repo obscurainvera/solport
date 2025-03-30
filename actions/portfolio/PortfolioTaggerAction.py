@@ -6,7 +6,7 @@ from typing import List, Set, Dict
 from datetime import datetime, timedelta
 import pytz
 from database.operations.sqlite_handler import SQLitePortfolioDB
-from database.operations.schema import PortfolioSummary
+from database.operations.schema import PortfolioSummary, WalletInvestedStatusEnum
 from actions.portfolio.PortfolioTagEnum import PortfolioTokenTag
 from logs.logger import get_logger
 
@@ -43,9 +43,9 @@ class PortfolioTaggerAction:
                         sm.profitandloss as chainedgepnl
                     FROM walletsinvested wi
                     LEFT JOIN smartmoneywallets sm ON wi.walletaddress = sm.walletaddress
-                    WHERE wi.tokenid = ?
+                    WHERE wi.tokenid = ? AND wi.status = ?
                 '''
-                cursor.execute(query, (tokenId,))
+                cursor.execute(query, (tokenId,WalletInvestedStatusEnum.ACTIVE.value))
                 return [dict(row) for row in cursor.fetchall()]
         except Exception as e:
             logger.error(f"Error fetching wallet data for {tokenId}: {str(e)}")

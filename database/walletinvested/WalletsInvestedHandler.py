@@ -148,7 +148,8 @@ class WalletsInvestedHandler(BaseSQLiteHandler):
                     qtychange7d = ?,
                     chainedgepnl = ?,
                     lastseen = ?,
-                    updatedat = ?
+                    updatedat = ?,
+                    status = ?
                 WHERE tokenid = ? AND walletaddress = ?
             """
             
@@ -160,6 +161,7 @@ class WalletsInvestedHandler(BaseSQLiteHandler):
                 str(wallet.chainedgepnl) if wallet.chainedgepnl else None,
                 currentTime,
                 currentTime,
+                wallet.status,
                 wallet.tokenid,
                 wallet.walletaddress
             )

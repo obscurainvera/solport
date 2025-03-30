@@ -37,6 +37,7 @@ from api.smwalletsbehaviour.SMWalletBehaviourReportAPI import smwalletBehaviourR
 from api.smwalletsbehaviour.SMWalletInvestmentRangeReportAPI import smwallet_investment_range_report_bp
 from api.portfolioallocation.PortfolioAllocationAPI import portfolio_allocation_bp
 from api.attention.AttentionReportAPI import attention_report_bp
+from api.dexscrenner.DexScrennerAPI import dexscrenner_bp
 
 logger = get_logger(__name__)
 
@@ -135,6 +136,7 @@ class PortfolioApp:
             self.app.register_blueprint(strategyperformance_bp)
             self.app.register_blueprint(portfolio_allocation_bp)
             self.app.register_blueprint(attention_report_bp)
+            self.app.register_blueprint(dexscrenner_bp)
             
             logger.info("Portfolio app initialized successfully")
         except Exception as e:

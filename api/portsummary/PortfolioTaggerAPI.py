@@ -12,7 +12,7 @@ def tagPortfolioTokens():
     """API endpoint to initiate portfolio token tagging process"""
     if request.method == 'OPTIONS':
         response = jsonify({})
-        response.headers.add('Access-Control-Allow-Origin', 'http://localhost:3000')
+        response.headers.add('Access-Control-Allow-Origin', '*')
         response.headers.add('Access-Control-Allow-Methods', 'POST, OPTIONS')
         response.headers.add('Access-Control-Allow-Headers', 'Content-Type, Accept')
         return response, 200
@@ -28,17 +28,17 @@ def tagPortfolioTokens():
                 'success': True,
                 'message': 'Successfully tagged portfolio tokens'
             })
-            response.headers.add('Access-Control-Allow-Origin', 'http://localhost:3000')
+            response.headers.add('Access-Control-Allow-Origin', '*')
             return response
             
         response = jsonify({'error': 'Failed to tag portfolio tokens'})
-        response.headers.add('Access-Control-Allow-Origin', 'http://localhost:3000')
+        response.headers.add('Access-Control-Allow-Origin', '*')
         return response, 500
 
     except Exception as e:
         logger.error(f"API Error in portfolio tagging: {str(e)}")
         response = jsonify({'error': str(e)})
-        response.headers.add('Access-Control-Allow-Origin', 'http://localhost:3000')
+        response.headers.add('Access-Control-Allow-Origin', '*')
         return response, 500
 
 @portfolio_tagger_bp.route('/api/portfoliotagger/getalltags', methods=['GET', 'OPTIONS'])

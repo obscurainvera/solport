@@ -142,7 +142,7 @@ class WalletsInvestedAction:
                             for field, newVal, oldVal in fieldsToCompare
                         )
 
-                        if hasChanges:
+                        if hasChanges or existing['status'] != WalletInvestedStatusEnum.ACTIVE.value:
                             logger.debug(f"Changes detected for wallet {item.walletaddress} and token {item.tokenid}")
                             
                             # Pass the sqlite3.Row object directly
