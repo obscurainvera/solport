@@ -28,12 +28,26 @@ class ProfitTarget:
     sizepct: Decimal  # Percentage of position to sell
     trailingstoppct: Optional[Decimal] = None  # Optional trailing stop percentage
 
+
+@dataclass
+class AttentionInfo:
+    """Contails all data related to attention metrics"""
+    isavailable: bool
+    attentionscore: Decimal
+    repeats: int
+    attentionstatus: str
+   
+    
 @dataclass
 class StrategyEntryConditions:
     """Entry conditions for a strategy"""
     requiredtags: List[str] = field(default_factory=list)
     minmarketcap: float = 0.0
     minliquidity: float = 0.0
+    minsmartbalance: float = 0.0
+    minage: int = -1
+    maxage: int = -1
+    attentioninfo: Optional[AttentionInfo] = None
 
     @classmethod
     def from_json(cls, json_str: str) -> 'StrategyEntryConditions':

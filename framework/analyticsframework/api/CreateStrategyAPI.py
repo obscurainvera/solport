@@ -200,7 +200,16 @@ class CreateStrategyAPI:
             entryConditions = {
                 'requiredtags': data.get('required_tags', []),
                 'minmarketcap': float(data.get('min_market_cap', 0)),
-                'minliquidity': float(data.get('min_liquidity', 0))
+                'minliquidity': float(data.get('min_liquidity', 0)),
+                'minsmartbalance': float(data.get('min_smart_balance', 0)),
+                'minage': int(data.get('min_age', 0)),
+                'maxage': int(data.get('max_age', 0)),
+                'attentioninfo': {
+                    'isavailable': bool(data.get('attention_info', {}).get('is_available', False)),
+                    'attentionscore': float(data.get('attention_info', {}).get('attention_score', 0)),
+                    'repeats': int(data.get('attention_info', {}).get('repeats', 0)),
+                    'attentionstatus': data.get('attention_info', {}).get('attention_status', [])
+                }
             }
             return json.dumps(entryConditions)
         except Exception as e:
