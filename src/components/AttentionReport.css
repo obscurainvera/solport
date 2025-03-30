@@ -104,8 +104,8 @@
 
 .filters-panel {
   background: rgba(28, 28, 30, 0.95);
-  backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
   border-radius: 12px;
   padding: 25px;
   margin-bottom: 30px;
@@ -519,8 +519,8 @@
 /* Filter Styles - Apple-inspired design */
 .attention-filters {
   background-color: rgba(18, 18, 18, 0.95);
-  backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(20px);
   border-radius: 12px;
   padding: 24px;
   margin-bottom: 30px;
@@ -656,6 +656,7 @@
   padding: 1.5rem;
   background: rgba(255, 255, 255, 0.1);
   border-radius: 10px;
+  -webkit-backdrop-filter: blur(10px);
   backdrop-filter: blur(10px);
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }

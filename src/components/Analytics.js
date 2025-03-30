@@ -43,6 +43,15 @@ function Analytics() {
   const [requiredTags, setRequiredTags] = useState([]);
   const [minMarketCap, setMinMarketCap] = useState('');
   const [minLiquidity, setMinLiquidity] = useState('');
+  const [minSmartBalance, setMinSmartBalance] = useState('');
+  const [minAge, setMinAge] = useState('');
+  const [maxAge, setMaxAge] = useState('');
+  const [attentionInfo, setAttentionInfo] = useState({
+    isAvailable: false,
+    attentionScore: '',
+    repeats: '',
+    attentionStatus: []
+  });
   const [entryType, setEntryType] = useState('');
   const [allocatedAmount, setAllocatedAmount] = useState('');
   const [riskEnabled, setRiskEnabled] = useState(false);
@@ -209,6 +218,14 @@ function Analytics() {
     }
   };
 
+  // Add attention status options
+  const attentionStatusOptions = [
+    { value: 'NEW', label: 'New' },
+    { value: 'ACTIVE', label: 'Active' },
+    { value: 'INACTIVE', label: 'Inactive' },
+    { value: 'ARCHIVED', label: 'Archived' }
+  ];
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -228,7 +245,16 @@ function Analytics() {
         entry_conditions: {
           required_tags: requiredTags,
           min_market_cap: parseFloat(minMarketCap) || 0,
-          min_liquidity: parseFloat(minLiquidity) || 0
+          min_liquidity: parseFloat(minLiquidity) || 0,
+          min_smart_balance: parseFloat(minSmartBalance) || 0,
+          min_age: minAge ? parseInt(minAge) : -1,
+          max_age: maxAge ? parseInt(maxAge) : -1,
+          attention_info: {
+            is_available: attentionInfo.isAvailable,
+            attention_score: parseFloat(attentionInfo.attentionScore) || 0,
+            repeats: parseInt(attentionInfo.repeats) || 0,
+            attention_status: attentionInfo.attentionStatus
+          }
         },
         investment_instructions: {
           entry_type: entryType,
@@ -257,6 +283,15 @@ function Analytics() {
         setRequiredTags([]);
         setMinMarketCap('');
         setMinLiquidity('');
+        setMinSmartBalance('');
+        setMinAge('');
+        setMaxAge('');
+        setAttentionInfo({
+          isAvailable: false,
+          attentionScore: '',
+          repeats: '',
+          attentionStatus: []
+        });
         setEntryType('');
         setAllocatedAmount('');
         setProfitTargets([{ priceTargetPct: '', sellAmountPct: '' }]);
@@ -509,7 +544,6 @@ function Analytics() {
               <h3 className="section-title">Entry Conditions</h3>
               <div className="form-field">
                 <label className="form-label">Required Tags</label>
-                
                 {renderTagSelector()}
               </div>
               
@@ -535,6 +569,125 @@ function Analytics() {
                   />
                 </div>
               </div>
+
+              <div className="form-row">
+                <div className="form-field">
+                  <label className="form-label">Minimum Smart Balance</label>
+                  <input 
+                    type="number" 
+                    className="form-control" 
+                    value={minSmartBalance}
+                    onChange={(e) => setMinSmartBalance(e.target.value)}
+                    placeholder="USD amount"
+                  />
+                </div>
+              </div>
+
+              <div className="form-row">
+                <div className="form-field">
+                  <label className="form-label">Minimum Age (days)</label>
+                  <input 
+                    type="number" 
+                    className="form-control" 
+                    value={minAge}
+                    onChange={(e) => setMinAge(e.target.value)}
+                    placeholder="Min days"
+                    min="0"
+                  />
+                </div>
+                <div className="form-field">
+                  <label className="form-label">Maximum Age (days)</label>
+                  <input 
+                    type="number" 
+                    className="form-control" 
+                    value={maxAge}
+                    onChange={(e) => setMaxAge(e.target.value)}
+                    placeholder="Max days"
+                    min="0"
+                  />
+                </div>
+              </div>
+
+              <div className="form-section-group">
+                <div className="attention-header">
+                  <h4 className="subsection-title">Attention Info</h4>
+                  <div className="toggle-container">
+                    <span className={`toggle-label ${!attentionInfo.isAvailable ? 'active' : ''}`}>Disabled</span>
+                    <div className="toggle-switch">
+                      <input 
+                        type="checkbox" 
+                        id="attention-enabled"
+                        checked={attentionInfo.isAvailable}
+                        onChange={(e) => setAttentionInfo(prev => ({
+                          ...prev,
+                          isAvailable: e.target.checked
+                        }))}
+                      />
+                      <label className="slider" htmlFor="attention-enabled"></label>
+                    </div>
+                    <span className={`toggle-label ${attentionInfo.isAvailable ? 'active' : ''}`}>Enabled</span>
+                  </div>
+                </div>
+
+                <div className={`attention-content ${!attentionInfo.isAvailable ? 'disabled' : ''}`}>
+                  <div className="attention-fields">
+                    <div className="form-field">
+                      <label className="form-label">Attention Score</label>
+                      <input 
+                        type="number" 
+                        className="form-control" 
+                        value={attentionInfo.attentionScore}
+                        onChange={(e) => setAttentionInfo(prev => ({
+                          ...prev,
+                          attentionScore: e.target.value
+                        }))}
+                        placeholder="Score threshold"
+                        disabled={!attentionInfo.isAvailable}
+                      />
+                    </div>
+                    <div className="form-field">
+                      <label className="form-label">Repeats</label>
+                      <input 
+                        type="number" 
+                        className="form-control" 
+                        value={attentionInfo.repeats}
+                        onChange={(e) => setAttentionInfo(prev => ({
+                          ...prev,
+                          repeats: e.target.value
+                        }))}
+                        placeholder="Number of repeats"
+                        disabled={!attentionInfo.isAvailable}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="form-field attention-status-field">
+                    <label className="form-label">Attention Status</label>
+                    <div className="status-options">
+                      {attentionStatusOptions.map(status => (
+                        <div key={status.value} className="status-option">
+                          <input
+                            type="checkbox"
+                            id={`status-${status.value}`}
+                            checked={attentionInfo.attentionStatus.includes(status.value)}
+                            onChange={(e) => {
+                              setAttentionInfo(prev => ({
+                                ...prev,
+                                attentionStatus: e.target.checked
+                                  ? [...prev.attentionStatus, status.value]
+                                  : prev.attentionStatus.filter(s => s !== status.value)
+                              }));
+                            }}
+                            disabled={!attentionInfo.isAvailable}
+                          />
+                          <label htmlFor={`status-${status.value}`}>{status.label}</label>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               <div className="form-nav">
                 <button 
                   type="button" 
