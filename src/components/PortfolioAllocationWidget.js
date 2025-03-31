@@ -16,13 +16,13 @@ const PortfolioAllocationWidget = () => {
 
   return (
     <>
-      <div className="report-card" onClick={openModal}>
+      <div className="report-card portfolio-card" onClick={openModal}>
         <div className="card-icon">
           <FaChartPie />
         </div>
         <div className="card-content">
           <h3>Portfolio Allocation</h3>
-          <p>Get smart allocation suggestions based on your investment goals and risk profile</p>
+          <p>Get personalized allocation suggestions based on your investment goals and risk tolerance</p>
         </div>
         <div className="card-action">
           <FaChartPie />

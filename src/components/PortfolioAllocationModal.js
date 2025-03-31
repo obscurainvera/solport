@@ -21,7 +21,12 @@ const PortfolioAllocationModal = ({ onClose }) => {
       medium: 2,
       low: 0
     },
-    profitTakingLevels: 3, // Default number of profit-taking levels
+    profitTakingLevels: 3,
+    stopLossPercentage: 15, // Default stop loss percentage
+    profitLevels: Array(3).fill().map(() => ({
+      sellPercentage: 100,
+      pricePumpPercentage: 30
+    }))
   });
   
   const [result, setResult] = useState(null);
@@ -34,6 +39,9 @@ const PortfolioAllocationModal = ({ onClose }) => {
   const [simulationMode, setSimulationMode] = useState(false);
   const [sellPercentages, setSellPercentages] = useState({});
   const totalSteps = 4;
+  const [customStopLosses, setCustomStopLosses] = useState({});
+  const [customProfitLevels, setCustomProfitLevels] = useState({});
+  const [useCustomLevels, setUseCustomLevels] = useState({});
 
   useEffect(() => {
     // Reset hit profit levels when a new result is loaded
@@ -53,6 +61,25 @@ const PortfolioAllocationModal = ({ onClose }) => {
       
       setHitProfitLevels(initialHitLevels);
       setSellPercentages(initialSellPercentages);
+    }
+  }, [result, formData.profitTakingLevels]);
+
+  useEffect(() => {
+    if (result) {
+      const initialStopLosses = {};
+      const initialProfitLevels = {};
+      const initialUseCustom = {};
+
+      result.positionSizes.forEach(position => {
+        const tokenProfitLevels = result.profitLevels[position.name];
+        initialStopLosses[position.name] = tokenProfitLevels.stopLoss.percentage * 100;
+        initialProfitLevels[position.name] = formData.profitTakingLevels;
+        initialUseCustom[position.name] = false;
+      });
+
+      setCustomStopLosses(initialStopLosses);
+      setCustomProfitLevels(initialProfitLevels);
+      setUseCustomLevels(initialUseCustom);
     }
   }, [result, formData.profitTakingLevels]);
 
@@ -435,6 +462,30 @@ const PortfolioAllocationModal = ({ onClose }) => {
     }));
   };
 
+  const handleCustomStopLossChange = (tokenName, value) => {
+    setCustomStopLosses(prev => ({
+      ...prev,
+      [tokenName]: Math.max(0, Math.min(100, parseFloat(value) || 0))
+    }));
+  };
+
+  const handleCustomProfitLevelsChange = (tokenName, value) => {
+    const numValue = parseInt(value, 10);
+    if (!isNaN(numValue) && numValue >= 1 && numValue <= 5) {
+      setCustomProfitLevels(prev => ({
+        ...prev,
+        [tokenName]: numValue
+      }));
+    }
+  };
+
+  const handleUseCustomLevelsChange = (tokenName, value) => {
+    setUseCustomLevels(prev => ({
+      ...prev,
+      [tokenName]: value
+    }));
+  };
+
   const renderFormStep = () => {
     switch(currentStep) {
       case 1:
@@ -672,8 +723,36 @@ const PortfolioAllocationModal = ({ onClose }) => {
       case 4:
         return (
           <div className="form-step active">
-            <h3 className="step-title">Profit Taking Levels</h3>
+            <h3 className="step-title">Profit Taking & Stop Loss Settings</h3>
             
+            <div className="form-group">
+              <label>
+                <FaShieldAlt className="form-icon" />
+                Stop Loss Percentage
+              </label>
+              <div className="percentage-input">
+                <input
+                  type="number"
+                  value={formData.stopLossPercentage}
+                  onChange={(e) => {
+                    const value = Math.max(0, Math.min(100, parseFloat(e.target.value) || 0));
+                    setFormData(prev => ({
+                      ...prev,
+                      stopLossPercentage: value
+                    }));
+                  }}
+                  min="0"
+                  max="100"
+                  step="0.1"
+                  required
+                />
+                <span className="percentage-symbol">%</span>
+              </div>
+              <div className="form-hint">
+                Set the percentage at which to trigger stop loss to minimize losses
+              </div>
+            </div>
+
             <div className="form-group">
               <label>
                 <FaPercentage className="form-icon" />
@@ -683,7 +762,14 @@ const PortfolioAllocationModal = ({ onClose }) => {
                 <button 
                   type="button" 
                   className="counter-btn" 
-                  onClick={() => handleProfitLevelsChange(Math.max(1, formData.profitTakingLevels - 1))}
+                  onClick={() => {
+                    const newLevels = Math.max(1, formData.profitTakingLevels - 1);
+                    setFormData(prev => ({
+                      ...prev,
+                      profitTakingLevels: newLevels,
+                      profitLevels: prev.profitLevels.slice(0, newLevels)
+                    }));
+                  }}
                   disabled={formData.profitTakingLevels <= 1}
                 >
                   -
@@ -692,16 +778,86 @@ const PortfolioAllocationModal = ({ onClose }) => {
                 <button 
                   type="button" 
                   className="counter-btn" 
-                  onClick={() => handleProfitLevelsChange(Math.min(5, formData.profitTakingLevels + 1))}
+                  onClick={() => {
+                    const newLevels = Math.min(5, formData.profitTakingLevels + 1);
+                    setFormData(prev => ({
+                      ...prev,
+                      profitTakingLevels: newLevels,
+                      profitLevels: [
+                        ...prev.profitLevels,
+                        ...Array(newLevels - prev.profitLevels.length).fill().map(() => ({
+                          sellPercentage: 100,
+                          pricePumpPercentage: 30
+                        }))
+                      ]
+                    }));
+                  }}
                   disabled={formData.profitTakingLevels >= 5}
                 >
                   +
                 </button>
               </div>
-              <div className="form-hint">
-                Profit taking levels are automatically calculated based on token conviction and risk profile.
-                Higher conviction tokens will have higher profit targets.
-              </div>
+            </div>
+
+            <div className="profit-levels-settings">
+              {formData.profitLevels.map((level, index) => (
+                <div key={index} className="profit-level-setting">
+                  <h4>Level {index + 1}</h4>
+                  
+                  <div className="level-inputs">
+                    <div className="input-group">
+                      <label>Sell Percentage</label>
+                      <div className="percentage-input">
+                        <input
+                          type="number"
+                          value={level.sellPercentage}
+                          onChange={(e) => {
+                            const value = Math.max(0, Math.min(100, parseFloat(e.target.value) || 0));
+                            setFormData(prev => ({
+                              ...prev,
+                              profitLevels: prev.profitLevels.map((l, i) => 
+                                i === index ? { ...l, sellPercentage: value } : l
+                              )
+                            }));
+                          }}
+                          min="0"
+                          max="100"
+                          step="1"
+                          required
+                        />
+                        <span className="percentage-symbol">%</span>
+                      </div>
+                    </div>
+
+                    <div className="input-group">
+                      <label>Price Pump Percentage</label>
+                      <div className="percentage-input">
+                        <input
+                          type="number"
+                          value={level.pricePumpPercentage}
+                          onChange={(e) => {
+                            const value = Math.max(0, parseFloat(e.target.value) || 0);
+                            setFormData(prev => ({
+                              ...prev,
+                              profitLevels: prev.profitLevels.map((l, i) => 
+                                i === index ? { ...l, pricePumpPercentage: value } : l
+                              )
+                            }));
+                          }}
+                          min="0"
+                          step="0.1"
+                          required
+                        />
+                        <span className="percentage-symbol">%</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="form-hint">
+              Configure how much of your position to sell at each profit level
             </div>
           </div>
         );
@@ -894,19 +1050,76 @@ const PortfolioAllocationModal = ({ onClose }) => {
                     </div>
                   </div>
                   
+                  <div className="profit-settings">
+                    <div className="profit-setting-group">
+                      <label className="profit-setting-label">Custom Levels</label>
+                      <div className="profit-setting-controls">
+                        <label className="toggle-switch">
+                          <input
+                            type="checkbox"
+                            checked={useCustomLevels[position.name] || false}
+                            onChange={(e) => handleUseCustomLevelsChange(position.name, e.target.checked)}
+                          />
+                          <span className="toggle-slider"></span>
+                        </label>
+                      </div>
+                    </div>
+                    
+                    {useCustomLevels[position.name] && (
+                      <>
+                        <div className="profit-setting-group">
+                          <label className="profit-setting-label">Stop Loss %</label>
+                          <div className="profit-setting-controls">
+                            <input
+                              type="number"
+                              className="profit-levels-input"
+                              value={customStopLosses[position.name] || formData.stopLossPercentage}
+                              onChange={(e) => handleCustomStopLossChange(position.name, e.target.value)}
+                              min="0"
+                              max="100"
+                              step="0.1"
+                            />
+                          </div>
+                        </div>
+                        
+                        <div className="profit-setting-group">
+                          <label className="profit-setting-label">Profit Levels</label>
+                          <div className="profit-setting-controls">
+                            <input
+                              type="number"
+                              className="profit-levels-input"
+                              value={customProfitLevels[position.name] || formData.profitTakingLevels}
+                              onChange={(e) => handleCustomProfitLevelsChange(position.name, e.target.value)}
+                              min="1"
+                              max="5"
+                            />
+                          </div>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                  
                   <div className="profit-levels-container">
                     <div className="profit-level stop-loss">
                       <div className="profit-level-label">
                         <span>Stop Loss</span>
-                        <span className="level-percentage">-{(tokenProfitLevels.stopLoss.percentage * 100).toFixed(0)}%</span>
+                        <span className="level-percentage">
+                          -{(useCustomLevels[position.name] ? 
+                            customStopLosses[position.name] : 
+                            formData.stopLossPercentage)}%
+                        </span>
                       </div>
                       <div className="profit-level-amount">
-                        ${tokenProfitLevels.stopLoss.amount.toLocaleString()}
+                        ${(position.positionSize * (1 - (useCustomLevels[position.name] ? 
+                          customStopLosses[position.name] / 100 : 
+                          formData.stopLossPercentage / 100))).toLocaleString()}
                       </div>
                       <div className="profit-level-pnl negative">
-                        -${(position.positionSize - tokenProfitLevels.stopLoss.amount).toLocaleString()}
+                        -${(position.positionSize * (useCustomLevels[position.name] ? 
+                          customStopLosses[position.name] / 100 : 
+                          formData.stopLossPercentage / 100)).toLocaleString()}
                       </div>
-                      <div className="profit-level-hit">
+                      <div className="profit-level-controls">
                         <label className="hit-checkbox">
                           <input 
                             type="checkbox" 
@@ -918,48 +1131,59 @@ const PortfolioAllocationModal = ({ onClose }) => {
                       </div>
                     </div>
                     
-                    {tokenProfitLevels.profitLevels.map((level, levelIndex) => (
-                      <div className="profit-level take-profit" key={levelIndex}>
-                        <div className="profit-level-label">
-                          <span>Take Profit {levelIndex + 1}</span>
-                          <span className="level-percentage">+{(level.percentage * 100).toFixed(0)}%</span>
-                        </div>
-                        <div className="profit-level-amount">
-                          ${level.amount.toLocaleString()}
-                        </div>
-                        <div className="profit-level-pnl positive">
-                          +${(level.amount - position.positionSize).toLocaleString()}
-                        </div>
-                        <div className="profit-level-controls">
-                          <label className="hit-checkbox">
-                            <input 
-                              type="checkbox" 
-                              checked={tokenHitLevels?.hitProfitLevels[levelIndex] || false}
-                              onChange={() => handleHitProfitLevel(position.name, levelIndex)}
-                            />
-                            <span>Hit</span>
-                          </label>
-                          
-                          {tokenHitLevels?.hitProfitLevels[levelIndex] && (
-                            <div className="sell-percentage">
+                    {(useCustomLevels[position.name] ? 
+                      Array.from({ length: customProfitLevels[position.name] || formData.profitTakingLevels }) : 
+                      formData.profitLevels
+                    ).map((level, levelIndex) => {
+                      const percentage = useCustomLevels[position.name] ? 
+                        (levelIndex + 1) * (100 / (customProfitLevels[position.name] || formData.profitTakingLevels)) : 
+                        level.pricePumpPercentage;
+                      const amount = position.positionSize * (1 + percentage / 100);
+                      const pnl = amount - position.positionSize;
+                      
+                      return (
+                        <div className="profit-level take-profit" key={levelIndex}>
+                          <div className="profit-level-label">
+                            <span>Take Profit {levelIndex + 1}</span>
+                            <span className="level-percentage">+{percentage.toFixed(0)}%</span>
+                          </div>
+                          <div className="profit-level-amount">
+                            ${amount.toLocaleString()}
+                          </div>
+                          <div className="profit-level-pnl positive">
+                            +${pnl.toLocaleString()}
+                          </div>
+                          <div className="profit-level-controls">
+                            <label className="hit-checkbox">
                               <input 
-                                type="number" 
-                                min="1" 
-                                max="100"
-                                value={sellPercentages[position.name]?.[levelIndex] || 100}
-                                onChange={(e) => handleSellPercentageChange(
-                                  position.name, 
-                                  levelIndex, 
-                                  parseInt(e.target.value, 10)
-                                )}
-                                className="sell-percentage-input"
+                                type="checkbox" 
+                                checked={tokenHitLevels?.hitProfitLevels[levelIndex] || false}
+                                onChange={() => handleHitProfitLevel(position.name, levelIndex)}
                               />
-                              <span className="sell-percentage-label">% sold</span>
-                            </div>
-                          )}
+                              <span>Hit</span>
+                            </label>
+                            
+                            {tokenHitLevels?.hitProfitLevels[levelIndex] && (
+                              <div className="sell-percentage">
+                                <input 
+                                  type="number" 
+                                  min="1" 
+                                  max="100"
+                                  value={sellPercentages[position.name]?.[levelIndex] || level.sellPercentage}
+                                  onChange={(e) => handleSellPercentageChange(
+                                    position.name, 
+                                    levelIndex, 
+                                    parseInt(e.target.value, 10)
+                                  )}
+                                  className="sell-percentage-input"
+                                />
+                                <span className="sell-percentage-label">% sold</span>
+                              </div>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                   
                   <div className="profit-recommendations">
@@ -967,7 +1191,9 @@ const PortfolioAllocationModal = ({ onClose }) => {
                     <div className="recommendation-levels">
                       {suggestedSellPercents.map((percent, i) => (
                         <div key={i} className="recommendation-level">
-                          <span>Level {i+1}:</span> <strong>Sell {percent}%</strong> at +{(tokenProfitLevels.profitLevels[i].percentage * 100).toFixed(0)}% profit
+                          <span>Level {i+1}:</span> <strong>Sell {percent}%</strong> at +{(useCustomLevels[position.name] ? 
+                            (i + 1) * (100 / (customProfitLevels[position.name] || formData.profitTakingLevels)) : 
+                            formData.profitLevels[i].pricePumpPercentage).toFixed(0)}% profit
                         </div>
                       ))}
                     </div>
