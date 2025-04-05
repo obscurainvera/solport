@@ -1,6 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
-import { FaTimes, FaCopy, FaCheck, FaExternalLinkAlt } from 'react-icons/fa';
+import { 
+  FaTimes, FaCopy, FaCheck, FaExternalLinkAlt, FaCog, FaChartLine, 
+  FaCoins, FaArrowUp, FaArrowDown, FaShieldAlt, FaRocket, 
+  FaInfoCircle, FaPlus, FaMinus
+} from 'react-icons/fa';
 import './StrategyExecutionsModal.css';
 
 // Execution status definitions from the enum
@@ -33,7 +37,11 @@ function StrategyExecutionsModal({ strategy, onClose }) {
     key: 'createdat',
     direction: 'desc'
   });
+  const [showConfigModal, setShowConfigModal] = useState(false);
+  const [strategyConfig, setStrategyConfig] = useState(null);
+  const [loadingConfig, setLoadingConfig] = useState(false);
   const modalRef = useRef(null);
+  const configModalRef = useRef(null);
   const tableContainerRef = useRef(null);
 
   // Fetch executions data when modal opens
@@ -273,16 +281,134 @@ function StrategyExecutionsModal({ strategy, onClose }) {
     }
   };
 
+  // Fetch strategy configuration details
+  const fetchStrategyConfig = async () => {
+    setLoadingConfig(true);
+    try {
+      const response = await api.get(`/api/reports/strategyperformance/config/${strategy.strategyid}`);
+      
+      if (!response.data || !response.data.data) {
+        throw new Error('Invalid response format from API');
+      }
+      
+      setStrategyConfig(response.data.data);
+    } catch (err) {
+      console.error('Failed to fetch strategy configuration:', err);
+      setError('Failed to load strategy configuration. Please try again.');
+    } finally {
+      setLoadingConfig(false);
+    }
+  };
+
+  // Toggle strategy config modal
+  const toggleConfigModal = async () => {
+    if (!showConfigModal && !strategyConfig) {
+      await fetchStrategyConfig();
+    }
+    setShowConfigModal(prev => !prev);
+  };
+
+  // Handle click on config modal backdrop to close
+  const handleConfigModalClick = (e) => {
+    if (configModalRef.current && !configModalRef.current.contains(e.target)) {
+      setShowConfigModal(false);
+    }
+  };
+
+  // Parse JSON data into table rows
+  const renderJsonTable = (jsonData) => {
+    if (!jsonData) return null;
+    
+    try {
+      // Parse JSON if it's a string
+      const data = typeof jsonData === 'string' ? JSON.parse(jsonData) : jsonData;
+      
+      // Check if it's empty
+      if (Object.keys(data).length === 0) {
+        return <p>No data available</p>;
+      }
+      
+      return (
+        <table className="json-table">
+          <thead>
+            <tr>
+              <th>Key</th>
+              <th>Value</th>
+            </tr>
+          </thead>
+          <tbody>
+            {Object.entries(data).map(([key, value], index) => (
+              <tr key={`${key}-${index}`}>
+                <td className="json-key-cell">{key}</td>
+                <td className={getValueCellClass(value)}>
+                  {renderValue(value)}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      );
+    } catch (e) {
+      // If parsing fails, display raw text
+      return <p className="text-content">{jsonData}</p>;
+    }
+  };
+  
+  // Determine the appropriate class for a value cell based on the value type
+  const getValueCellClass = (value) => {
+    const type = typeof value;
+    
+    if (value === null) return "json-value-cell null";
+    if (type === "boolean") return `json-value-cell boolean-${value}`;
+    if (type === "number") return "json-value-cell number";
+    if (type === "string") return "json-value-cell string";
+    if (type === "object") return "json-value-cell";
+    
+    return "json-value-cell";
+  };
+  
+  // Render appropriate representation for a value
+  const renderValue = (value) => {
+    const type = typeof value;
+    
+    if (value === null) return "null";
+    if (type === "boolean") return value.toString();
+    if (type === "number") return value.toString();
+    if (type === "string") return value;
+    
+    if (type === "object") {
+      if (Array.isArray(value)) {
+        return (
+          <span className="nested-object-indicator">
+            Array [{value.length} items]
+          </span>
+        );
+      }
+      return (
+        <span className="nested-object-indicator">
+          Object {Object.keys(value).length > 0 ? `{${Object.keys(value).length} properties}` : "{}"}
+        </span>
+      );
+    }
+    
+    return String(value);
+  };
+
   return (
     <div className="modal-backdrop" onClick={handleModalClick}>
       <div className="modal-content" ref={modalRef}>
         <div className="modal-header">
-          <h2>
-            <span className="strategy-title">{strategy.strategyname}</span>
-            <span className={`source-badge ${strategy.source?.toLowerCase().replace(/\s+/g, '-')}`}>
-              {strategy.source}
-            </span>
-          </h2>
+          <div className="header-content">
+            <h2>
+              <span className="strategy-title">{strategy.strategyname}</span>
+              <span className={`source-badge ${strategy.source?.toLowerCase().replace(/\s+/g, '-')}`}>
+                {strategy.source}
+              </span>
+            </h2>
+            <button className="view-config-button" onClick={toggleConfigModal}>
+              <FaCog /> View Strategy Config
+            </button>
+          </div>
           <button className="close-button" onClick={onClose}>
             <FaTimes />
           </button>
@@ -442,6 +568,191 @@ function StrategyExecutionsModal({ strategy, onClose }) {
           )}
         </div>
       </div>
+
+      {/* Strategy Config Modal */}
+      {showConfigModal && (
+        <div className="strategy-config-modal" onClick={handleConfigModalClick}>
+          <div className="config-modal-content" ref={configModalRef}>
+            <div className="config-modal-header">
+              <h3>
+                <span className="strategy-icon">
+                  <FaCog />
+                </span>
+                Strategy Configuration
+              </h3>
+              <button className="close-button" onClick={() => setShowConfigModal(false)}>
+                <FaTimes />
+              </button>
+            </div>
+            
+            {loadingConfig ? (
+              <div className="loading-container">
+                <div className="loading-spinner"></div>
+                <p>Loading configuration...</p>
+              </div>
+            ) : !strategyConfig ? (
+              <div className="error-message">
+                <p>Failed to load strategy configuration.</p>
+              </div>
+            ) : (
+              <div className="config-sections-container">
+                {/* Overview Section */}
+                <div className="config-section wide">
+                  <div className="section-header">
+                    <div className="section-icon">
+                      <FaInfoCircle />
+                    </div>
+                    <div className="section-title">Strategy Overview</div>
+                  </div>
+                  
+                  <div className="section-content">
+                    <div className="key-stats-bar">
+                      <div className="stat-item">
+                        <div className="stat-label">Executions</div>
+                        <div className="stat-value">{strategyConfig.executionCount}</div>
+                      </div>
+                      <div className="stat-item">
+                        <div className="stat-label">Invested</div>
+                        <div className="stat-value">{formatCurrency(strategyConfig.amountInvested)}</div>
+                      </div>
+                      <div className="stat-item">
+                        <div className="stat-label">Taken Out</div>
+                        <div className="stat-value">{formatCurrency(strategyConfig.amountTakenOut)}</div>
+                      </div>
+                      <div className="stat-item">
+                        <div className="stat-label">Realized PNL</div>
+                        <div className={`stat-value ${strategyConfig.realizedPnl >= 0 ? 'positive' : 'negative'}`}>
+                          {formatCurrency(strategyConfig.realizedPnl)}
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="overview-panel">
+                      <div className="overview-row">
+                        <div className="overview-label">Strategy Name</div>
+                        <div className="overview-value">{strategyConfig.strategyname}</div>
+                      </div>
+                      <div className="overview-row">
+                        <div className="overview-label">Source</div>
+                        <div className="overview-value">{strategyConfig.source}</div>
+                      </div>
+                      <div className="overview-row">
+                        <div className="overview-label">Created</div>
+                        <div className="overview-value">{new Date(strategyConfig.createdat).toLocaleString()}</div>
+                      </div>
+                      <div className="overview-row">
+                        <div className="overview-label">Status</div>
+                        <div className="overview-value">{strategyConfig.active ? 'Active' : 'Inactive'}</div>
+                      </div>
+                      <div className="overview-row">
+                        <div className="overview-label">Description</div>
+                        <div className="overview-value">{strategyConfig.description || 'No description available'}</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Entry Conditions Section */}
+                <div className="config-section">
+                  <div className="section-header">
+                    <div className="section-icon">
+                      <FaChartLine />
+                    </div>
+                    <div className="section-title">Entry Conditions</div>
+                  </div>
+                  <div className="section-content">
+                    <p className="text-content">{strategyConfig.strategyentryconditions}</p>
+                  </div>
+                </div>
+                
+                {/* Chart Conditions Section - Show only if exists */}
+                {strategyConfig.chartconditions && (
+                  <div className="config-section">
+                    <div className="section-header">
+                      <div className="section-icon">
+                        <FaChartLine />
+                      </div>
+                      <div className="section-title">Chart Conditions</div>
+                    </div>
+                    <div className="section-content">
+                      <p className="text-content">{strategyConfig.chartconditions}</p>
+                    </div>
+                  </div>
+                )}
+                
+                {/* Investment Instructions Section */}
+                <div className="config-section">
+                  <div className="section-header">
+                    <div className="section-icon">
+                      <FaCoins />
+                    </div>
+                    <div className="section-title">Investment Instructions</div>
+                  </div>
+                  <div className="section-content">
+                    <p className="text-content">{strategyConfig.investmentinstructions}</p>
+                  </div>
+                </div>
+                
+                {/* Profit Taking Section */}
+                <div className="config-section">
+                  <div className="section-header">
+                    <div className="section-icon">
+                      <FaArrowUp />
+                    </div>
+                    <div className="section-title">Profit Taking</div>
+                  </div>
+                  <div className="section-content">
+                    <p className="text-content">{strategyConfig.profittakinginstructions}</p>
+                  </div>
+                </div>
+                
+                {/* Risk Management Section */}
+                <div className="config-section">
+                  <div className="section-header">
+                    <div className="section-icon">
+                      <FaShieldAlt />
+                    </div>
+                    <div className="section-title">Risk Management</div>
+                  </div>
+                  <div className="section-content">
+                    <p className="text-content">{strategyConfig.riskmanagementinstructions}</p>
+                  </div>
+                </div>
+                
+                {/* Moonbag Instructions - Show only if exists */}
+                {strategyConfig.moonbaginstructions && (
+                  <div className="config-section">
+                    <div className="section-header">
+                      <div className="section-icon">
+                        <FaRocket />
+                      </div>
+                      <div className="section-title">Moonbag Instructions</div>
+                    </div>
+                    <div className="section-content">
+                      <p className="text-content">{strategyConfig.moonbaginstructions}</p>
+                    </div>
+                  </div>
+                )}
+                
+                {/* Additional Instructions - Show only if exists */}
+                {strategyConfig.additionalinstructions && (
+                  <div className="config-section wide">
+                    <div className="section-header">
+                      <div className="section-icon">
+                        <FaPlus />
+                      </div>
+                      <div className="section-title">Additional Instructions</div>
+                    </div>
+                    <div className="section-content">
+                      {renderJsonTable(strategyConfig.additionalinstructions)}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

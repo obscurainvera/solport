@@ -21,6 +21,7 @@ function WalletInvestedModal({ token, onClose }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [copiedAddress, setCopiedAddress] = useState(null);
+  const [copiedTokenId, setCopiedTokenId] = useState(false);
   const [sortConfig, setSortConfig] = useState({ key: 'smartholding', direction: 'desc' });
   const [selectedWallet, setSelectedWallet] = useState(null);
   const tableContainerRef = useRef(null);
@@ -304,7 +305,23 @@ function WalletInvestedModal({ token, onClose }) {
     // Stop propagation to prevent row click
     e.stopPropagation();
     
-    window.open(`https://app.cielo.finance/profile/${address}`, '_blank');
+    window.open(`https://app.cielo.finance/profile/${address}?tokens=${token.tokenid}`, '_blank');
+  };
+
+  const handleCopyTokenId = (e) => {
+    // Stop propagation to prevent row click
+    e.stopPropagation();
+    
+    if (token && token.tokenid) {
+      navigator.clipboard.writeText(token.tokenid)
+        .then(() => {
+          setCopiedTokenId(true);
+          setTimeout(() => setCopiedTokenId(false), 2000);
+        })
+        .catch(err => {
+          console.error('Failed to copy token ID:', err);
+        });
+    }
   };
 
   const sortedWallets = getSortedWallets();
@@ -342,6 +359,17 @@ function WalletInvestedModal({ token, onClose }) {
             Wallets Invested in {token?.name || token?.tokenid}
             <span className="wallet-count">{wallets.length} wallets</span>
           </h2>
+          <div className="token-id-container">
+            <div 
+              className={`token-id-box ${copiedTokenId ? 'copied' : ''}`}
+              onClick={handleCopyTokenId}
+              title="Click to copy token ID"
+            >
+              <span className="token-id-label">ID:</span>
+              <span className="token-id-value">{token?.tokenid || 'N/A'}</span>
+              {copiedTokenId ? <FaCheck className="copy-icon copied" /> : <FaCopy className="copy-icon" />}
+            </div>
+          </div>
           <button className="close-button" onClick={onClose} aria-label="Close">
             <FaTimes />
           </button>

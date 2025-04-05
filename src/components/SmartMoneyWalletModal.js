@@ -21,7 +21,8 @@ import {
   FaChartBar,
   FaLayerGroup,
   FaChevronUp,
-  FaChevronDown
+  FaChevronDown,
+  FaSearch
 } from 'react-icons/fa';
 import './SmartMoneyWalletModal.css';
 import SmartMoneyWalletBehaviourModal from './SmartMoneyWalletBehaviourModal';
@@ -43,6 +44,8 @@ function SmartMoneyWalletModal({ wallet, onClose }) {
   const [showBehaviourModal, setShowBehaviourModal] = useState(false);
   const [showRangesModal, setShowRangesModal] = useState(false);
   const [sortConfig, setSortConfig] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [copiedWalletAddress, setCopiedWalletAddress] = useState(false);
   
   // Center the modal in the visible viewport when it opens
   useEffect(() => {
@@ -328,18 +331,50 @@ function SmartMoneyWalletModal({ wallet, onClose }) {
     return { value: formattedValue, isPositive };
   };
   
-  // Get filtered tokens based on toggle settings
+  // Handle copying wallet address
+  const handleCopyWalletAddress = (e) => {
+    // Stop propagation to prevent row click
+    e.stopPropagation();
+    
+    if (wallet && wallet.walletaddress) {
+      navigator.clipboard.writeText(wallet.walletaddress)
+        .then(() => {
+          setCopiedWalletAddress(true);
+          setTimeout(() => setCopiedWalletAddress(false), 2000);
+        })
+        .catch(err => {
+          console.error('Failed to copy wallet address:', err);
+        });
+    }
+  };
+
+  // Handle search input change
+  const handleSearchChange = (e) => {
+    setSearchQuery(e.target.value);
+    setCurrentPage(1); // Reset to first page when search changes
+  };
+
+  // Get filtered tokens based on toggle settings and search query
   const getFilteredTokens = () => {
     // Log filter settings for debugging
-    console.log(`Filter settings - Show profitable: ${showProfitable}, Show loss-making: ${showLossMaking}`);
+    console.log(`Filter settings - Show profitable: ${showProfitable}, Show loss-making: ${showLossMaking}, Search: ${searchQuery}`);
     
     // Apply filtering
-    const filtered = tokens.filter(token => {
+    let filtered = tokens.filter(token => {
       const pnl = parseFloat(token.profitAndLoss) || 0;
       const isProfitable = pnl >= 0;
       
       if (isProfitable && !showProfitable) return false;
       if (!isProfitable && !showLossMaking) return false;
+      
+      // Apply search filter if query exists
+      if (searchQuery) {
+        const query = searchQuery.toLowerCase();
+        const tokenName = (token.tokenName || '').toLowerCase();
+        const tokenId = (token.tokenId || '').toLowerCase();
+        
+        return tokenName.includes(query) || tokenId.includes(query);
+      }
       
       return true;
     });
@@ -482,6 +517,9 @@ function SmartMoneyWalletModal({ wallet, onClose }) {
           <th className="pnl-header sortable" onClick={() => handleSort('profitAndLoss')}>
             Total PNL {getSortIcon('profitAndLoss')}
           </th>
+          <th className="pnl-header sortable" onClick={() => handleSort('roi')}>
+            ROI {getSortIcon('roi')}
+          </th>
         </tr>
       </thead>
     );
@@ -496,6 +534,9 @@ function SmartMoneyWalletModal({ wallet, onClose }) {
       e.stopPropagation();
       handleCopyTokenId(token.tokenId, e);
     };
+
+    // Create Cielo Finance link
+    const cieloLink = `https://app.cielo.finance/profile/${wallet?.walletaddress}?tokens=${token.tokenId}`;
     
     return (
       <tr key={token.tokenId} className="token-row">
@@ -511,6 +552,16 @@ function SmartMoneyWalletModal({ wallet, onClose }) {
             {copiedTokenId === token.tokenId && (
               <FaCheck className="copy-success" />
             )}
+            <a 
+              href={cieloLink} 
+              target="_blank" 
+              rel="noopener noreferrer" 
+              className="token-external-link"
+              onClick={(e) => e.stopPropagation()}
+              title="View on Cielo Finance"
+            >
+              <FaExternalLinkAlt />
+            </a>
           </div>
         </td>
         <td title={formatCurrency(token.amountInvested)}>
@@ -539,6 +590,12 @@ function SmartMoneyWalletModal({ wallet, onClose }) {
         >
           {formattedPNL.value}
         </td>
+        <td 
+          className={`pnl-cell ${token.roi >= 0 ? 'positive' : 'negative'}`}
+          title={`${token.roi.toFixed(2)}%`}
+        >
+          {token.roi.toFixed(2)}%
+        </td>
       </tr>
     );
   };
@@ -550,10 +607,17 @@ function SmartMoneyWalletModal({ wallet, onClose }) {
           <h2>
             <FaWallet />
             Smart Money Wallet Details
-            <span className="wallet-address-display">
+            <span 
+              className={`wallet-address-display ${copiedWalletAddress ? 'copied' : ''}`}
+              onClick={handleCopyWalletAddress}
+              title="Click to copy address"
+            >
               {wallet?.walletaddress ? 
                 `${wallet.walletaddress.substring(0, 6)}...${wallet.walletaddress.substring(wallet.walletaddress.length - 4)}` : 
                 '-'}
+              {copiedWalletAddress ? 
+                <FaCheck className="copy-icon copied" /> : 
+                <FaCopy className="copy-icon" />}
             </span>
             <span className={`total-pnl ${totalPnl >= 0 ? 'positive' : 'negative'}`}>
               Total PNL: {formatCurrency(totalPnl)}
@@ -633,9 +697,17 @@ function SmartMoneyWalletModal({ wallet, onClose }) {
                     Ranges
                   </button>
                 </div>
-                <div className="filter-info">
-                  <FaInfoCircle />
-                  <span>Showing {filteredTokens.length} of {tokens.length} tokens</span>
+                <div className="search-container">
+                  <div className="search-input-wrapper">
+                    <FaSearch className="search-icon" />
+                    <input
+                      type="text"
+                      className="search-input"
+                      placeholder="Search token name or ID..."
+                      value={searchQuery}
+                      onChange={handleSearchChange}
+                    />
+                  </div>
                 </div>
               </div>
               
@@ -651,12 +723,14 @@ function SmartMoneyWalletModal({ wallet, onClose }) {
                         " You've disabled profitable tokens." : 
                         " You've disabled loss-making tokens."
                     }
+                    {searchQuery && " No tokens match your search query."}
                   </p>
                   <button 
                     className="reset-filters-button"
                     onClick={() => {
                       setShowProfitable(true);
                       setShowLossMaking(true);
+                      setSearchQuery('');
                       console.log("Reset filters to show all tokens");
                     }}
                   >

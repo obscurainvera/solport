@@ -83,13 +83,74 @@
 }
 
 .wallet-address-display {
-  font-size: 0.8rem;
-  color: rgba(255, 255, 255, 0.7);
-  margin-left: 10px;
-  font-weight: normal;
-  background-color: rgba(255, 255, 255, 0.1);
+  font-family: 'SF Mono', SFMono-Regular, ui-monospace, Menlo, Monaco, Consolas, monospace;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
   padding: 4px 8px;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+  width: fit-content;
+  background-color: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  margin-left: 10px;
+}
+
+.wallet-address-display:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.wallet-address-display .copy-icon {
+  margin-left: 6px;
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.5);
+  opacity: 0.7;
+  transition: all 0.2s ease;
+}
+
+.wallet-address-display:hover .copy-icon {
+  opacity: 1;
+  color: #d4af37;
+}
+
+.copy-icon.copied,
+.wallet-address-display .copy-success {
+  color: #4cd964;
+}
+
+.wallet-address-display.copied {
+  background-color: rgba(76, 217, 100, 0.1);
+  border-color: rgba(76, 217, 100, 0.3);
+}
+
+.wallet-address-display .copy-success {
+  margin-left: 5px;
+}
+
+.copy-wallet-button {
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.5);
+  cursor: pointer;
+  padding: 2px 5px;
   border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  margin-left: 5px;
+  font-size: 0.9rem;
+}
+
+.copy-wallet-button:hover {
+  color: #fff;
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.copy-wallet-button .copy-success {
+  color: #4cd964;
+  font-size: 0.9rem;
 }
 
 .total-pnl {
@@ -183,7 +244,7 @@
   justify-content: space-between;
   align-items: center;
   margin-bottom: 16px;
-  padding: 12px;
+  padding: 8px 12px;
   background-color: rgba(0, 0, 0, 0.3);
   border-radius: 8px;
   border: 1px solid rgba(255, 255, 255, 0.1);
@@ -222,17 +283,45 @@
   filter: drop-shadow(0 0 3px rgba(255, 59, 48, 0.3));
 }
 
-.filter-info {
-  font-size: 0.85rem;
-  color: rgba(255, 255, 255, 0.6);
+.search-container {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 6px 12px;
-  background: rgba(0, 0, 0, 0.2);
-  border-radius: 6px;
+  max-width: 200px;
+}
+
+.search-input-wrapper {
   position: relative;
-  z-index: 1;
+  display: flex;
+  align-items: center;
+}
+
+.search-icon {
+  position: absolute;
+  left: 10px;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.8rem;
+}
+
+.search-input {
+  background-color: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #fff;
+  padding: 6px 10px 6px 30px;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  width: 100%;
+  transition: all 0.2s ease;
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: rgba(255, 255, 255, 0.3);
+  background-color: rgba(0, 0, 0, 0.3);
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.1);
+}
+
+.search-input::placeholder {
+  color: rgba(255, 255, 255, 0.4);
 }
 
 .token-table-container {
@@ -293,6 +382,7 @@
 .token-table th:nth-child(4) { width: 18%; }
 .token-table th:nth-child(5) { width: 16%; }
 .token-table th:nth-child(6) { width: 16%; }
+.token-table th:nth-child(7) { width: 10%; }
 
 .token-table td {
   padding: 12px 8px;
@@ -640,7 +730,7 @@
   }
   
   .wallet-address-display {
-    font-size: 0.8rem;
+    font-size: 0.75rem;
     padding: 3px 6px;
   }
   
@@ -661,6 +751,10 @@
   
   .token-table-container {
     max-height: 500px;
+  }
+  
+  .search-input {
+    width: 100%;
   }
 }
 
@@ -751,6 +845,24 @@
   .token-name-cell {
     max-width: 120px;
   }
+  
+  .filter-controls {
+    flex-direction: row;
+    gap: 10px;
+    padding: 8px;
+  }
+  
+  .search-container {
+    width: auto;
+  }
+  
+  .search-input-wrapper {
+    width: auto;
+  }
+  
+  .search-input {
+    width: 120px;
+  }
 }
 
 /* Additional styles from WalletInvestedModal */
@@ -789,6 +901,7 @@
   position: relative;
   padding-right: 24px; /* Make room for the sort icon */
   user-select: none;
+  -webkit-user-select: none;
 }
 
 .sortable:hover {
@@ -839,4 +952,25 @@
 .ranges-icon {
   color: #9562e5;
   margin-right: 5px;
+}
+
+/* Token external link styling */
+.token-external-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.8rem;
+  margin-left: 8px;
+  transition: all 0.2s ease;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+}
+
+.token-external-link:hover {
+  color: #7c9cd6;
+  background-color: rgba(124, 156, 214, 0.1);
 } 

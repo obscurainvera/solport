@@ -49,6 +49,7 @@
   justify-content: space-between;
   align-items: center;
   background: linear-gradient(180deg, rgba(40, 40, 40, 0.8) 0%, rgba(20, 20, 20, 0.8) 100%);
+  position: relative;
 }
 
 .wallet-modal-header h2 {
@@ -512,6 +513,7 @@
 .sortable {
   cursor: pointer;
   user-select: none;
+  -webkit-user-select: none;
   transition: background-color 0.2s ease;
   position: relative;
 }
@@ -783,4 +785,107 @@
 .clickable-row:active {
   transform: translateY(0);
   box-shadow: none;
+}
+
+.token-id-container {
+  position: absolute;
+  top: 50%;
+  right: 60px; /* Position it before the close button */
+  transform: translateY(-50%);
+  z-index: 10;
+  display: flex;
+  align-items: center;
+}
+
+.token-id-box {
+  display: flex;
+  align-items: center;
+  background-color: rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  padding: 6px 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  max-width: 300px;
+  overflow: hidden;
+  height: 32px; /* Match the height of the heading */
+  font-size: 0.9rem; /* Match the heading font size */
+}
+
+.token-id-box:hover {
+  background-color: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.2);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.token-id-box.copied {
+  background-color: rgba(76, 217, 100, 0.2);
+  border-color: rgba(76, 217, 100, 0.3);
+}
+
+.token-id-label {
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.7);
+  margin-right: 8px;
+  white-space: nowrap;
+  font-weight: 500;
+}
+
+.token-id-value {
+  font-family: 'SF Mono', SFMono-Regular, ui-monospace, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.85rem;
+  color: #fff;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 180px;
+  font-weight: 500;
+}
+
+.token-id-box .copy-icon {
+  margin-left: 8px;
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.5);
+  transition: all 0.2s ease;
+}
+
+.token-id-box:hover .copy-icon {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.token-id-box .copy-icon.copied {
+  color: #4cd964;
+}
+
+@media (max-width: 768px) {
+  .token-id-container {
+    position: static;
+    margin-top: 10px;
+    margin-right: 0;
+    width: 100%;
+    transform: none;
+  }
+  
+  .token-id-box {
+    width: 100%;
+    justify-content: space-between;
+    height: auto;
+    padding: 8px 10px;
+  }
+  
+  .wallet-modal-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .wallet-modal-header h2 {
+    margin-bottom: 10px;
+  }
+  
+  .close-button {
+    position: absolute;
+    top: 20px;
+    right: 24px;
+  }
 } 

@@ -91,7 +91,7 @@
 .report-table th:nth-child(1),
 .report-table td:nth-child(1) { width: 8%; } /* Token ID */
 .report-table th:nth-child(2),
-.report-table td:nth-child(2) { width: 8%; } /* Name */
+.report-table td:nth-child(2) { width: 12%; } /* Name */
 .report-table th:nth-child(3),
 .report-table td:nth-child(3) { width: 5%; } /* Age */
 .report-table th:nth-child(4),
@@ -184,7 +184,13 @@
   border-bottom: none;
 }
 
-.report-table td.text-center { text-align: center; }
+.report-table td.text-center {
+  text-align: center;
+  vertical-align: middle;
+  height: 100%;
+  display: table-cell;
+}
+
 .report-table td.text-left { text-align: left; }
 .report-table td.text-right { text-align: right; }
 
@@ -226,6 +232,7 @@
   gap: 0.5rem;
   transition: all 0.2s ease;
   cursor: pointer;
+  -webkit-user-select: none;
   user-select: none;
   position: relative;
   border: 1px solid rgba(255, 255, 255, 0.1);
@@ -276,6 +283,27 @@
 
 .token-name {
   font-weight: 500;
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.85);
+  white-space: nowrap;
+  overflow: visible;
+  text-overflow: unset;
+  text-align: center;
+  padding: 0 8px;
+  letter-spacing: 0.02em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  transition: color 0.2s ease;
+  color: #4cd964;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.token-name:hover {
+  color: #2ecc71;
+  text-decoration: underline;
 }
 
 .report-table tbody tr:hover .token-name {

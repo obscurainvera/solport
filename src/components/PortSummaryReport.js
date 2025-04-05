@@ -3,6 +3,7 @@ import axios from 'axios';
 import FilterForm from './FilterForm';
 import PortSummaryReportTable from './PortSummaryReportTable';
 import WalletInvestedModal from './WalletInvestedModal';
+import TokenHistoryModal from './TokenHistoryModal';
 import { FaFilter, FaChartLine, FaCoins, FaTimes } from 'react-icons/fa';
 import './PortSummaryReport.css';
 
@@ -23,6 +24,8 @@ function PortSummaryReport() {
   const [error, setError] = useState(null);
   const [showFilters, setShowFilters] = useState(false);
   const [selectedToken, setSelectedToken] = useState(null);
+  const [showHistoryModal, setShowHistoryModal] = useState(false);
+  const [showWalletModal, setShowWalletModal] = useState(false);
   const [sortConfig, setSortConfig] = useState({
     sort_by: 'smartbalance',
     sort_order: 'desc'
@@ -240,10 +243,25 @@ function PortSummaryReport() {
 
   const handleRowClick = (row) => {
     setSelectedToken(row);
+    setShowWalletModal(true);
+  };
+
+  const handleTokenNameClick = (e, token) => {
+    e.stopPropagation(); // Prevent row click event
+    e.preventDefault(); // Prevent default behavior
+    
+    // Set the selected token but don't trigger the wallet invested modal
+    setSelectedToken(token);
+    setShowHistoryModal(true);
   };
 
   const closeModal = () => {
     setSelectedToken(null);
+    setShowWalletModal(false);
+  };
+
+  const closeHistoryModal = () => {
+    setShowHistoryModal(false);
   };
 
   const handleRetry = () => {
@@ -319,15 +337,24 @@ function PortSummaryReport() {
               onSort={handleSort} 
               sortConfig={sortConfig}
               onRowClick={handleRowClick}
+              onTokenNameClick={handleTokenNameClick}
             />
           )}
         </div>
       </div>
       
-      {selectedToken && (
+      {selectedToken && showWalletModal && (
         <WalletInvestedModal 
           token={selectedToken} 
           onClose={closeModal} 
+        />
+      )}
+
+      {selectedToken && showHistoryModal && (
+        <TokenHistoryModal
+          token={selectedToken}
+          show={showHistoryModal}
+          onHide={closeHistoryModal}
         />
       )}
     </div>

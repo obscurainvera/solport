@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { FaSort, FaSortUp, FaSortDown, FaTags, FaCopy, FaCheck, FaArrowUp, FaArrowDown, FaChevronDown, FaChevronUp, FaChevronRight } from 'react-icons/fa';
 import './PortSummaryReportTable.css';
 
-function PortSummaryReportTable({ data, onSort, sortConfig, onRowClick }) {
+function PortSummaryReportTable({ data, onSort, sortConfig, onRowClick, onTokenNameClick }) {
   const [hoveredRow, setHoveredRow] = useState(null);
   const [copiedId, setCopiedId] = useState(null);
   const [tagScrollStates, setTagScrollStates] = useState({});
@@ -259,13 +259,13 @@ function PortSummaryReportTable({ data, onSort, sortConfig, onRowClick }) {
     return filteredTags;
   };
 
-  const getSortIndicator = (key) => {
-    if (sortConfig && sortConfig.sort_by === key) {
-      return sortConfig.sort_order === 'asc' ? 
-        <FaChevronUp className="sort-icon active" /> : 
-        <FaChevronDown className="sort-icon active" />;
+  const getSortIcon = (field) => {
+    if (sortConfig.sort_by !== field) {
+      return <span className="sort-icon">⇅</span>;
     }
-    return <FaChevronDown className="sort-icon" />;
+    return sortConfig.sort_order === 'asc' 
+      ? <span className="sort-icon active">↑</span> 
+      : <span className="sort-icon active">↓</span>;
   };
 
   const handleRowHover = (id) => {
@@ -317,28 +317,28 @@ function PortSummaryReportTable({ data, onSort, sortConfig, onRowClick }) {
         <thead>
           <tr>
             <th onClick={() => onSort('tokenid')} className="sortable">
-              <div className="th-content">Token ID {getSortIndicator('tokenid')}</div>
+              <div className="th-content">Token ID {getSortIcon('tokenid')}</div>
             </th>
             <th onClick={() => onSort('name')} className="sortable">
-              <div className="th-content">Name {getSortIndicator('name')}</div>
+              <div className="th-content">Name {getSortIcon('name')}</div>
             </th>
             <th onClick={() => onSort('tokenage')} className="sortable">
-              <div className="th-content">Age {getSortIndicator('tokenage')}</div>
+              <div className="th-content">Age {getSortIcon('tokenage')}</div>
             </th>
             <th onClick={() => onSort('mcap')} className="sortable">
-              <div className="th-content">Market Cap {getSortIndicator('mcap')}</div>
+              <div className="th-content">Market Cap {getSortIcon('mcap')}</div>
             </th>
             <th onClick={() => onSort('avgprice')} className="sortable">
-              <div className="th-content">Avg {getSortIndicator('avgprice')}</div>
+              <div className="th-content">Avg {getSortIcon('avgprice')}</div>
             </th>
             <th onClick={() => onSort('currentprice')} className="sortable">
-              <div className="th-content">Current {getSortIndicator('currentprice')}</div>
+              <div className="th-content">Current {getSortIcon('currentprice')}</div>
             </th>
             <th onClick={() => onSort('pricechange')} className="sortable" title="Percentage change from average price to current price">
-              <div className="th-content">Δ% {getSortIndicator('pricechange')}</div>
+              <div className="th-content">Δ% {getSortIcon('pricechange')}</div>
             </th>
             <th onClick={() => onSort('smartbalance')} className="sortable">
-              <div className="th-content">Smart Balance {getSortIndicator('smartbalance')}</div>
+              <div className="th-content">Smart Balance {getSortIcon('smartbalance')}</div>
             </th>
             <th className="sortable">
               <div className="th-content">
@@ -377,7 +377,21 @@ function PortSummaryReportTable({ data, onSort, sortConfig, onRowClick }) {
                       <FaCopy className="copy-icon" />}
                   </span> {/* Token ID */}
                 </td>
-                <td className="text-center token-name">{row.name || '-'}</td> {/* Name */}
+                <td className="text-center token-name">
+                  <span 
+                    className="token-name"
+                    onClick={(e) => {
+                      e.stopPropagation(); // Stop event propagation
+                      e.preventDefault(); // Prevent default behavior
+                      if (onTokenNameClick) {
+                        onTokenNameClick(e, row);
+                      }
+                      return false; // Ensure the event doesn't bubble up
+                    }}
+                  >
+                    {row.name || '-'}
+                  </span>
+                </td> {/* Name */}
                 <td className="text-center token-age">{formatNumber(row.tokenage) || '-'}</td> {/* Age */}
                 <td className="text-center market-cap" title={row.mcap ? formatCurrency(row.mcap) : '-'}>
                   {formatLargeNumber(row.mcap) || '-'}

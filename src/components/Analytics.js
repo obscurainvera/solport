@@ -40,6 +40,7 @@ function Analytics() {
   const [strategyName, setStrategyName] = useState('');
   const [sourceType, setSourceType] = useState('');
   const [description, setDescription] = useState('');
+  const [tokenConviction, setTokenConviction] = useState('HIGH');
   const [requiredTags, setRequiredTags] = useState([]);
   const [minMarketCap, setMinMarketCap] = useState('');
   const [minLiquidity, setMinLiquidity] = useState('');
@@ -242,6 +243,7 @@ function Analytics() {
         strategy_name: strategyName,
         source_type: sourceType,
         description: description,
+        token_conviction: tokenConviction,
         entry_conditions: {
           required_tags: requiredTags,
           min_market_cap: parseFloat(minMarketCap) || 0,
@@ -280,6 +282,7 @@ function Analytics() {
         setStrategyName('');
         setSourceType('');
         setDescription('');
+        setTokenConviction('HIGH');
         setRequiredTags([]);
         setMinMarketCap('');
         setMinLiquidity('');
@@ -506,6 +509,22 @@ function Analytics() {
                   onChange={(e) => setDescription(e.target.value)}
                   placeholder="Describe your strategy's goal and approach"
                 ></textarea>
+              </div>
+              <div className="form-field">
+                <label className="form-label">Token Conviction</label>
+                <select 
+                  className="form-control" 
+                  value={tokenConviction}
+                  onChange={(e) => setTokenConviction(e.target.value)}
+                  required
+                >
+                  <option value="HIGH">High Conviction</option>
+                  <option value="MEDIUM">Medium Conviction</option>
+                  <option value="LOW">Low Conviction</option>
+                </select>
+                <div className="form-text">
+                  Select the conviction level for tokens in this strategy
+                </div>
               </div>
               <div className="form-field">
                 <div className="superuser-header">

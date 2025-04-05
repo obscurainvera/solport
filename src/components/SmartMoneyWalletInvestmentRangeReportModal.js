@@ -13,12 +13,14 @@ import {
   FaArrowDown,
   FaBalanceScale
 } from 'react-icons/fa';
+import TokenDetailsModal from './TokenDetailsModal';
 import './SmartMoneyWalletInvestmentRangeReportModal.css';
 
 function SmartMoneyWalletInvestmentRangeReportModal({ wallet, onClose }) {
   const [reportData, setReportData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [selectedRange, setSelectedRange] = useState(null);
   const modalRef = useRef(null);
 
   // Center the modal in the visible viewport when it opens
@@ -67,6 +69,12 @@ function SmartMoneyWalletInvestmentRangeReportModal({ wallet, onClose }) {
         });
         
         console.log('Investment range report data:', response.data);
+        
+        // Check if ranges have IDs
+        if (response.data.data && response.data.data.ranges) {
+          console.log('Ranges with IDs:', response.data.data.ranges.map(r => ({ label: r.label, id: r.id })));
+        }
+        
         setReportData(response.data.data || null);
       } catch (err) {
         console.error('Error fetching investment range report:', err);
@@ -150,6 +158,23 @@ function SmartMoneyWalletInvestmentRangeReportModal({ wallet, onClose }) {
 
   const handleModalClick = (e) => {
     e.stopPropagation();
+  };
+
+  const handleRangeClick = (range) => {
+    console.log('Range clicked:', range);
+    console.log('Range ID:', range.id);
+    
+    // Ensure the range object has an id property
+    if (!range.id) {
+      console.error('Range object does not have an id property:', range);
+      return;
+    }
+    
+    setSelectedRange(range);
+  };
+
+  const handleCloseTokenModal = () => {
+    setSelectedRange(null);
   };
 
   return (
@@ -252,7 +277,11 @@ function SmartMoneyWalletInvestmentRangeReportModal({ wallet, onClose }) {
                       const totalPnlFormatted = formatPNL(range.totalPnl);
                       
                       return (
-                        <tr key={index} className="range-row">
+                        <tr 
+                          key={index} 
+                          className="range-row clickable"
+                          onClick={() => handleRangeClick(range)}
+                        >
                           <td className="range-label-cell">{range.label}</td>
                           <td className="text-center">{formatNumber(range.numTokens)}</td>
                           <td className="text-center" title={formatCurrency(range.totalInvested)}>
@@ -301,11 +330,20 @@ function SmartMoneyWalletInvestmentRangeReportModal({ wallet, onClose }) {
                   <li><strong>Win Rate:</strong> Percentage of tokens with positive PNL</li>
                   <li><strong>Total PNL:</strong> Realized PNL + Remaining Value</li>
                 </ul>
+                <p className="click-hint">Click on any range row to view detailed token information</p>
               </div>
             </>
           )}
         </div>
       </div>
+      
+      {selectedRange && (
+        <TokenDetailsModal 
+          wallet={wallet} 
+          range={selectedRange} 
+          onClose={handleCloseTokenModal} 
+        />
+      )}
     </div>
   );
 }

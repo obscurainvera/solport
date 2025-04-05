@@ -88,12 +88,18 @@
   border-top-right-radius: 10px;
 }
 
+.header-content {
+  display: flex;
+  flex: 1;
+  justify-content: space-between;
+  align-items: center;
+}
+
 .modal-header h2 {
   margin: 0;
   font-size: 20px;
   font-weight: 500;
   text-align: center;
-  grid-column: 2;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -336,6 +342,7 @@
   -webkit-backdrop-filter: blur(10px);
   z-index: 2;
   white-space: nowrap;
+  -webkit-user-select: none;
   user-select: none;
 }
 
@@ -684,5 +691,389 @@
   
   .stat-card {
     padding: 10px;
+  }
+}
+
+/* View Strategy Config Button */
+.view-config-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(10, 132, 255, 0.15);
+  color: var(--apple-blue);
+  border: none;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  letter-spacing: 0.02em;
+  margin-right: 10px;
+}
+
+.view-config-button:hover {
+  background: rgba(10, 132, 255, 0.25);
+  transform: translateY(-1px);
+}
+
+.view-config-button svg {
+  font-size: 12px;
+}
+
+/* Strategy Config Modal */
+.strategy-config-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1100;
+  animation: fadeIn 0.25s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+
+.config-modal-content {
+  width: 92%;
+  max-width: 1000px;
+  max-height: 88vh;
+  overflow-y: auto;
+  background: linear-gradient(145deg, rgba(25, 25, 27, 0.95), rgba(18, 18, 20, 0.98));
+  border-radius: 20px;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.6), 
+              0 0 0 1px rgba(255, 255, 255, 0.08),
+              0 1px 0 0 rgba(255, 255, 255, 0.05) inset;
+  animation: slideUp 0.35s cubic-bezier(0.17, 0.89, 0.32, 1.28) forwards;
+  position: relative;
+  backdrop-filter: blur(30px);
+  -webkit-backdrop-filter: blur(30px);
+  color: var(--apple-silver);
+  font-family: var(--apple-font);
+  display: flex;
+  flex-direction: column;
+}
+
+.config-modal-content::-webkit-scrollbar {
+  width: 5px;
+  background-color: transparent;
+}
+
+.config-modal-content::-webkit-scrollbar-track {
+  background-color: rgba(0, 0, 0, 0.1);
+  border-radius: 3px;
+  margin: 4px 0;
+}
+
+.config-modal-content::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.2);
+  border-radius: 3px;
+}
+
+.config-modal-content::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(255, 255, 255, 0.3);
+}
+
+.config-modal-header {
+  padding: 22px 28px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  position: sticky;
+  top: 0;
+  background: rgba(22, 22, 24, 0.95);
+  z-index: 5;
+  backdrop-filter: blur(30px);
+  -webkit-backdrop-filter: blur(30px);
+  border-top-left-radius: 20px;
+  border-top-right-radius: 20px;
+}
+
+.config-modal-header h3 {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 500;
+  color: white;
+  letter-spacing: -0.01em;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.config-modal-header .strategy-icon {
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  background: linear-gradient(135deg, rgba(10, 132, 255, 0.2), rgba(94, 92, 230, 0.2));
+  color: var(--apple-blue);
+  font-size: 14px;
+}
+
+.config-sections-container {
+  padding: 24px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+  gap: 24px;
+}
+
+.config-section {
+  background: rgba(35, 35, 39, 0.4);
+  border-radius: 16px;
+  padding: 0;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  transition: all 0.3s ease;
+  height: fit-content;
+  overflow: hidden;
+}
+
+.config-section:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.config-section.wide {
+  grid-column: 1 / -1;
+}
+
+.section-header {
+  background: rgba(30, 30, 32, 0.6);
+  padding: 16px 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.section-title {
+  font-size: 14px;
+  font-weight: 500;
+  color: white;
+  margin: 0;
+  letter-spacing: 0.01em;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.section-icon {
+  color: var(--apple-blue);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+}
+
+.section-content {
+  padding: 20px;
+  font-size: 14px;
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.85);
+  letter-spacing: 0.01em;
+}
+
+.section-content p {
+  margin: 0 0 10px 0;
+}
+
+.section-content p:last-child {
+  margin-bottom: 0;
+}
+
+/* Key Stats Bar */
+.key-stats-bar {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 2px;
+  margin-bottom: 0;
+  border-radius: 14px;
+  overflow: hidden;
+  background: rgba(30, 30, 35, 0.5);
+}
+
+.stat-item {
+  padding: 16px;
+  background: rgba(40, 40, 44, 0.5);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  transition: all 0.2s ease;
+}
+
+.stat-item:hover {
+  background: rgba(45, 45, 50, 0.6);
+}
+
+.stat-label {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.6);
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 500;
+}
+
+.stat-value {
+  font-size: 18px;
+  font-weight: 600;
+  color: white;
+  letter-spacing: -0.01em;
+}
+
+.stat-value.positive {
+  color: var(--apple-positive);
+}
+
+.stat-value.negative {
+  color: var(--apple-negative);
+}
+
+/* Overview Panel */
+.overview-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.overview-row {
+  display: grid;
+  grid-template-columns: 120px 1fr;
+  gap: 12px;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.overview-row:last-child {
+  border-bottom: none;
+}
+
+.overview-label {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.6);
+  font-weight: 500;
+}
+
+.overview-value {
+  font-size: 13px;
+  color: white;
+}
+
+/* JSON Data Table */
+.json-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  margin-top: 5px;
+  font-size: 13px;
+  background: rgba(25, 25, 27, 0.5);
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  overflow: hidden;
+}
+
+.json-table th,
+.json-table td {
+  padding: 12px 16px;
+  text-align: left;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.json-table th {
+  background: rgba(22, 22, 24, 0.6);
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.json-table tr:last-child td {
+  border-bottom: none;
+}
+
+.json-key-cell {
+  font-weight: 500;
+  color: var(--apple-blue);
+  width: 30%;
+}
+
+.json-value-cell {
+  width: 70%;
+  color: rgba(255, 255, 255, 0.85);
+  font-weight: 400;
+}
+
+.json-value-cell.boolean-true {
+  color: var(--apple-positive);
+}
+
+.json-value-cell.boolean-false {
+  color: var(--apple-negative);
+}
+
+.json-value-cell.number {
+  color: rgb(255, 180, 120);
+}
+
+.json-value-cell.string {
+  color: rgb(160, 220, 150);
+}
+
+.json-value-cell.null {
+  color: rgb(180, 180, 200);
+  font-style: italic;
+}
+
+/* Nested objects indicator */
+.nested-object-indicator {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 10px;
+  background: rgba(10, 132, 255, 0.1);
+  border-radius: 4px;
+  font-size: 11px;
+  color: var(--apple-blue);
+  cursor: pointer;
+  border: 1px solid rgba(10, 132, 255, 0.2);
+  transition: all 0.2s ease;
+}
+
+.nested-object-indicator:hover {
+  background: rgba(10, 132, 255, 0.2);
+}
+
+/* Text content formatting */
+.text-content {
+  white-space: pre-line;
+  padding: 0;
+  margin: 0;
+}
+
+@media (max-width: 900px) {
+  .config-sections-container {
+    grid-template-columns: 1fr;
+    padding: 16px;
+    gap: 16px;
+  }
+  
+  .key-stats-bar {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .overview-row {
+    grid-template-columns: 100px 1fr;
   }
 } 
