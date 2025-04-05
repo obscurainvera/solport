@@ -171,8 +171,7 @@ class PumpFunAction:
             timeThresholdSeconds = 300
             
             # Initialize analytics handler and push token API
-            analyticsHandler = AnalyticsHandler(self.db)
-            pushTokenAPI = PushTokenAPI(analyticsHandler)
+            pushTokenAPI = PushTokenAPI()
             
             # Process each token
             successCount = 0

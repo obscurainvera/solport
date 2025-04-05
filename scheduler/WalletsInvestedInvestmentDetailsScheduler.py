@@ -57,7 +57,6 @@ class WalletsInvestedInvestmentDetailsScheduler:
                 for wallet in walletsWithHighSMTokenHoldings:
                     try:
                         logger.info(f"Processing transactions for wallet {wallet['walletaddress']} token {wallet['tokenid']}")
-                        
                         success = self.action.updateInvestmentData(
                             cookie=cookie,
                             walletAddress=wallet['walletaddress'],

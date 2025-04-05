@@ -358,8 +358,7 @@ class PortfolioSummaryAction:
         try:
     
             # Initialize analytics handler and push token API
-            analyticsHandler = AnalyticsHandler(self.db)
-            pushTokenApi = PushTokenAPI(analyticsHandler)
+            pushTokenApi = PushTokenAPI()
             
             # Use the pushAllPortSummaryTokens method directly
             success, stats = pushTokenApi.pushAllPortSummaryTokens()

@@ -202,21 +202,6 @@ class PortSummaryStrategy(BaseStrategy):
             if not self.analyticsHandler.logTrade(first_entry):
                 return False
 
-            # # Schedule remaining DCA entries -  think about whether to have it here or run a separate job to monitor the execution table
-            # for i in range(1, dcaRules.intervals):
-            #     next_entry_time = currentTime + timedelta(
-            #         minutes=dcaRules.intervaldelay * i
-            #     )
-                
-            #     # Store DCA schedule in database
-            #     self.analyticsHandler.scheduledcaentry(
-            #         executionid=executionId,
-            #         entrynumber=i + 1,
-            #         amount=dcaRules.amountperinterval,
-            #         scheduledtime=next_entry_time,
-            #         pricedeviationlimit=dcaRules.pricedeviationlimit
-            #     )
-
             return True
 
         except Exception as e:

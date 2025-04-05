@@ -2,7 +2,10 @@ from typing import List, Optional, Tuple, Dict, Any
 from decimal import Decimal
 from datetime import datetime, timedelta
 import time
+from database.operations.sqlite_handler import SQLitePortfolioDB
 from framework.analyticsframework.enums.ExecutionStatusEnum import ExecutionStatus
+from framework.analyticsframework.enums.SourceHandlerEnum import SourceHandler
+from framework.analyticsframework.interfaces.BaseStrategy import BaseStrategy
 from framework.analyticsframework.models.BaseModels import ExecutionState, BaseStrategyConfig, BaseTokenData
 from framework.analyticsframework.StrategyFramework import StrategyFramework
 from framework.analyticsframework.models.StrategyModels import (
@@ -11,13 +14,19 @@ from framework.analyticsframework.models.StrategyModels import (
 from logs.logger import get_logger
 from framework.analyticsframework.models.StrategyModels import ProfitTakingInstructions
 from actions.DexscrennerAction import DexScreenerAction
+from framework.analyticsframework.models.StrategyModels import TokenConvictionEnum
+from framework.analyticshandlers.AnalyticsHandler import AnalyticsHandler
+from framework.analyticsframework.api.PushTokenFrameworkAPI import PushTokenAPI
+from framework.analyticsframework.enums.SourceTypeEnum import SourceType
+
 
 logger = get_logger(__name__)
 
 class ExecutionMonitor:
-    def __init__(self, strategyFramework: StrategyFramework):
-        self.strategyFramework = strategyFramework
+    def __init__(self):
+        self.strategyFramework = StrategyFramework()
         self.dexScreener = DexScreenerAction()
+        self.analyticsHandler = self.strategyFramework.analyticsHandler
 
     def monitorActiveExecutions(self):
         """Monitor and update active executions"""
@@ -26,6 +35,7 @@ class ExecutionMonitor:
             "executionsProcessed": 0,
             "stopLossesTriggered": 0,
             "profitTargetsHit": 0,
+            "investmentsMade": 0,
             "errors": 0
         }
          
@@ -42,14 +52,14 @@ class ExecutionMonitor:
             for executionState, strategyConfig in activeExecutions:
                 try:
                     logger.info(f"Processing execution for token ID: {executionState.tokenid}, Name: {executionState.tokenname}")
-                    success = self.processExecution(executionState, strategyConfig)
                     stats["executionsProcessed"] += 1
-                    # Update stats based on execution result if available
-                    if isinstance(success, dict):
-                        if success.get("stopLossTriggered", False):
-                            stats["stopLossesTriggered"] += 1
-                        if success.get("profitTargetHit", False):
-                            stats["profitTargetsHit"] += 1
+
+                    if executionState.status == ExecutionStatus.INVESTED:
+                        self.processProfitTaking(executionState, strategyConfig,stats)
+                    
+                    if (executionState.status == ExecutionStatus.ACTIVE) and (strategyConfig.status == TokenConvictionEnum.HIGH.value):
+                        self.processInvestment(executionState, strategyConfig, stats)          
+
                 except Exception as e:
                     logger.error(f"Error processing execution {executionState.executionid}: {str(e)}")
                     stats["errors"] += 1
@@ -99,7 +109,7 @@ class ExecutionMonitor:
             
         return success
 
-    def processExecution(self, executionState: ExecutionState, strategyConfig: BaseStrategyConfig):
+    def processProfitTaking(self, executionState: ExecutionState, strategyConfig: BaseStrategyConfig,stats: Dict[str, Any]):
         """Process a single execution"""
         try:
             # Get current price
@@ -158,6 +168,67 @@ class ExecutionMonitor:
                         f"{executionState.executionid}"
                     )
 
+                if success.get("stopLossTriggered", False):
+                    stats["stopLossesTriggered"] += 1
+                if success.get("profitTargetHit", False):
+                    stats["profitTargetsHit"] += 1
+
         except Exception as e:
             logger.error(f"Error processing execution {executionState.executionid}: {str(e)}")
+
+    def processInvestment(self, executionState: ExecutionState, strategyConfig: BaseStrategyConfig, stats: Dict[str, Any]):
+        """process the execution for investing if its a high conviction token"""
+        try:
+            # Convert source string to SourceType enum
+            sourceType = SourceType(strategyConfig.source)
+            # Create a proper instance of the strategy handler
+            strategy = SourceHandler.createHandler(sourceType, self.analyticsHandler)
+            
+            # Get token data from source
+            tokenData = PushTokenAPI.getSourceTokenDataHandler(strategyConfig.source, executionState.tokenid)
+            if not tokenData:
+                logger.error(f"Failed to get token data for token {executionState.tokenid}")
+                return None
+                
+            # Validate entry conditions
+            if not strategy.checkEntryConditions(tokenData, strategyConfig):
+                logger.info(f"Entry conditions not met for token {executionState.tokenid}")
+                return None
+   
+            executionId = executionState.executionid
+
+            # Validate chart conditions
+            if not strategy.validateChartConditions(tokenData, strategyConfig.chartconditions):
+                logger.info(f"Chart conditions not met for token {tokenData.tokenid} ({tokenData.tokenname})")
+                return executionId
+
+            # Execute investment based on type
+            success = strategy.executeInvestment(executionId, tokenData, strategyConfig)
+            if success:
+                # Get trade details to update execution
+                tradeDetails = self.analyticsHandler.getExecutionTrades(executionId)
+                if tradeDetails:
+                    # Calculate execution metrics
+                    totalAmount = sum(t['amount'] for t in tradeDetails)
+                    totalCoins = sum(t['coins'] for t in tradeDetails)
+                    avgEntryPrice = totalAmount / totalCoins if totalCoins > 0 else Decimal('0')
+                    
+                    self.analyticsHandler.updateExecution(
+                        executionId=executionId,
+                        investedAmount=totalAmount,
+                        remainingCoins=totalCoins,
+                        avgEntryPrice=avgEntryPrice,
+                        status=ExecutionStatus.INVESTED
+                    )
+                    stats["investmentsMade"] += 1
+                else:
+                    logger.error(f"No trade details found for execution {executionId}")
+                    return None
+            else:
+                logger.error(f"Failed to execute investment for execution {executionId}")
+                return None
+                
+        except Exception as e:
+            logger.error(f"Error processing execution {executionState.executionid}: {str(e)}")
+            return None
 

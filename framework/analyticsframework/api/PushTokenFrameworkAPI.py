@@ -1,17 +1,15 @@
 from typing import Optional, Dict, Any, List, Tuple
+from database.portsummary.PortfolioHandler import PortfolioHandler
 from framework.analyticsframework.models.BaseModels import BaseTokenData, BaseStrategyConfig
 from framework.analyticsframework.interfaces.BaseStrategy import BaseStrategy
 from framework.analyticsframework.models.SourceModels import (
     PortSummaryTokenData, AttentionTokenData, SmartMoneyTokenData,
     VolumeTokenData, PumpFunTokenData
 )
-from framework.analyticsframework.strategies.PortSummaryStrategy import PortSummaryStrategy
-from framework.analyticsframework.strategies.AttentionStrategy import AttentionStrategy
-from framework.analyticsframework.strategies.VolumeStrategy import VolumeStrategy
-from framework.analyticsframework.strategies.PumpfunStrategy import PumpFunStrategy
 from framework.analyticsframework.StrategyFramework import StrategyFramework
 from framework.analyticsframework.enums.SourceTypeEnum import SourceType
 from framework.analyticsframework.enums.PushSourceEnum import PushSource
+from framework.analyticsframework.enums.SourceHandlerEnum import SourceHandler
 from framework.analyticsframework.models.StrategyModels import StrategyConfig
 from framework.analyticshandlers.AnalyticsHandler import AnalyticsHandler
 from logs.logger import get_logger
@@ -20,23 +18,69 @@ from datetime import datetime, timedelta
 from decimal import Decimal
 import pytz
 from framework.analyticsframework.models.StrategyModels import AttentionInfo
+
 logger = get_logger(__name__)
 
 class PushTokenAPI:
     """API for analyzing tokens through the analytics framework"""
     
-    def __init__(self, analyticsHandler: AnalyticsHandler):
-        self.analyticsHandler = analyticsHandler
-        self.strategyFramework = StrategyFramework(analyticsHandler)
+    def __init__(self):
         self.db = SQLitePortfolioDB()
+        self.analyticsHandler = AnalyticsHandler(self.db)
+        self.strategyFramework = StrategyFramework()
+        self.strategyHandlers = SourceHandler.getAllHandlers(self.analyticsHandler)
+
+    @staticmethod
+    def getSourceTokenDataHandler(sourceType: str, tokenId: str) -> Optional[BaseTokenData]:
+        try:
+            db = SQLitePortfolioDB()
+            
+            if sourceType == SourceType.PORTSUMMARY.value:
+                portfolioHandler = db.portfolio
+                tokenData = portfolioHandler.getTokenDataForAnalysis(tokenId)
+                if tokenData:
+                    return PushTokenAPI.mapPortfolioTokenData(tokenData)
+                
+            elif sourceType == SourceType.ATTENTION.value:
+                attentionHandler = db.attention
+                tokenData = attentionHandler.getTokenDataForAnalysis(tokenId)
+                if tokenData:
+                    return PushTokenAPI.mapAttentionTokenData(tokenData)
+                
+            elif sourceType == SourceType.VOLUME.value:
+                volumeHandler = db.volume
+                # Get both state and info
+                tokenState = volumeHandler.getTokenState(tokenId)
+                tokenInfo = volumeHandler.getTokenInfo(tokenId)
+                if tokenState and tokenInfo:
+                    # Combine state and info
+                    combinedTokenData = {**tokenState, **tokenInfo}
+                    return PushTokenAPI.mapVolumeTokenData(combinedTokenData)
+                
+            elif sourceType == SourceType.PUMPFUN.value:
+                pumpfunHandler = db.pumpfun
+                # Get both state and info
+                tokenState = pumpfunHandler.getTokenState(tokenId)
+                tokenInfo = pumpfunHandler.getTokenInfo(tokenId)
+                if tokenState and tokenInfo:
+                    # Combine state and info
+                    combinedTokenData = {**tokenState, **tokenInfo}
+                return PushTokenAPI.mapPumpFunTokenData(combinedTokenData)
+                
+            elif sourceType == SourceType.SMARTMONEY.value:
+                # For smart money, we need to handle it differently as it's wallet-based
+                # We'll get the top tokens for high PNL wallets
+                smWalletHandler = db.smWalletTopPNLToken
+                tokenData = smWalletHandler.getSMWalletTopPNLToken(None, tokenId)
+                if tokenData:
+                    return PushTokenAPI.mapSmartMoneyTokenData(tokenData)
         
-        # Initialize strategy handlers
-        self.strategyHandlers = {
-            SourceType.PORTSUMMARY.value: PortSummaryStrategy(analyticsHandler),
-            SourceType.ATTENTION.value: AttentionStrategy(analyticsHandler),
-            SourceType.VOLUME.value: VolumeStrategy(analyticsHandler),
-            SourceType.PUMPFUN.value: PumpFunStrategy(analyticsHandler)
-        }
+            return None
+        
+        except Exception as e:
+            logger.error(f"Error getting token data: {str(e)}", exc_info=True)
+            return None
+    
     
     @staticmethod
     def mapPortfolioTokenData(tokenData: Dict) -> PortSummaryTokenData:
@@ -172,8 +216,9 @@ class PushTokenAPI:
             'change1dbps': tokenData.get('change1dbps'),
             'change7dbps': tokenData.get('change7dbps'),
             'change30dbps': tokenData.get('change30dbps'),
-            'recordedat': tokenData['recordedat'],
-            'datasource': tokenData['datasource']
+            'attentioncount': tokenData.get('attentioncount'),
+            'createdat': tokenData.get('createdat'),
+            'updatedat': tokenData.get('updatedat')
         }
         return AttentionTokenData(**mappedData)
 
@@ -370,4 +415,63 @@ class PushTokenAPI:
             
         except Exception as e:
             logger.error(f"Failed to push portfolio summary tokens to strategy framework: {str(e)}", exc_info=True)
-            return False, {'error': str(e)} 
+            return False, {'error': str(e)}
+
+    def pushTokenToStrategy(self, tokenId: str, sourceType: str, strategyId: int, description: Optional[str] = None) -> Optional[int]:
+        """
+        Push a token to a specific strategy
+        
+        Args:
+            tokenId: ID of the token to push
+            sourceType: Type of data source
+            strategyId: ID of the strategy to push to
+            description: Optional description for the execution
+            
+        Returns:
+            Optional[int]: Execution ID if successful, None otherwise
+        """
+        try:
+            # Get token data from source
+            tokenData = self.getSourceTokenDataHandler(sourceType, tokenId)
+            if not tokenData:
+                logger.error(f"Token {tokenId} not found in {sourceType} source")
+                return None
+
+            # Get strategy configuration
+            strategyConfig = self.analyticsHandler.getStrategyById(strategyId)
+            if not strategyConfig:
+                logger.error(f"Strategy with ID {strategyId} not found")
+                return None
+
+            # Verify strategy is for the correct source type
+            if strategyConfig['source'] != sourceType:
+                logger.error(f"Strategy {strategyId} is not configured for source type {sourceType}")
+                return None
+
+            # Get the appropriate strategy handler
+            strategyHandler = self.strategyHandlers.get(sourceType)
+            if not strategyHandler:
+                logger.error(f"No strategy handler found for source type: {sourceType}")
+                return None
+
+            # Convert dictionary to StrategyConfig model
+            strategyConfigModel = StrategyConfig(**strategyConfig)
+
+            # Process token through specific strategy
+            executionId = self.strategyFramework.handleStrategyForTokenWithoutValidation(
+                strategy=strategyHandler,
+                tokenData=tokenData,
+                strategyConfig=strategyConfigModel,
+                description=description
+            )
+
+            if executionId:
+                logger.info(f"Successfully pushed token {tokenId} to strategy {strategyId}")
+                return executionId
+            else:
+                logger.error(f"Failed to push token {tokenId} to strategy {strategyId}")
+                return None
+
+        except Exception as e:
+            logger.error(f"Error pushing token to strategy: {str(e)}", exc_info=True)
+            return None 

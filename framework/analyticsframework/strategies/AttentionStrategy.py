@@ -37,7 +37,7 @@ class AttentionStrategy(BaseStrategy):
     def executeInvestment(self, executionId: int, tokenData: AttentionTokenData, strategyConfig: BaseStrategyConfig) -> bool:
         """Execute investment based on investment rules"""
         try:
-            investmentRules = strategyConfig.investmentinstructions
+            investmentInstructions = strategyConfig.investmentinstructions
             
             # Get real-time price
             priceData = self.dexScreener.getTokenPrice(tokenData.tokenid)
@@ -48,7 +48,7 @@ class AttentionStrategy(BaseStrategy):
             currentPrice = Decimal(str(priceData.price))
             
             # Calculate investment amount
-            investmentAmount = Decimal(str(investmentRules.get('allocatedamount', '0')))
+            investmentAmount = Decimal(str(investmentInstructions.allocatedamount))
             if investmentAmount <= 0:
                 logger.error(f"Invalid investment amount: {investmentAmount}")
                 return False
@@ -74,18 +74,6 @@ class AttentionStrategy(BaseStrategy):
             tradeId = self.analyticsHandler.logTrade(tradeLog)
             if not tradeId:
                 logger.error(f"Failed to log trade for execution {executionId}")
-                return False
-                
-            # Update execution state
-            success = self.analyticsHandler.updateExecution(
-                executionId=executionId,
-                investedAmount=investmentAmount,
-                remainingCoins=coinsToPurchase,
-                avgEntryPrice=currentPrice
-            )
-            
-            if not success:
-                logger.error(f"Failed to update execution state for {executionId}")
                 return False
                 
             logger.info(f"Successfully executed investment for {tokenData.tokenname}: {investmentAmount} at {currentPrice}")

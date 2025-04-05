@@ -17,9 +17,9 @@ TOKEN_REFRESH_BUFFER_MINUTES = 1
 RELOGIN_BUFFER_MINUTES = 5
 
 # Define the Chainedge cookie
-CHAINEDGE_COOKIE = '_ga=GA1.1.60016713.1730025993; __stripe_mid=86d76ae8-5f87-4e05-8e8e-c5eaf0b99f8895f778; _ga_D6FYDK42KW=deleted; csrftoken=JyNsRiFe42faLsaT253vjJegLanYDKP7; sessionid=crmghucb2qesjm7puxhkjp4p1atd5885; _ga_30LVG9BH2W=GS1.1.1743311864.266.0.1743311864.0.0.0; _ga_BRMXHSC2T7=GS1.1.1743311864.226.0.1743311864.0.0.0; _ga_QSLT10C1WE=GS1.1.1743311864.99.0.1743311864.0.0.0; _ga_D6FYDK42KW=GS1.1.1743311804.602.1.1743311957.0.0.0'
-SOLSCAN_COOKIE ='_ga=GA1.1.1697493596.1730686033; cf_clearance=2BeiahqmeVR.cPVYe5tcAyRlyRNzlu.19ARkDPEKCc4-1743311987-1.2.1.1-QeXC3arQ3p1_t4vFzWKnWQRrJq.3bGRflLediw5tDzO5lq.YJeKHeTc4K9wSzB.f_2O7KAym0d8ndulew1hYdO8T3pJsbu_O_veEfR_15D.jRZonXYCRGFm1QF7n0Dm.nVPD0aUJcTjrkiGgTscoD4Lfwdtc5W5_tDViYVmS9jwX0OHyIJQuCMqhDQv3nI4JO00qQ0t3f5EOyJGxVqmwWXs_kkzY5jGxqYwnLMmhL14hERzyJaILva.9qdZJmllopscnD13ft8xsauei4I8EgZcG3sy6mKjYWwbymtc3ohSTOubHbLKAiCh1gDNnyPp5486PjX1lfdfgq38o4FKwN7xOmf61zVIPhPtYBXJC.1juciDP7bD.IhOuAElTBLJSs8Ia11DOltBblNp12ajeLFXPvUEvr3rjia0kKCUEZHY; _ga_PS3V7B7KV0=GS1.1.1743311987.234.0.1743312052.0.0.0'
-TRADING_TERMINAL_COOKIE = '_ga=GA1.1.60016713.1730025993; csrftoken=A5UKYKMCXslzw6dLztJ8M29j4gaBxfKe; _ga_D6FYDK42KW=GS1.1.1743311804.602.1.1743311958.0.0.0; _ga_30LVG9BH2W=GS1.1.1743311864.266.1.1743312092.0.0.0; _ga_BRMXHSC2T7=GS1.1.1743311864.226.1.1743312092.0.0.0; _ga_QSLT10C1WE=GS1.1.1743311864.99.1.1743312092.0.0.0'
+CHAINEDGE_COOKIE = '_ga=GA1.1.60016713.1730025993; __stripe_mid=86d76ae8-5f87-4e05-8e8e-c5eaf0b99f8895f778; _ga_D6FYDK42KW=deleted; csrftoken=hYmCo1WCSpQDePpsXUow4OdGZlbRA68J; sessionid=mq4r2ca9mhue1zizs3fzvjnph7oueonb; _ga_30LVG9BH2W=GS1.1.1743701733.283.1.1743702497.0.0.0; _ga_BRMXHSC2T7=GS1.1.1743701733.243.1.1743702497.0.0.0; _ga_QSLT10C1WE=GS1.1.1743701733.116.1.1743702497.0.0.0; _ga_D6FYDK42KW=GS1.1.1743762563.630.1.1743762565.0.0.0'
+SOLSCAN_COOKIE ='_ga=GA1.1.1697493596.1730686033; cf_clearance=b2ngjmgI099YEdPvKkW0BvTaKMPPjPnHGudcFmmkgmo-1743851550-1.2.1.1-daq6DH_oiFRWjs.Aztj43jc7DoLEj.WeQ4q0NoeMtFzeJvazTKkDuuyJsFexZiPfHm8SiuYJIFCnLKX7plY2EpL80j6sm0VJ9YshwaYcktk6xwRH2pnVaRvGhcM.4IBXXkpOxpPBaFeBpVNGA9gmdJ97p.SqIaQQHRyLE4Eg5dr1wBRcB.ZV0xBtXA_3ZmmDg7jm5zKF4rDWiHrY.MHggDYrnMSO8jg22fFueni2qWZBZR0OTgHqP_xS1sflpY4gJ1WWBwvVGMXBVvO2Z_D3DXywAM2eutfoohh_IbW_Bz4wjfFKLzFi_FbeQgtiVc.8d67InwXxvgWoVeCDnawIlsKbW1oi8XOnvI67mjcaOPeXErQ9Y3qNOibSMD03bVQU; _ga_PS3V7B7KV0=GS1.1.1743851550.246.0.1743851550.0.0.0'
+TRADING_TERMINAL_COOKIE = '_ga=GA1.1.60016713.1730025993; _ga_30LVG9BH2W=deleted; _ga_QSLT10C1WE=deleted; wallet_created=true; wallet_exported=true; passkey_wallet=true; refreshToken=undefined; _ga_D6FYDK42KW=GS1.1.1743506365.611.1.1743506835.0.0.0; accessToken=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzQzNTA3ODQ5LCJpYXQiOjE3NDMzMTIwODksImp0aSI6Ijg4NThlMGRiODM2NDQ4YTE4ZGYzZTcxYWUyMThmZWQwIiwidXNlcl9pZCI6MTQ2MCwid2FsbGV0X2NyZWF0ZWQiOnRydWUsIndhbGxldF9leHBvcnRlZCI6dHJ1ZSwicGFzc2tleV93YWxsZXQiOnRydWUsInJlZmVycmVyX2xpbmsiOiIiLCJyZWZlcnJlcl92YWxpZCI6ZmFsc2V9.rEnYGufiUsV2R8-yP_MBVNxTevtNk2Wc_AczMxRUAKE; _ga_30LVG9BH2W=GS1.1.1743506945.272.1.1743506952.0.0.0; _ga_BRMXHSC2T7=GS1.1.1743506945.232.1.1743506952.0.0.0; _ga_QSLT10C1WE=GS1.1.1743506945.105.1.1743506952.0.0.0'
 
 
 
@@ -28,32 +28,32 @@ COOKIE_MAP = {
     # Action-specific cookies
     'portfolio': {
         CHAINEDGE_COOKIE: {
-            'expiry': datetime(2025, 3, 31)
+            'expiry': datetime(2025, 4, 6)
         }
     },
     'walletsinvested': {
         CHAINEDGE_COOKIE: {
-            'expiry': datetime(2025, 3, 31)
-        }
+            'expiry': datetime(2025, 4, 6)
+        }       
     },
     'solscan': {
         SOLSCAN_COOKIE: {
-            'expiry': datetime(2025, 3, 31)
+            'expiry': datetime(2025, 4, 6)
         }
     },
     'smartmoneywallets': {
         CHAINEDGE_COOKIE: {
-            'expiry': datetime(2025, 3, 31)
+            'expiry': datetime(2025, 4, 5)
         }
     },
     'smwallettoppnltoken': {
         CHAINEDGE_COOKIE: {
-            'expiry': datetime(2025, 3, 25)
+            'expiry': datetime(2025, 4, 4)
         }
     },
     'attention': {
         CHAINEDGE_COOKIE: {
-            'expiry': datetime(2025, 3, 31)
+            'expiry': datetime(2025, 4, 6)  
         }
     },
     'volumebot': {

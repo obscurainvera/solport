@@ -5,6 +5,7 @@ from datetime import datetime
 from enum import Enum
 import json
 import logging
+from enum import IntEnum
 
 logger = logging.getLogger(__name__)
 
@@ -36,6 +37,13 @@ class AttentionInfo:
     attentionscore: Decimal
     repeats: int
     attentionstatus: str
+
+@dataclass
+class TokenConvictionEnum(IntEnum):
+    """Enum for token conviction levels"""
+    HIGH = 1
+    MEDIUM = 2
+    LOW = 3
    
     
 @dataclass
@@ -99,7 +107,7 @@ class InvestmentInstructions:
         return json_str
 
 @dataclass
-class MoonBagInstructions:
+class  MoonBagInstructions:
     """Configuration for moon bag handling"""
     enabled: bool = False  # Whether moon bag is enabled for this strategy
     sizepct: Decimal = Decimal('0')  # Percentage of position to keep as moon bag
@@ -281,7 +289,7 @@ class StrategyConfig:
     riskmanagementinstructions: RiskManagementInstructions = field(default_factory=RiskManagementInstructions)
     moonbaginstructions: Optional[MoonBagInstructions] = None
     additionalinstructions: Optional[Dict[str, Any]] = None
-    status: int = 1
+    status: int = TokenConvictionEnum.HIGH.value
     active: bool = True
     superuser: bool = False
     createdat: datetime = field(default_factory=datetime.now)

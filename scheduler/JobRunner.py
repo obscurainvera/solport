@@ -246,18 +246,18 @@ class JobRunner:
             existing_jobs = self.scheduler.get_jobs()
             job_ids = [job.id for job in existing_jobs]
             
-            # Check and add each job type separately
-            if 'portfolio_summary_analysis' not in job_ids:
-                self.addPortfolioSummaryJobs()
+            # # Check and add each job type separately
+            # if 'portfolio_summary_analysis' not in job_ids:
+            #     self.addPortfolioSummaryJobs()
             
-            if 'wallets_invested_in_a_token' not in job_ids:
-                self.addWalletsInvestedInATokenJobs()
+            # if 'wallets_invested_in_a_token' not in job_ids:
+            #     self.addWalletsInvestedInATokenJobs()
             
             if 'attention_analysis' not in job_ids:
                 self.addAttentionAnalysisJobs()
 
-            if 'daily_token_deactivation' not in job_ids:
-                self.addTokenDeactivationJob()
+            # if 'daily_token_deactivation' not in job_ids:
+            #     self.addTokenDeactivationJob()
 
             if 'volume_bot_analysis' not in job_ids:
                 self.addVolumeBotJobs()

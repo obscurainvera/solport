@@ -25,8 +25,8 @@ class ExecutionMonitorScheduler:
         """
         self.db = SQLitePortfolioDB(dbPath)
         self.analyticsHandler = AnalyticsHandler(self.db)
-        self.strategyFramework = StrategyFramework(self.analyticsHandler)
-        self.monitor = ExecutionMonitor(self.strategyFramework)
+        self.strategyFramework = StrategyFramework()
+        self.monitor = ExecutionMonitor()
         logger.info(f"Execution monitor scheduler initialized with database: {dbPath}")
 
     def handleActiveExecutionsMonitoring(self):

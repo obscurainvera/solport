@@ -39,21 +39,22 @@ class WalletsInvestedScheduler:
 
         for cookie in validCookies:
             try:
-                logger.debug(f"Using cookie: {cookie[:15]}...")
+                logger.info(f"Using cookie: {cookie[:15]}...")
                 
                 # Get active tokens using the new method
                 activeTokens = self.db.portfolio.getActivePortfolioTokens()
-                logger.debug(f"Found {len(activeTokens)} active tokens for analysis")
+                logger.info(f"Found {len(activeTokens)} active tokens for analysis")
                 
                 # Process each active token
                 for token in activeTokens:
                     try:
-                        logger.debug(f"Processing wallets invested analysis for {token['tokenid']} - {token['name']}")
+                        logger.info(f"Processing wallets invested analysis for {token['tokenid']} - {token['name']}")
                         self.action.fetchAndPersistWalletsInvestedInASpecificToken(
                             cookie=cookie,
                             tokenId=token['tokenid'],
                             portsummaryId=token['portsummaryid']
                         )
+                        logger.info(f"Wallets invested analysis for {token['tokenid']} - {token['name']} completed")
                         
                         # Sleep between API calls
                         delay = random.uniform(10,30)

@@ -502,6 +502,37 @@ class AnalyticsHandler(BaseSQLiteHandler):
             logger.error(f"Failed to get active executions: {str(e)}")
             return []
 
+    def getActiveStrategiesForSource(self, source: str) -> List[Dict]:
+        """
+        Get all active strategies for a specific source type
+        
+        Args:
+            source: Source type to filter strategies (e.g., 'PORTSUMMARY', 'ATTENTION')
+            
+        Returns:
+            List[Dict]: List of active strategies for the source
+        """
+        try:
+            with self.conn_manager.transaction() as cursor:
+                cursor.execute('''
+                    SELECT * FROM strategyconfig 
+                    WHERE source = ? AND active = 1
+                ''', (source,))
+                
+                columns = [col[0] for col in cursor.description]
+                strategies = []
+                
+                for row in cursor.fetchall():
+                    strategy_dict = dict(zip(columns, row))
+                    # Convert superuser from int to bool
+                    strategy_dict['superuser'] = bool(strategy_dict['superuser'])
+                    strategies.append(strategy_dict)
+                
+                return strategies
+        except Exception as e:
+            logger.error(f"Failed to get active strategies for source {source}: {str(e)}")
+            return []
+
     def getStrategyById(self, strategyId: int) -> Optional[Dict]:
         """Get strategy by ID"""
         try:

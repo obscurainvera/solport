@@ -149,7 +149,8 @@ class SmartMoneyWalletsReportHandler(BaseSQLiteHandler):
                 t.amountinvested,
                 t.amounttakenout,
                 t.unprocessedpnl as profitandloss,
-                t.remainingcoins
+                t.remainingcoins,
+                t.unprocessedroi
             FROM smwallettoppnltoken t
             WHERE t.walletaddress = ?
             ORDER BY {db_sort_field} {sortOrder}
@@ -180,7 +181,8 @@ class SmartMoneyWalletsReportHandler(BaseSQLiteHandler):
                     "remainingCoins": remaining_coins,
                     "currentPrice": 0,  # Will be updated later for tokens with remaining coins
                     "remainingAmount": 0,  # Will be calculated
-                    "realizedPnl": amount_taken_out - amount_invested  # Calculate realized PNL
+                    "realizedPnl": amount_taken_out - amount_invested,  # Calculate realized PNL
+                    "roi": float(row[6]) if row[6] is not None else 0  # Add ROI from database
                 }
                 
                 tokens_with_remaining.append(token)
