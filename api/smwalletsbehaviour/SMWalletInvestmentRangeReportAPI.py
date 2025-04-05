@@ -215,4 +215,83 @@ def get_batch_investment_range_reports():
             }
         })
         response.headers.add('Access-Control-Allow-Origin', '*')
+        return response, 500
+
+@smwallet_investment_range_report_bp.route('/api/smwalletbehaviour/tokens-by-range/<wallet_address>/<range_id>', methods=['GET', 'OPTIONS'])
+def get_tokens_by_range(wallet_address, range_id):
+    """
+    Get tokens for a specific wallet and investment range.
+    
+    Args:
+        wallet_address: Wallet address to analyze
+        range_id: ID of the investment range
+        
+    Returns:
+        JSON list of tokens in the specified range
+    """
+    if request.method == 'OPTIONS':
+        response = jsonify({})
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        response.headers.add('Access-Control-Allow-Methods', 'GET, OPTIONS')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type, Accept')
+        return response, 200
+    
+    try:
+        start_time = time.time()
+        
+        # Check if range_id is valid
+        if not range_id or range_id == 'undefined':
+            logger.warning(f"Invalid range ID: {range_id}")
+            execution_time = time.time() - start_time
+            
+            response_data = {
+                "status": "error",
+                "message": f"Invalid range ID: {range_id}",
+                "data": [],
+                "meta": {
+                    "executionTime": round(execution_time, 3),
+                    "count": 0
+                }
+            }
+            
+            response = jsonify(response_data)
+            response.headers.add('Access-Control-Allow-Origin', '*')
+            return response, 400
+        
+        logger.info(f"Processing tokens by range request for wallet: {wallet_address}, range: {range_id}")
+        
+        with SQLitePortfolioDB() as db:
+            # Use the handler to fetch tokens for the specified range
+            handler = SMWalletInvestmentRangeReportHandler(db)
+            tokens = handler.getTokensByRange(wallet_address, range_id)
+            
+            # Add execution time information
+            execution_time = time.time() - start_time
+            logger.info(f"Retrieved {len(tokens)} tokens for wallet {wallet_address}, range {range_id} in {execution_time:.2f} seconds")
+            
+            response_data = {
+                "status": "success",
+                "data": tokens,
+                "meta": {
+                    "executionTime": round(execution_time, 3),
+                    "count": len(tokens)
+                }
+            }
+            
+            response = jsonify(response_data)
+            response.headers.add('Access-Control-Allow-Origin', '*')
+            return response
+            
+    except Exception as e:
+        logger.error(f"Error retrieving tokens by range for {wallet_address}, range {range_id}: {str(e)}")
+        execution_time = time.time() - start_time
+        
+        response = jsonify({
+            "status": "error",
+            "message": f"Failed to retrieve tokens by range: {str(e)}",
+            "meta": {
+                "executionTime": round(execution_time, 3)
+            }
+        })
+        response.headers.add('Access-Control-Allow-Origin', '*')
         return response, 500 

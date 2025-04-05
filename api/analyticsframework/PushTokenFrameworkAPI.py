@@ -13,71 +13,12 @@ from database.operations.sqlite_handler import SQLitePortfolioDB
 from logs.logger import get_logger
 from typing import Dict, Optional, List, Tuple
 from decimal import Decimal
+from framework.analyticsframework.models.StrategyModels import StrategyConfig
 
 logger = get_logger(__name__)
 
 # Create Blueprint for token analysis endpoints
 push_token_bp = Blueprint('push_token', __name__)
-
-def getSourceTokenDataHandler(sourceType: str, tokenId: str) -> Optional[BaseTokenData]:
-    """
-    Get token data from appropriate source
-    
-    Args:
-        sourceType: Type of data source (PORTSUMMARY, ATTENTION, VOLUME, PUMPFUN, SMARTMONEY)
-        tokenId: Token identifier
-        
-    Returns:
-        Optional[BaseTokenData]: Mapped token data or None if not found
-    """
-    try:
-        db = SQLitePortfolioDB()
-        
-        if sourceType == SourceType.PORTSUMMARY.value:
-            portfolioHandler = PortfolioHandler(db)
-            tokenData = portfolioHandler.getTokenDataForAnalysis(tokenId)
-            if tokenData:
-                return PushTokenAPI.mapPortfolioTokenData(tokenData)
-                
-        elif sourceType == SourceType.ATTENTION.value:
-            attentionHandler = db.attention
-            tokenData = attentionHandler.getTokenDataForAnalysis(tokenId)
-            if tokenData:
-                return PushTokenAPI.mapAttentionTokenData(tokenData)
-                
-        elif sourceType == SourceType.VOLUME.value:
-            volumeHandler = db.volume
-            # Get both state and info
-            tokenState = volumeHandler.getTokenState(tokenId)
-            tokenInfo = volumeHandler.getTokenInfo(tokenId)
-            if tokenState and tokenInfo:
-                # Combine state and info
-                combinedTokenData = {**tokenState, **tokenInfo}
-                return PushTokenAPI.mapVolumeTokenData(combinedTokenData)
-                
-        elif sourceType == SourceType.PUMPFUN.value:
-            pumpfunHandler = db.pumpfun
-            # Get both state and info
-            tokenState = pumpfunHandler.getTokenState(tokenId)
-            tokenInfo = pumpfunHandler.getTokenInfo(tokenId)
-            if tokenState and tokenInfo:
-                # Combine state and info
-                combinedTokenData = {**tokenState, **tokenInfo}
-                return PushTokenAPI.mapPumpFunTokenData(combinedTokenData)
-                
-        elif sourceType == SourceType.SMARTMONEY.value:
-            # For smart money, we need to handle it differently as it's wallet-based
-            # We'll get the top tokens for high PNL wallets
-            smWalletHandler = db.smWalletTopPNLToken
-            tokenData = smWalletHandler.getSMWalletTopPNLToken(None, tokenId)
-            if tokenData:
-                return PushTokenAPI.mapSmartMoneyTokenData(tokenData)
-        
-        return None
-        
-    except Exception as e:
-        logger.error(f"Error getting token data: {str(e)}", exc_info=True)
-        return None
 
 @push_token_bp.route('/api/analyticsframework/pushtoken', methods=['POST'])
 def pushToken():
@@ -103,7 +44,8 @@ def pushToken():
             }), 400
 
         # Get token data from source
-        tokenData = getSourceTokenDataHandler(sourceType, tokenId)
+        pushTokenApiInstance = PushTokenAPI()
+        tokenData = PushTokenAPI.getSourceTokenDataHandler(sourceType, tokenId)
         if not tokenData:
             return jsonify({
                 'status': 'error',
@@ -112,11 +54,6 @@ def pushToken():
 
         # Get optional description
         description = data.get('description')
-
-        # Initialize analytics framework with database connection
-        db = SQLitePortfolioDB()
-        analyticsHandler = AnalyticsHandler(db)
-        pushTokenApiInstance = PushTokenAPI(analyticsHandler)
 
         # Analyze token with source type, setting push source as API
         success = pushTokenApiInstance.pushToken(tokenData, sourceType, PushSource.API, description)
@@ -170,9 +107,7 @@ def pushAllSourceTokens():
             }), 400
             
         # Initialize database and analytics handler
-        db = SQLitePortfolioDB()
-        analyticsHandler = AnalyticsHandler(db)
-        pushTokenApiInstance = PushTokenAPI(analyticsHandler)
+        pushTokenApiInstance = PushTokenAPI()
         
         # Push all tokens for the specified source
         success, stats = pushTokenApiInstance.pushAllTokens(sourceType)
@@ -192,6 +127,104 @@ def pushAllSourceTokens():
 
     except Exception as e:
         logger.error(f"Push all tokens API error: {str(e)}", exc_info=True)
+        return jsonify({
+            'status': 'error',
+            'message': f'Internal server error: {str(e)}'
+        }), 500
+
+@push_token_bp.route('/api/analyticsframework/pushtokenstrategy', methods=['POST'])
+def pushTokenToStrategy():
+    """
+    API endpoint to push a token to a specific strategy
+    """
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({'status': 'error', 'message': 'No data provided'}), 400
+
+        # Validate required fields
+        tokenId = data.get('token_id')
+        sourceType = data.get('source_type')
+        strategyId = data.get('strategy_id')
+        description = data.get('description')
+        
+        if not all([tokenId, sourceType, strategyId]):
+            return jsonify({
+                'status': 'error',
+                'message': 'Missing required fields: token_id, source_type, and strategy_id'
+            }), 400
+
+        if not SourceType.isValidSource(sourceType):
+            return jsonify({
+                'status': 'error',
+                'message': f'Invalid source type: {sourceType}'
+            }), 400
+
+        # Initialize PushTokenAPI and push token to strategy
+        pushTokenApiInstance = PushTokenAPI()
+        executionId = pushTokenApiInstance.pushTokenToStrategy(
+            tokenId=tokenId,
+            sourceType=sourceType,
+            strategyId=strategyId,
+            description=description
+        )
+
+        if executionId:
+            return jsonify({
+                'status': 'success',
+                'message': 'Token pushed to strategy successfully',
+                'data': {
+                    'token_id': tokenId,
+                    'source': sourceType,
+                    'strategy_id': strategyId,
+                    'execution_id': executionId,
+                    'description': description
+                }
+            }), 200
+        else:
+            return jsonify({
+                'status': 'error',
+                'message': 'Failed to push token to strategy'
+            }), 500
+
+    except Exception as e:
+        logger.error(f"Push token to strategy API error: {str(e)}", exc_info=True)
+        return jsonify({
+            'status': 'error',
+            'message': f'Internal server error: {str(e)}'
+        }), 500
+
+@push_token_bp.route('/api/analyticsframework/strategies', methods=['GET'])
+def getStrategies():
+    """
+    API endpoint to get available strategies for a source type
+    """
+    try:
+        source_type = request.args.get('source_type')
+        
+        if not source_type:
+            return jsonify({
+                'status': 'error',
+                'message': 'Missing required parameter: source_type'
+            }), 400
+
+        if not SourceType.isValidSource(source_type):
+            return jsonify({
+                'status': 'error',
+                'message': f'Invalid source type: {source_type}'
+            }), 400
+
+        # Get active strategies for the source type using AnalyticsHandler
+        db = SQLitePortfolioDB()
+        strategies = db.analytics.getActiveStrategiesForSource(source_type)
+        
+        return jsonify({
+            'status': 'success',
+            'data': strategies
+        }), 200
+
+    except Exception as e:
+        logger.error(f"Get strategies API error: {str(e)}", exc_info=True)
         return jsonify({
             'status': 'error',
             'message': f'Internal server error: {str(e)}'

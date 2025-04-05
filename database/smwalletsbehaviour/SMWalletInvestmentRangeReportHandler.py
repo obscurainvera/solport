@@ -133,4 +133,93 @@ class SMWalletInvestmentRangeReportHandler(BaseSQLiteHandler):
         with self.transaction() as cursor:
             cursor.execute(query, (limit,))
             wallets = cursor.fetchall()
-            return [wallet[0] for wallet in wallets] 
+            return [wallet[0] for wallet in wallets]
+    
+    def getTokensByRange(self, walletAddress: str, rangeId: str) -> List[Dict[str, Any]]:
+        """
+        Get tokens for a specific wallet and investment range.
+        
+        Args:
+            walletAddress: The wallet address to fetch tokens for
+            rangeId: The ID of the investment range
+            
+        Returns:
+            List of token data for the specified range
+        """
+        try:
+            # Check if rangeId is valid
+            if not rangeId or rangeId == 'undefined':
+                logger.warning(f"Invalid range ID: {rangeId}")
+                return []
+                
+            # First, get the range boundaries from the range ID
+            rangeBoundaries = self._getRangeBoundaries(rangeId)
+            if not rangeBoundaries:
+                logger.warning(f"Invalid range ID: {rangeId}")
+                return []
+                
+            minAmount, maxAmount = rangeBoundaries
+            
+            # Fetch tokens within the range
+            query = """
+                SELECT 
+                    walletaddress,
+                    tokenid,
+                    name,
+                    amountinvested,
+                    amounttakenout,
+                    remainingcoins,
+                    unprocessedpnl
+                FROM smwallettoppnltoken
+                WHERE walletaddress = ?
+                AND amountinvested > 0
+                AND amountinvested >= ?
+                AND (amountinvested < ? OR ? IS NULL)
+                ORDER BY amountinvested DESC
+            """
+            
+            with self.transaction() as cursor:
+                cursor.execute(query, (walletAddress, minAmount, maxAmount, maxAmount))
+                tokens = cursor.fetchall()
+                
+                # Convert to list of dictionaries
+                result = []
+                for token in tokens:
+                    result.append({
+                        "walletaddress": token[0],
+                        "tokenid": token[1],
+                        "name": token[2],
+                        "amountinvested": float(token[3]),
+                        "amounttakenout": float(token[4]),
+                        "remainingcoins": float(token[5]),
+                        "unprocessedpnl": float(token[6])
+                    })
+                
+                return result
+                
+        except Exception as e:
+            logger.error(f"Error fetching tokens by range for {walletAddress}, range {rangeId}: {str(e)}")
+            return []
+            
+    def _getRangeBoundaries(self, rangeId: str) -> Optional[tuple]:
+        """
+        Get the min and max amount boundaries for a range ID.
+        
+        Args:
+            rangeId: The ID of the investment range
+            
+        Returns:
+            Tuple of (min_amount, max_amount) or None if invalid range ID
+        """
+        # Map range IDs to their boundaries
+        rangeMap = {
+            "0-1k": (0, 1000),
+            "1k-10k": (1001, 10000),
+            "10k-50k": (10001, 50000),
+            "50k-100k": (50001, 100000),
+            "100k-500k": (100001, 500000),
+            "500k-1m": (500001, 1000000),
+            "1m+": (1000001, float('inf'))
+        }
+        
+        return rangeMap.get(rangeId) 

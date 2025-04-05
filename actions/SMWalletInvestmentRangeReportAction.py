@@ -25,13 +25,13 @@ class SMWalletInvestmentRangeReportAction:
             List of ranges with min, max and label
         """
         return [
-            {"min": 0, "max": 1000, "label": "0-1K"},
-            {"min": 1001, "max": 10000, "label": "1K-10K"},
-            {"min": 10001, "max": 50000, "label": "10K-50K"},
-            {"min": 50001, "max": 100000, "label": "50K-100K"},
-            {"min": 100001, "max": 500000, "label": "100K-500K"},
-            {"min": 500001, "max": 1000000, "label": "500K-1M"},
-            {"min": 1000001, "max": None, "label": "1M+"} # No upper limit for this range
+            {"min": 0, "max": 1000, "label": "0-1K", "id": "0-1k"},
+            {"min": 1001, "max": 10000, "label": "1K-10K", "id": "1k-10k"},
+            {"min": 10001, "max": 50000, "label": "10K-50K", "id": "10k-50k"},
+            {"min": 50001, "max": 100000, "label": "50K-100K", "id": "50k-100k"},
+            {"min": 100001, "max": 500000, "label": "100K-500K", "id": "100k-500k"},
+            {"min": 500001, "max": 1000000, "label": "500K-1M", "id": "500k-1m"},
+            {"min": 1000001, "max": None, "label": "1M+", "id": "1m+"} # No upper limit for this range
         ]
         
     def buildReportStructure(self, walletAddress: str, tokenCount: int) -> Dict[str, Any]:
@@ -84,6 +84,7 @@ class SMWalletInvestmentRangeReportAction:
             
             if rangeData["numTokens"] > 0:
                 result["ranges"].append({
+                    "id": rangeInfo["id"],
                     "label": rangeInfo["label"],
                     "minAmount": rangeInfo["min"],
                     "maxAmount": rangeInfo["max"],

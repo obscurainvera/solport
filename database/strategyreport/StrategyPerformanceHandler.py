@@ -521,13 +521,13 @@ class StrategyPerformanceHandler(BaseSQLiteHandler):
     
     def updateExecutionPrices(self, executions: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """
-        Update current token prices and calculate remaining value and total PNL for executions.
+        Update token prices and calculate total PNL for executions.
         
         Args:
             executions: List of execution records
             
         Returns:
-            List[Dict[str, Any]]: Updated executions with current prices and PNL calculations
+            List[Dict[str, Any]]: Updated executions with token prices and PNL calculations
         """
         if not executions:
             return []
@@ -573,4 +573,83 @@ class StrategyPerformanceHandler(BaseSQLiteHandler):
             
         except Exception as e:
             logger.error(f"Failed to update execution prices: {str(e)}")
-            return executions  # Return original executions without price updates 
+            return executions  # Return original executions without price updates
+    
+    def getStrategyConfigById(self, strategy_id: int) -> Optional[Dict[str, Any]]:
+        """
+        Get detailed configuration for a specific strategy.
+        
+        Args:
+            strategy_id: ID of the strategy to retrieve
+            
+        Returns:
+            Optional[Dict[str, Any]]: Strategy configuration with all details, or None if not found
+        """
+        try:
+            with self.conn_manager.transaction() as cursor:
+                # Query for full strategy configuration
+                cursor.execute("""
+                    SELECT 
+                        strategyid,
+                        strategyname,
+                        source,
+                        description,
+                        strategyentryconditions,
+                        chartconditions,
+                        investmentinstructions,
+                        profittakinginstructions,
+                        riskmanagementinstructions,
+                        moonbaginstructions,
+                        additionalinstructions,
+                        status,
+                        active,
+                        createdat,
+                        updatedat
+                    FROM strategyconfig
+                    WHERE strategyid = ?
+                """, (strategy_id,))
+                
+                row = cursor.fetchone()
+                if not row:
+                    logger.warning(f"Strategy with ID {strategy_id} not found")
+                    return None
+                    
+                columns = [col[0] for col in cursor.description]
+                strategy = dict(zip(columns, row))
+                
+                # Get execution summary data for this strategy
+                cursor.execute("""
+                    SELECT 
+                        COALESCE(SUM(investedamount), 0) as total_invested,
+                        COALESCE(SUM(amounttakenout), 0) as total_taken_out,
+                        COUNT(executionid) as execution_count
+                    FROM strategyexecution
+                    WHERE strategyid = ?
+                """, (strategy_id,))
+                
+                exec_summary = cursor.fetchone()
+                
+                if exec_summary:
+                    # Add summary data to strategy object
+                    strategy['amountInvested'] = float(exec_summary[0] or 0)
+                    strategy['amountTakenOut'] = float(exec_summary[1] or 0)
+                    strategy['executionCount'] = int(exec_summary[2] or 0)
+                    
+                    # Calculate realized PNL
+                    strategy['realizedPnl'] = strategy['amountTakenOut'] - strategy['amountInvested']
+                else:
+                    # No executions found for this strategy
+                    strategy['amountInvested'] = 0
+                    strategy['amountTakenOut'] = 0
+                    strategy['executionCount'] = 0
+                    strategy['realizedPnl'] = 0
+                
+                # Convert boolean fields
+                strategy['active'] = bool(strategy['active'])
+                
+                logger.info(f"Retrieved strategy configuration for ID {strategy_id}")
+                return strategy
+                
+        except Exception as e:
+            logger.error(f"Failed to get strategy configuration for ID {strategy_id}: {str(e)}")
+            return None 

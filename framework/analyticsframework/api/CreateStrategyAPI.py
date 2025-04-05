@@ -4,7 +4,7 @@ from datetime import datetime
 import json
 from framework.analyticsframework.models.StrategyModels import (
     StrategyConfig, StrategyEntryConditions, ChartConditions, InvestmentInstructions,
-    ProfitTakingInstructions, RiskManagementInstructions
+    ProfitTakingInstructions, RiskManagementInstructions, TokenConvictionEnum
 )
 from framework.analyticsframework.enums.SourceTypeEnum import SourceType
 from framework.analyticsframework.enums.StrategyStatusEnum import StrategyStatus
@@ -53,6 +53,9 @@ class CreateStrategyAPI:
                 logger.error(f"Invalid source type: {strategyData['source_type']}")
                 raise ValueError(f"Invalid source type: {strategyData['source_type']}")
 
+            # Convert token conviction to enum value
+            tokenConviction = TokenConvictionEnum[strategyData.get('token_conviction', 'HIGH')]
+            
             current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             
             # Create strategy config
@@ -67,7 +70,7 @@ class CreateStrategyAPI:
                 'riskmanagementinstructions': self._serializeRiskInstructions(strategyData['risk_management_instructions']),
                 'moonbaginstructions': self._serializeMoonBagRules(strategyData.get('moon_bag_instructions')),
                 'additionalinstructions': json.dumps(strategyData.get('additional_instructions', {})),
-                'status': StrategyStatus.ACTIVE.value,
+                'status': tokenConviction.value,
                 'active': True,
                 'superuser': strategyData.get('superuser', False),
                 'createdtime': current_time,

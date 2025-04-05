@@ -263,4 +263,131 @@ class PortSummaryReportHandler(BaseSQLiteHandler):
                     'smartbalance': float(row[7]) if row[7] else None
                 })
                 
-            return port_summary_data 
+            return port_summary_data
+
+    def getTokenHistory(self, token_id: str) -> List[Dict[str, Any]]:
+        """
+        Get historical data for a specific token from both portsummary and portsummaryhistory tables.
+        Groups data by date and takes the maximum values for mcap and smartbalance.
+        
+        Args:
+            token_id (str): The token ID to fetch history for
+            
+        Returns:
+            List[Dict[str, Any]]: A list of dictionaries containing historical data for the token
+        """
+        try:
+            # Use a more efficient query that handles grouping at the database level
+            query = """
+                WITH combined_data AS (
+                    -- Get current data from portsummary
+                    SELECT 
+                        tokenid,
+                        name,
+                        chainname,
+                        tokenage,
+                        mcap,
+                        avgprice as price,
+                        smartbalance,
+                        updatedat,
+                        strftime('%Y-%m-%d', updatedat) as date_key
+                    FROM 
+                        portsummary
+                    WHERE 
+                        tokenid = ?
+                    
+                    UNION ALL
+                    
+                    -- Get historical data from portsummaryhistory
+                    SELECT 
+                        tokenid,
+                        name,
+                        chainname,
+                        tokenage,
+                        mcap,
+                        avgprice as price,
+                        smartbalance,
+                        updatedat,
+                        strftime('%Y-%m-%d', updatedat) as date_key
+                    FROM 
+                        portsummaryhistory
+                    WHERE 
+                        tokenid = ?
+                )
+                SELECT 
+                    tokenid,
+                    name,
+                    chainname,
+                    tokenage,
+                    MAX(mcap) as mcap,
+                    MAX(price) as price,
+                    MAX(smartbalance) as smartbalance,
+                    date_key as updated_at,
+                    MIN(updatedat) as first_updated,
+                    MAX(updatedat) as last_updated
+                FROM 
+                    combined_data
+                GROUP BY 
+                    date_key
+                ORDER BY 
+                    date_key ASC
+            """
+            
+            # Use transaction with cursor like in getPortSummaryById
+            with self.transaction() as cursor:
+                # Execute the query with the token_id parameter twice (once for each part of the UNION)
+                cursor.execute(query, (token_id, token_id))
+                records = cursor.fetchall()
+                
+                if not records:
+                    return []
+                
+                # Process the records
+                result = []
+                for record in records:
+                    # Extract values with proper type conversion
+                    tokenid = record[0]
+                    name = record[1]
+                    chainname = record[2]
+                    tokenage = record[3]
+                    mcap = float(record[4]) if record[4] is not None else 0
+                    price = float(record[5]) if record[5] is not None else 0
+                    smartbalance = float(record[6]) if record[6] is not None else 0
+                    date_str = record[7]
+                    first_updated = record[8]
+                    last_updated = record[9]
+                    
+                    # Parse the date to ensure it's in a consistent format
+                    try:
+                        # The date is already in YYYY-MM-DD format from the SQL query
+                        date_obj = datetime.strptime(date_str, '%Y-%m-%d')
+                        
+                        result.append({
+                            'tokenid': tokenid,
+                            'name': name,
+                            'chainname': chainname,
+                            'tokenage': tokenage,
+                            'mcap': mcap,
+                            'price': price,
+                            'smartbalance': smartbalance,
+                            'updated_at': date_str,
+                            'timestamp': date_obj.timestamp(),
+                            'first_updated': first_updated,
+                            'last_updated': last_updated
+                        })
+                    except Exception as e:
+                        logger.error(f"Error parsing date {date_str}: {str(e)}")
+                        # Skip records with invalid dates
+                        continue
+                
+                # Log the first few records for debugging
+                if result:
+                    logger.info(f"First record: {result[0]}")
+                    if len(result) > 1:
+                        logger.info(f"Last record: {result[-1]}")
+                
+                return result
+                
+        except Exception as e:
+            logger.error(f"Error fetching token history: {str(e)}")
+            return [] 

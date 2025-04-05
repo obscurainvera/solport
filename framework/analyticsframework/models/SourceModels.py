@@ -8,11 +8,13 @@ from framework.analyticsframework.models.StrategyModels import AttentionInfo
 class AttentionTokenData(BaseTokenData):
     """Attention-specific token data"""
     attentionscore: Decimal
-    consecutiverecords: int
+    attentioncount: int
     change1hbps: int
-    change24hbps: int
-    firstseenat: datetime
-    lastseenat: datetime
+    change1dbps: int
+    change7dbps: int
+    change30dbps: int
+    createdat: datetime
+    updatedat: datetime
 
     
 @dataclass

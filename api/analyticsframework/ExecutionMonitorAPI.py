@@ -3,9 +3,6 @@ API endpoints for strategy execution monitoring
 """
 from flask import Blueprint, jsonify, request
 from framework.analyticsframework.ExecutionMonitor import ExecutionMonitor
-from framework.analyticsframework.StrategyFramework import StrategyFramework
-from framework.analyticshandlers.AnalyticsHandler import AnalyticsHandler
-from database.operations.sqlite_handler import SQLitePortfolioDB
 from logs.logger import get_logger
 import time
 from scheduler.JobRunner import JobRunner
@@ -36,11 +33,7 @@ def triggerExecutionMonitoring():
         if wasRunning:
             jobRunner.scheduler.pause()
         
-        # Initialize components
-        db = SQLitePortfolioDB()
-        analyticsHandler = AnalyticsHandler(db)
-        strategyFramework = StrategyFramework(analyticsHandler)
-        executionMonitor = ExecutionMonitor(strategyFramework)
+        executionMonitor = ExecutionMonitor()
         
         # Execute monitoring process
         stats = executionMonitor.monitorActiveExecutions()

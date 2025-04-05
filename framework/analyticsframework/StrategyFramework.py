@@ -14,20 +14,17 @@ from framework.analyticsframework.enums.TradeTypeEnum import TradeType
 from framework.analyticshandlers.AnalyticsHandler import AnalyticsHandler
 from logs.logger import get_logger
 from actions.DexscrennerAction import DexScreenerAction, TokenPrice
-
+from database.operations.sqlite_handler import SQLitePortfolioDB
 logger = get_logger(__name__)
 
 class StrategyFramework:
     """Core framework for processing tokens through strategies"""
     
-    def __init__(self, analyticsHandler: AnalyticsHandler):
-        self.analyticsHandler = analyticsHandler
-        self.strategies: Dict[str, BaseStrategy] = {}
+    def __init__(self):
+        self.db = SQLitePortfolioDB()
+        self.analyticsHandler = AnalyticsHandler(self.db)
         self.dexScreener = DexScreenerAction()
         
-    def registerStrategy(self, sourceType: str, strategy: BaseStrategy) -> None:
-        """Register a source-specific strategy implementation"""
-        self.strategies[sourceType] = strategy
 
     def checkExistingExecution(self, tokenData: BaseTokenData, strategyConfig: BaseStrategyConfig) -> Optional[int]:
         """
@@ -55,37 +52,7 @@ class StrategyFramework:
         except Exception as e:
             logger.error(f"Error checking existing executions: {str(e)}")
             return None
-        
-    def processToken(self, tokenData: BaseTokenData, sourceType: str) -> List[int]:
-        """Process token through matching strategies"""
-        executionIds = []
-        
-        try:
-            # Get strategy implementation
-            strategy = self.strategies.get(sourceType)
-            if not strategy:
-                logger.error(f"No strategy implementation for source: {sourceType}")
-                return []
-
-            # Get active strategies for source
-            allActiveStrategies = self.analyticsHandler.getAllActiveStrategies(sourceType)
-            
-            # Process each matching strategy
-            for strategy in allActiveStrategies:
-                try:
-                    executionId = self.handleStrategy(strategy, tokenData, strategy)
-                    if executionId:
-                        executionIds.append(executionId)
-                        logger.info(f"Processed strategy {strategy} for token {tokenData.tokenid} ({tokenData.tokenname}) with execution ID {executionId}")
-                except Exception as e:
-                    logger.error(f"Error processing strategy {strategy} for token {tokenData.tokenid} ({tokenData.tokenname}): {str(e)}")
-                    
-            return executionIds
-
-        except Exception as e:
-            logger.error(f"Error processing token {tokenData.tokenid}: {str(e)}")
-            return []
-            
+                
     def handleStrategy(self, strategy: BaseStrategy, tokenData: BaseTokenData, strategyConfig: BaseStrategyConfig, description: Optional[str] = None) -> Optional[int]:
         """Process token through a single strategy"""
         try:
@@ -485,5 +452,45 @@ class StrategyFramework:
         except Exception as e:
             logger.error(f"Error checking stop loss: {str(e)}")
             return False
+        
+    def handleStrategyForTokenWithoutValidation(self, strategy: BaseStrategy, tokenData: BaseTokenData, strategyConfig: BaseStrategyConfig, description: Optional[str] = None) -> Optional[int]:
+        """Process token through a single strategy"""
+        try:
+
+            # Create execution with ACTIVE status
+            executionId = self.createExecution(strategy, tokenData, strategyConfig, description)
+            if not executionId:
+                return None
+
+            # Execute investment based on type
+            success = strategy.executeInvestment(executionId, tokenData, strategyConfig)
+            if success:
+                # Get trade details to update execution
+                tradeDetails = self.analyticsHandler.getExecutionTrades(executionId)
+                if tradeDetails:
+                    # Calculate execution metrics
+                    totalAmount = sum(t['amount'] for t in tradeDetails)
+                    totalCoins = sum(t['coins'] for t in tradeDetails)
+                    avgEntryPrice = totalAmount / totalCoins if totalCoins > 0 else Decimal('0')
+                    
+                    self.analyticsHandler.updateExecution(
+                        executionId=executionId,
+                        investedAmount=totalAmount,
+                        remainingCoins=totalCoins,
+                        avgEntryPrice=avgEntryPrice,
+                        status=ExecutionStatus.INVESTED
+                    )
+                
+                else:
+                    logger.error(f"No trade details found for execution {executionId}")
+                    return None
+            
+            return executionId
+
+        except Exception as e:
+            logger.error(f"Error processing strategy {strategyConfig.strategyid}: {str(e)}")
+            return None
+
+  
 
     

@@ -126,3 +126,69 @@ def get_port_summary():
         })
         response.headers.add('Access-Control-Allow-Origin', '*')  # Allow any origin for development
         return response, 500
+
+@port_summary_report_bp.route('/api/reports/portsummary/history/<token_id>', methods=['GET', 'OPTIONS'])
+def get_token_history(token_id):
+    """Get historical data for a specific token to display in the overlay chart."""
+    if request.method == 'OPTIONS':
+        response = jsonify({})
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        response.headers.add('Access-Control-Allow-Methods', 'GET, OPTIONS')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type, Accept')
+        return response, 200
+        
+    try:
+        logger.info(f"Fetching history data for token ID: {token_id}")
+        
+        with SQLitePortfolioDB() as db:
+            handler = PortSummaryReportHandler(db)
+            
+            if handler is None:
+                logger.error("Handler 'port_summary_report' not found")
+                response = jsonify({
+                    'error': 'Configuration error',
+                    'message': "Handler 'port_summary_report' not found"
+                })
+                response.headers.add('Access-Control-Allow-Origin', '*')
+                return response, 500
+                
+            # Get historical data for the token
+            history_data = handler.getTokenHistory(token_id)
+            
+            if not history_data:
+                logger.warning(f"No history data found for token ID: {token_id}")
+                response = jsonify([])
+                response.headers.add('Access-Control-Allow-Origin', '*')
+                return response
+                
+            logger.info(f"Retrieved {len(history_data)} history records for token ID: {token_id}")
+            
+            # Format the data for the chart
+            formatted_data = []
+            for record in history_data:
+                formatted_record = {
+                    'date': record.get('updated_at'),
+                    'smartbalance': record.get('smartbalance'),
+                    'mcap': record.get('mcap'),
+                    'price': record.get('price')
+                }
+                formatted_data.append(formatted_record)
+            
+            # Log the first few records for debugging
+            if formatted_data:
+                logger.info(f"First record: {formatted_data[0]}")
+                if len(formatted_data) > 1:
+                    logger.info(f"Last record: {formatted_data[-1]}")
+            
+            response = jsonify(formatted_data)
+            response.headers.add('Access-Control-Allow-Origin', '*')
+            return response
+            
+    except Exception as e:
+        logger.error(f"Error fetching token history: {str(e)}")
+        response = jsonify({
+            'error': 'Internal server error',
+            'message': str(e)
+        })
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        return response, 500

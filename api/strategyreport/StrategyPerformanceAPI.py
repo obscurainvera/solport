@@ -300,4 +300,32 @@ def strategy_executions_by_id(strategy_id):
         return jsonify(generate_success_response(executions, timing))
         
     except Exception as e:
-        return jsonify(generate_error_response(f"Failed to generate executions for strategy ID {strategy_id}", e)) 
+        return jsonify(generate_error_response(f"Failed to generate executions for strategy ID {strategy_id}", e))
+
+@strategyperformance_bp.route('/api/reports/strategyperformance/config/<int:strategy_id>', methods=['GET', 'OPTIONS'])
+def strategy_config_by_id(strategy_id):
+    """Endpoint to get detailed configuration for a specific strategy."""
+    if request.method == "OPTIONS":
+        return generate_cors_preflight_response()
+        
+    start_time = time.time()
+    
+    try:
+        # Connect to database and get handler
+        with SQLitePortfolioDB() as db:
+            handler = StrategyPerformanceHandler(db)
+            
+            # Get strategy configuration
+            strategy = handler.getStrategyConfigById(strategy_id)
+            
+            if not strategy:
+                return jsonify(generate_error_response(f"Strategy with ID {strategy_id} not found"))
+                
+        # Generate response
+        timing = round((time.time() - start_time) * 1000, 2)
+        logger.info(f"Strategy config for ID {strategy_id} retrieved in {timing}ms")
+        
+        return jsonify(generate_success_response(strategy, timing))
+        
+    except Exception as e:
+        return jsonify(generate_error_response(f"Failed to retrieve strategy configuration for ID {strategy_id}", e)) 
