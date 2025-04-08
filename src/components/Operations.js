@@ -382,6 +382,50 @@ function Operations() {
     xhr.send(JSON.stringify({}));
   };
 
+  // Manual token persistence function
+  const persistTokenManually = () => {
+    if (!tokenId) {
+      showStatus('manual-persist-status', 'Please enter a token ID', true);
+      return;
+    }
+
+    showLoading('manual-persist');
+    console.log(`Sending XHR request to: ${API_BASE_URL}/api/portsummary/manual-persist`);
+    
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', `${API_BASE_URL}/api/portsummary/manual-persist`, true);
+    xhr.setRequestHeader('Content-Type', 'application/json');
+    xhr.setRequestHeader('Accept', 'application/json');
+    
+    xhr.onload = function() {
+      console.log('XHR status:', xhr.status);
+      
+      if (xhr.status >= 200 && xhr.status < 300) {
+        try {
+          const data = JSON.parse(xhr.responseText);
+          console.log('XHR parsed data:', data);
+          showStatus('manual-persist-status', `Successfully persisted token: ${tokenId}`);
+        } catch (e) {
+          console.error('Error parsing response:', e);
+          showStatus('manual-persist-status', 'Error parsing response', true);
+        }
+      } else {
+        showStatus('manual-persist-status', `Error: ${xhr.status} ${xhr.statusText}`, true);
+      }
+      hideLoading('manual-persist');
+    };
+    
+    xhr.onerror = function() {
+      console.error('XHR error occurred');
+      showStatus('manual-persist-status', 'Network error occurred', true);
+      hideLoading('manual-persist');
+    };
+    
+    xhr.send(JSON.stringify({
+      tokenId: tokenId
+    }));
+  };
+
   const persistAllSMWalletsInvestedInASpecificToken = () => {
     if (!tokenId) {
       showStatus('specific-token-analysis-status', 'Please enter a token ID', true);
@@ -1640,6 +1684,33 @@ function Operations() {
                   {statusMessages['portfolio-status']?.visible && (
                     <div className={`status-message ${statusMessages['portfolio-status']?.isError ? 'error' : ''}`}>
                       {statusMessages['portfolio-status']?.message}
+                    </div>
+                  )}
+                  
+                  <div className="divider"></div>
+                  
+                  <h4>Manual Token Persistence</h4>
+                  <p>
+                    Manually persist a token in the portfolio summary.
+                  </p>
+                  <input 
+                    type="text" 
+                    className="luxury-input" 
+                    placeholder="Token ID"
+                    value={tokenId}
+                    onChange={(e) => setTokenId(e.target.value)}
+                  />
+                  <button 
+                    className="luxury-button" 
+                    onClick={persistTokenManually}
+                    disabled={loading['manual-persist']}
+                  >
+                      PERSIST TOKEN
+                    {loading['manual-persist'] && <div className="loading-spinner"></div>}
+                  </button>
+                  {statusMessages['manual-persist-status']?.visible && (
+                    <div className={`status-message ${statusMessages['manual-persist-status']?.isError ? 'error' : ''}`}>
+                      {statusMessages['manual-persist-status']?.message}
                     </div>
                   )}
                   </div>
