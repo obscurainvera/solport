@@ -18,7 +18,7 @@ class WalletsInvestedInvestmentDetailsAction:
     """Handles transaction analysis workflow"""
     
     # Add constant at class level
-    MIN_SMART_HOLDING = Decimal('1000')  # Minimum smart holding threshold
+    MIN_SMART_HOLDING = Decimal('0')  # Minimum smart holding threshold
     
     def __init__(self, db: SQLitePortfolioDB):
         """

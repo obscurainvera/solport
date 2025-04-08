@@ -9,7 +9,7 @@ from database.operations.sqlite_handler import SQLitePortfolioDB
 from logs.logger import get_logger
 import time
 import random
-
+from decimal import Decimal
 logger = get_logger(__name__)
 
 class WalletsInvestedScheduler:
@@ -48,11 +48,15 @@ class WalletsInvestedScheduler:
                 # Process each active token
                 for token in activeTokens:
                     try:
-                        logger.info(f"Processing wallets invested analysis for {token['tokenid']} - {token['name']}")
+                        # Get token age as Decimal, safely handling string formats
+                        token_age = Decimal(str(token['tokenage']))
+                        
+                        logger.info(f"Processing wallets invested analysis for {token['tokenid']} - {token['name']} (age: {float(token_age)} days)")
                         self.action.fetchAndPersistWalletsInvestedInASpecificToken(
                             cookie=cookie,
                             tokenId=token['tokenid'],
-                            portsummaryId=token['portsummaryid']
+                            portsummaryId=token['portsummaryid'],
+                            tokenAge=token_age
                         )
                         logger.info(f"Wallets invested analysis for {token['tokenid']} - {token['name']} completed")
                         

@@ -77,7 +77,7 @@ class WalletsInvestedInvestmentDetailsScheduler:
             except Exception as e:
                 logger.error(f"Failed to execute transaction analysis: {str(e)}")
                 
-    def handleInvestmentDetailsOfAllWalletsInvestedInAToken(self, tokenId: str, cookie: str = None):
+    def handleInvestmentDetailsOfAllWalletsInvestedInAToken(self, tokenId: str, cookie: str = None, minHolding: Decimal = None):
         """
         Process all wallets invested in a specific token for transaction analysis
         
@@ -106,7 +106,7 @@ class WalletsInvestedInvestmentDetailsScheduler:
             logger.info(f"Analyzing all wallets invested in token {tokenId}")
             
             # Get all wallets invested in the specific token
-            walletsInvestedInToken = self.db.walletsInvested.getWalletsWithHighSMTokenHoldings(minBalance=Decimal('1000'), tokenId=tokenId)
+            walletsInvestedInToken = self.db.walletsInvested.getWalletsWithHighSMTokenHoldings(minBalance=minHolding, tokenId=tokenId)
             
             if not walletsInvestedInToken:
                 logger.warning(f"No wallets found for token {tokenId}")

@@ -20,6 +20,7 @@ class TokenPrice:
     marketCap: float  # marketCap
     name: str    # token name
     symbol: str  # token symbol
+    tokenAge: int = 0  # token age in days
 
 class DexScreenerAction:
     """Handles DexScreener API request workflow"""
@@ -64,25 +65,25 @@ class DexScreenerAction:
             
         try:
             # The new API endpoint for batch requests
-            token_addresses_str = ','.join(tokenAddresses)
-            batch_url = f"https://api.dexscreener.com/tokens/v1/{chainId}/{token_addresses_str}"
+            tokenAddressesStr = ','.join(tokenAddresses)
+            batchUrl = f"https://api.dexscreener.com/tokens/v1/{chainId}/{tokenAddressesStr}"
             
-            logger.info(f"Making batch request to {batch_url}")
+            logger.info(f"Making batch request to {batchUrl}")
             
-            response = requests.get(batch_url, timeout=30)  # Add timeout
+            response = requests.get(batchUrl, timeout=30)  # Add timeout
             
             if response.status_code != 200:
                 logger.error(f"Batch API request failed with status code {response.status_code}: {response.text}")
                 return None
                 
-            response_data = response.json()
+            responseData = response.json()
             
-            if not isinstance(response_data, list):
-                logger.error(f"Unexpected response format: {response_data}")
+            if not isinstance(responseData, list):
+                logger.error(f"Unexpected response format: {responseData}")
                 return None
                 
-            logger.info(f"Successfully received data for {len(response_data)} pairs")
-            return response_data
+            logger.info(f"Successfully received data for {len(responseData)} pairs")
+            return responseData
             
         except requests.exceptions.Timeout:
             logger.error("Batch API request timed out")
@@ -129,12 +130,22 @@ class DexScreenerAction:
             
             baseToken = highestLiquidityPair.get('baseToken', {})
             
+            # Calculate token age from pairCreatedAt
+            tokenAge = 0  # Default value
+            if 'pairCreatedAt' in highestLiquidityPair:
+                createdAtMs = highestLiquidityPair['pairCreatedAt']
+                createdAt = datetime.fromtimestamp(createdAtMs / 1000)  # Convert ms to seconds
+                now = datetime.now()
+                tokenAge = (now - createdAt).days
+                logger.info(f"Token age calculated: {tokenAge} days (created at {createdAt})")
+            
             return TokenPrice(
                 price=float(highestLiquidityPair['priceUsd']),
                 fdv=float(highestLiquidityPair['fdv']),
                 marketCap=float(highestLiquidityPair['marketCap']),
                 name=baseToken.get('name', ''),
-                symbol=baseToken.get('symbol', '')
+                symbol=baseToken.get('symbol', ''),
+                tokenAge=tokenAge
             )
             
         except Exception as e:
@@ -210,14 +221,23 @@ class DexScreenerAction:
                     # Create TokenPrice object from the pair data
                     price = float(pairData.get('priceUsd', 0))
                     fdv = float(pairData.get('fdv', 0))
-                    market_cap = float(pairData.get('marketCap', 0))
+                    marketCap = float(pairData.get('marketCap', 0))
+                    
+                    # Calculate token age from pairCreatedAt
+                    tokenAge = 0  # Default value
+                    if 'pairCreatedAt' in pairData:
+                        createdAtMs = pairData['pairCreatedAt']
+                        createdAt = datetime.fromtimestamp(createdAtMs / 1000)  # Convert ms to seconds
+                        now = datetime.now()
+                        tokenAge = (now - createdAt).days
                     
                     result[tokenAddress] = TokenPrice(
                         price=price,
                         fdv=fdv,
-                        marketCap=market_cap,
+                        marketCap=marketCap,
                         name=pairData.get('baseToken', {}).get('name', ''),
-                        symbol=pairData.get('baseToken', {}).get('symbol', '')
+                        symbol=pairData.get('baseToken', {}).get('symbol', ''),
+                        tokenAge=tokenAge
                     )
                 
                 # Check for missing tokens in the response

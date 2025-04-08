@@ -6,11 +6,25 @@ from config.Security import COOKIE_MAP, isValidCookie
 from logs.logger import get_logger
 from decimal import Decimal
 from database.operations.schema import WalletInvestedStatusEnum
+import json
 
 logger = get_logger(__name__)
 
+# Create a custom JSON encoder to handle Decimal objects
+class CustomJSONEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, Decimal):
+            return float(obj)
+        return super().default(obj)
+
 # Create a Blueprint for token analysis endpoints
 wallets_invested_bp = Blueprint('wallets_invested', __name__)
+
+# Configure the blueprint to use the custom JSON encoder
+@wallets_invested_bp.record
+def record_params(setup_state):
+    app = setup_state.app
+    app.json_encoder = CustomJSONEncoder
 
 @wallets_invested_bp.route('/api/walletsinvested/persist/token/<token_id>', methods=['POST', 'OPTIONS'])
 def persistAllWalletsInvestedInASpecificPortSummarytoken(token_id):
@@ -60,10 +74,16 @@ def persistAllWalletsInvestedInASpecificPortSummarytoken(token_id):
 
         # 3. Execute token analysis
         logger.info(f"Starting wallets invested analysis for {token_id}")
+        
+        # Get token age to report which API will be used
+        token_age = Decimal(str(tokenInfo['tokenage']))
+        using_new_api = token_age <= 1
+        
         result = walletInvestedAction.fetchAndPersistWalletsInvestedInASpecificToken(
             cookie=validCookies[0],
             tokenId=token_id,
-            portsummaryId=tokenInfo['portsummaryid']
+            portsummaryId=tokenInfo['portsummaryid'],
+            tokenAge=token_age
         )
 
         if result:
@@ -74,7 +94,9 @@ def persistAllWalletsInvestedInASpecificPortSummarytoken(token_id):
                 'data': {
                     'token_id': token_id,
                     'portsummary_id': tokenInfo['portsummaryid'],
-                    'analysis_count': len(result)
+                    'analysis_count': len(result),
+                    'token_age': float(token_age),
+                    'used_alternative_api': using_new_api
                 }
             })
             response.headers.add('Access-Control-Allow-Origin', '*')

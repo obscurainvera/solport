@@ -140,3 +140,68 @@ def parseWalletsInvestedInASpecificTokenAPIResponse(response: Dict[str, Any], po
     except Exception as e:
         logger.error(f"Failed to parse token analysis response: {e}")
         return results 
+
+def parseWalletsInvestedAPIResponseForNewTokens(response: Dict[str, Any], portsummaryId: int, tokenId: str) -> List[WalletsInvested]:
+    """
+    Parse and validate token wallet list API response for new tokens
+    
+    Args:
+        response: API response containing wallet data in new format
+        portsummaryid: Portfolio summary ID
+        tokenId: Token address being analyzed
+        
+    Returns:
+        List of WalletsInvested objects
+    """
+    results = []
+    try:
+        data = response.get('data', [])
+        if not data:
+            logger.warning("No data found in response for new token wallet list")
+            return results
+
+        # Iterate through each wallet entry in the response
+        for walletData in data:
+            try:
+                # Extract wallet address
+                walletAddress = walletData.get('wallet')
+                if not walletAddress:
+                    logger.error(f"Missing required wallet address in data: {walletData}")
+                    continue
+                    
+                # Extract wallet name/tag from Address field
+                walletName = walletData.get('Address', '')
+                
+
+                # Create wallet item with minimal data
+                walletItem = WalletsInvested(
+                    portsummaryid=portsummaryId,
+                    tokenid=tokenId,
+                    walletaddress=walletAddress,
+                    walletname=walletName,
+                    coinquantity=_safeDecimal(0),  # Default values
+                    smartholding=_safeDecimal(0),
+                    firstbuytime=datetime.now(),
+                    totalinvestedamount=_safeDecimal(0),
+                    amounttakenout=_safeDecimal(0),
+                    totalcoins=_safeDecimal(0),
+                    qtychange1d=_safeDecimal(0),
+                    qtychange7d=_safeDecimal(0),
+                    avgentry=_safeDecimal(0),
+                    chainedgepnl=_safeDecimal(0),
+                    status=WalletInvestedStatusEnum.ACTIVE
+                )
+
+                results.append(walletItem)
+                logger.debug(f"Successfully parsed wallet {walletAddress} ({walletName})")
+
+            except Exception as e:
+                logger.error(f"Failed to parse wallet data: {e}, data: {walletData}")
+                continue
+
+        logger.debug(f"Successfully parsed {len(results)} wallet entries for new token {tokenId}")
+        return results
+
+    except Exception as e:
+        logger.error(f"Failed to parse new token wallet list response: {e}")
+        return results 
