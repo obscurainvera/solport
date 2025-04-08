@@ -94,12 +94,15 @@ class AttentionHandler(BaseSQLiteHandler):
                 
                 # Check if token exists
                 existing = self._getExistingTokenRegistryEntry(cursor, data.tokenid)
+                status = existing['currentstatus'] if existing else AttentionStatusEnum.NEW.value
+                if status == AttentionStatusEnum.INACTIVE.value:
+                    status = AttentionStatusEnum.NEW.value
                 
                 if existing:
                     # Check if last seen time is different from current time
                     lastSeenTime = datetime.fromisoformat(existing['lastseenat'])
                     if lastSeenTime.date() != currentTime.date():
-                        self._updateExistingTokenRegistryEntry(cursor, data.tokenid, currentTime)
+                        self._updateExistingTokenRegistryEntry(cursor, data.tokenid, currentTime,status)
                         logger.info(f"Updated existing token registry entry for {data.tokenid}")
                     return existing['id']
                 else:
@@ -131,7 +134,7 @@ class AttentionHandler(BaseSQLiteHandler):
             WHERE tokenid = ?
         """, (tokenId,)).fetchone()
 
-    def _updateExistingTokenRegistryEntry(self, cursor, tokenId: str, currentTime: datetime) -> None:
+    def _updateExistingTokenRegistryEntry(self, cursor, tokenId: str, currentTime: datetime, status: str) -> None:
         """
         Update an existing token registry entry
         
@@ -150,7 +153,7 @@ class AttentionHandler(BaseSQLiteHandler):
                 attentioncount = attentioncount + 1,
                 currentstatus = ?
             WHERE tokenid = ?
-        """, (currentTime, currentTime, AttentionStatusEnum.ACTIVE.value, tokenId))
+        """, (currentTime, currentTime, status, tokenId))
 
     def _createNewTokenRegistryEntry(self, cursor, data: AttentionData, currentTime: datetime) -> Optional[int]:
         """
@@ -229,14 +232,14 @@ class AttentionHandler(BaseSQLiteHandler):
 
     def updateInactiveTokens(self) -> None:
         """
-        Update status of tokens that haven't been seen for more than 2 days
+        Update status of tokens that haven't been seen for more than 1 day
         """
         try:
             with self.conn_manager.transaction() as cursor:
                 currentTime = self.getCurrentIstTime()
-                twoDaysAgo = currentTime - timedelta(days=2)
+                twoDaysAgo = currentTime - timedelta(days=1)
                 
-                # Update tokens that haven't been seen for more than 2 days
+                # Update tokens that haven't been seen for more than 1 day
                 cursor.execute("""
                     UPDATE attentiontokenregistry 
                     SET currentstatus = ?,
