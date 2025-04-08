@@ -249,7 +249,8 @@ class PortfolioHandler(BaseSQLiteHandler):
                     SELECT 
                         portsummaryid,
                         tokenid,
-                        status
+                        status,
+                        tokenage
                     FROM portsummary
                     WHERE tokenid = ?
                 """, (tokenId,))

@@ -8,7 +8,8 @@ from datetime import datetime
 import time
 import parsers.WalletsInvestedParser as WalletsInvestedParser
 from logs.logger import get_logger
-
+import re
+from decimal import Decimal
 logger = get_logger(__name__)
 
 class WalletsInvestedAction:
@@ -26,6 +27,7 @@ class WalletsInvestedAction:
         self.timeout = 30
         self.max_retries = 3
         self.api_url = 'https://app.chainedge.io/token_holdings_solana_table_sql/'
+        self.token_wallet_list_api_url = 'https://app.chainedge.io/tokenWalletList/'
 
     def _configure_headers(self):
         """Set headers from endpoint configuration"""
@@ -57,17 +59,27 @@ class WalletsInvestedAction:
             'token_id': token_id,
             'pageType': 'TokenPageL2'
         }
+        
 
-    def fetchAndPersistWalletsInvestedInASpecificToken(self, cookie: str, tokenId: str, portsummaryId: int) -> Optional[Dict[str, Any]]:
-        """Execute token analysis request with retry on failure"""
-        startTime = time.time()
-        try:
-            payload = self.buildPayload(tokenId)
+    def fetchWalletsInvestedForNewToken(self, cookie: str, tokenId: str, portsummaryId: int) -> Optional[List[WalletsInvested]]:
+        """
+        Fetch wallets for new tokens (age <= 1 day) using the alternative API
+        
+        Args:
+            cookie (str): Authentication cookie
+            tokenId (str): Token ID 
+            portsummaryId (int): Portfolio summary ID
             
-            response = self.session.post(
-                self.api_url,
+        Returns:
+            Optional[List[WalletsInvested]]: List of wallet objects or None if failed
+        """
+        try:
+            logger.info(f"Using alternative API for new token {tokenId}")
+            
+            # Make request to alternative API
+            response = self.session.get(
+                f"{self.token_wallet_list_api_url}?token_id={tokenId}",
                 headers={**self.headers, 'Cookie': cookie},
-                data=payload,
                 timeout=self.timeout
             )
             
@@ -75,16 +87,63 @@ class WalletsInvestedAction:
             
             if not response.content:
                 raise ValueError("Empty response received")
-
-            parsedItems = WalletsInvestedParser.parseWalletsInvestedInASpecificTokenAPIResponse(
-                response.json(), 
-                portsummaryId,
+                
+            data = response.json()
+            
+            if not data or 'data' not in data or not data['data']:
+                logger.warning(f"No wallet data found for new token {tokenId}")
+                return None
+                
+            # Use the parser to convert the response to WalletsInvested objects
+            parsedItems = WalletsInvestedParser.parseWalletsInvestedAPIResponseForNewTokens(
+                data,
+                portsummaryId, 
                 tokenId
             )
             
-            if parsedItems:
+            if not parsedItems:
+                logger.warning(f"No wallets parsed for new token {tokenId}")
+                return None
+                
+            logger.info(f"Found {len(parsedItems)} wallets for new token {tokenId}")
+            return parsedItems
+            
+        except Exception as e:
+            logger.error(f"Failed to fetch wallets for new token {tokenId}: {str(e)}")
+            return None
 
+    def fetchAndPersistWalletsInvestedInASpecificToken(self, cookie: str, tokenId: str, portsummaryId: int, tokenAge: Decimal) -> Optional[Dict[str, Any]]:
+        """Execute token analysis request with retry on failure"""
+        startTime = time.time()
+        try:
+             
+            # Use different API for new tokens (age <= 1 day)
+            if tokenAge <= 1:
+                parsedItems = self.fetchWalletsInvestedForNewToken(cookie, tokenId, portsummaryId)
+            else:
+                # Use the regular API for older tokens
+                payload = self.buildPayload(tokenId)
+                response = self.session.post(
+                    self.api_url,
+                    headers={**self.headers, 'Cookie': cookie},
+                    data=payload,
+                    timeout=self.timeout
+                )
+                
+                response.raise_for_status()
+                
+                if not response.content:
+                    raise ValueError("Empty response received")
+
+                parsedItems = WalletsInvestedParser.parseWalletsInvestedInASpecificTokenAPIResponse(
+                    response.json(), 
+                    portsummaryId,
+                    tokenId
+                )
+            
+            if parsedItems:
                 self.persistWalletsInvestedData(parsedItems)
+                
                 # Get current active wallets from the database for this token
                 investedWallets = self.db.walletsInvested.getActiveWalletsByTokenId(tokenId)
                 

@@ -4,10 +4,12 @@ import time
 import signal
 import threading
 import os
+import json
+from decimal import Decimal
 from sqlalchemy import create_engine, text
 from apscheduler.jobstores.sqlalchemy import SQLAlchemyJobStore
 from logs.logger import get_logger
-from api.walletsinvested.WalletsInvestedAPI import wallets_invested_bp
+from api.walletsinvested.WalletsInvestedAPI import wallets_invested_bp, CustomJSONEncoder
 from api.walletsinvested.WalletsInvestedInvestmentDetailsAPI import wallets_invested_investement_details_bp
 from api.portsummary.PortfolioAPI import portfolio_bp
 from api.operations.HealthAPI import health_bp
@@ -100,6 +102,9 @@ class PortfolioApp:
         
         # Configure CORS
         CORS(self.app, resources={r"/api/*": {"origins": "*"}})
+        
+        # Configure JSON encoder to handle Decimal objects
+        self.app.json_encoder = CustomJSONEncoder
         
         try:
             initialize_job_storage()
