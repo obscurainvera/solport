@@ -167,7 +167,7 @@ def getWalletsInvestedInToken(token_id):
             # Get all wallets invested in this token
             # We use a very small minimum balance to get all wallets
             wallets = db.walletsInvested.getWalletsWithHighSMTokenHoldings(
-                minBalance=Decimal('0.001'), 
+                minBalance=Decimal('0.000'), 
                 tokenId=token_id
             )
             
@@ -183,7 +183,10 @@ def getWalletsInvestedInToken(token_id):
             
             # Get detailed information for each wallet
             detailed_wallets = []
-            for wallet in wallets:
+            wallet_addresses_needing_pnl = []
+            wallet_address_to_index_map = {}
+            
+            for index, wallet in enumerate(wallets):
                 wallet_id = wallet.get('walletinvestedid')
                 wallet_details = db.walletsInvested.getWalletInvestedById(wallet_id)
                 
@@ -202,7 +205,26 @@ def getWalletsInvestedInToken(token_id):
                         'chainedgepnl': wallet_details.get('chainedgepnl'),
                         'status': wallet_details.get('status')
                     }
+                    
+                    # Check if chainedgepnl is null or 0
+                    chainedgepnl = wallet_details.get('chainedgepnl')
+                    if chainedgepnl is None or (isinstance(chainedgepnl, (int, float, Decimal)) and float(chainedgepnl) == 0):
+                        wallet_address = wallet_details.get('walletaddress')
+                        if wallet_address:
+                            wallet_addresses_needing_pnl.append(wallet_address)
+                            wallet_address_to_index_map[wallet_address] = len(detailed_wallets)
+                    
                     detailed_wallets.append(formatted_wallet)
+            
+            # If we have wallets needing PNL data, fetch it in batch using SmartMoneyWalletsHandler
+            if wallet_addresses_needing_pnl:
+                pnl_data = db.smartMoneyWallets.getWalletsProfitAndLoss(wallet_addresses_needing_pnl)
+                
+                # Update the chainedgepnl with profitandloss where needed
+                for wallet_address, profitandloss in pnl_data.items():
+                    if wallet_address in wallet_address_to_index_map:
+                        index = wallet_address_to_index_map[wallet_address]
+                        detailed_wallets[index]['chainedgepnl'] = profitandloss
             
             # Sort by smartholding in descending order
             detailed_wallets.sort(key=lambda x: float(x.get('smartholding', 0) or 0), reverse=True)

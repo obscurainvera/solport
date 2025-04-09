@@ -191,4 +191,41 @@ class SmartMoneyWalletsHandler(BaseSQLiteHandler):
                 return wallets
         except Exception as e:
             logger.error(f"Failed to get high profit smart money wallets: {str(e)}")
-            return [] 
+            return []
+            
+    def getWalletsProfitAndLoss(self, wallet_addresses: List[str]) -> Dict[str, str]:
+        """
+        Get profitandloss values for multiple wallet addresses in one batch
+        
+        Args:
+            wallet_addresses: List of wallet addresses to query
+            
+        Returns:
+            Dictionary mapping wallet addresses to their profitandloss values
+        """
+        result = {}
+        
+        if not wallet_addresses:
+            return result
+            
+        try:
+            # Create placeholders for SQL query
+            placeholders = ','.join(['?' for _ in wallet_addresses])
+            
+            with self.conn_manager.transaction() as cursor:
+                cursor.execute(f"""
+                    SELECT walletaddress, profitandloss 
+                    FROM smartmoneywallets
+                    WHERE walletaddress IN ({placeholders})
+                """, wallet_addresses)
+                
+                rows = cursor.fetchall()
+                for row in rows:
+                    wallet_address = row['walletaddress']
+                    profitandloss = row['profitandloss']
+                    result[wallet_address] = profitandloss
+                    
+        except Exception as e:
+            logger.error(f"Failed to get profit and loss for wallets: {str(e)}")
+            
+        return result 
