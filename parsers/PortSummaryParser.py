@@ -48,7 +48,7 @@ def parsePortSummaryAPIResponse(response: Dict[str, Any]) -> List[PortfolioSumma
         except Exception as e:
             logger.error(f"Failed to parse item: {e}")
             continue
-            
+    logger.info(f"Total tokens : {len(response.get('data', []))} \n Tokens parsed: {len(results)}")
     return results
 
 def _safeDecimal(value: Any) -> Decimal:
@@ -94,15 +94,6 @@ def filterPortfolioItems(item: PortfolioSummary) -> bool:
     """Filter out invalid or unwanted portfolio items"""
     # Minimum smart balance threshold
     if item.smartbalance < 100_000:
-        return False
-    
-    # Ensure required fields have valid values
-    if not all([
-        item.tokenid,
-        item.name,
-        item.chainname,
-        item.tokenage
-    ]):
         return False
         
     return True
