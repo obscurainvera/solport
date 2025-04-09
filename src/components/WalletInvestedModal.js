@@ -208,13 +208,19 @@ function WalletInvestedModal({ token, onClose }) {
   };
   
   // Calculate remaining amount (coinquantity * current price)
-  const calculateRemainingAmount = (coinQuantity) => {
-    if (!coinQuantity || !token || !token.currentprice) return null;
+  const calculateRemainingAmount = (coinQuantity, totalCoins) => {
+    if (!token || !token.currentprice) return null;
     
-    const quantity = parseFloat(coinQuantity);
+    // First check if coinQuantity is 0 or null, and if so, use totalCoins if available and >= 0
+    let quantity = parseFloat(coinQuantity) || 0;
+    
+    if (quantity === 0 && totalCoins !== undefined && totalCoins !== null && parseFloat(totalCoins) >= 0) {
+      quantity = parseFloat(totalCoins);
+    }
+    
     const price = parseFloat(token.currentprice);
     
-    if (isNaN(quantity) || isNaN(price)) return null;
+    if (isNaN(price)) return null;
     
     return quantity * price;
   };
@@ -327,7 +333,7 @@ function WalletInvestedModal({ token, onClose }) {
   const sortedWallets = getSortedWallets();
   const totalSmartHolding = wallets.reduce((sum, wallet) => sum + parseFloat(wallet.smartholding || 0), 0);
   const totalRemainingAmount = wallets.reduce((sum, wallet) => {
-    const remainingAmount = calculateRemainingAmount(wallet.coinquantity);
+    const remainingAmount = calculateRemainingAmount(wallet.coinquantity, wallet.totalcoins);
     return sum + (remainingAmount || 0);
   }, 0);
   const totalRealizedPNL = wallets.reduce((sum, wallet) => {
@@ -458,7 +464,7 @@ function WalletInvestedModal({ token, onClose }) {
                   </thead>
                   <tbody>
                     {sortedWallets.map((wallet, index) => {
-                      const remainingAmount = calculateRemainingAmount(wallet.coinquantity);
+                      const remainingAmount = calculateRemainingAmount(wallet.coinquantity, wallet.totalcoins);
                       const pnl = calculatePNL(wallet.totalinvestedamount, wallet.amounttakenout, remainingAmount);
                       const realizedPnl = calculateRealizedPNL(wallet.totalinvestedamount, wallet.amounttakenout);
                       const formattedPNL = formatPNL(pnl);
