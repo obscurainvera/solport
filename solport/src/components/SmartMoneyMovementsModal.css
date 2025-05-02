@@ -1,0 +1,584 @@
+.movements-modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1050;
+  animation: fadeIn 0.3s ease;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.movements-modal-content {
+  background-color: #000;
+  border-radius: 16px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+  width: 90%;
+  max-width: 1200px;
+  max-height: 85vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  animation: slideUp 0.3s ease;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  position: relative;
+}
+
+.movements-modal-content::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(33, 150, 243, 0.3), transparent);
+}
+
+.movements-modal-header {
+  padding: 20px 24px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: linear-gradient(180deg, rgba(33, 150, 243, 0.1) 0%, rgba(20, 20, 20, 0.9) 100%);
+  position: relative;
+}
+
+.movements-modal-header h2 {
+  margin: 0;
+  font-size: 1.4rem;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+}
+
+.movements-icon {
+  margin-right: 12px;
+  color: #2196F3;
+  font-size: 1.2rem;
+}
+
+.close-button {
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  color: #fff;
+  font-size: 1rem;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 50%;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.close-button:hover {
+  background-color: rgba(255, 255, 255, 0.2);
+  transform: scale(1.05);
+}
+
+.movements-modal-body {
+  padding: 20px;
+  overflow-y: auto;
+  flex: 1;
+  color: #fff;
+  position: relative;
+}
+
+.movements-modal-body::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(circle at 15% 50%, rgba(33, 150, 243, 0.05), transparent 25%),
+              radial-gradient(circle at 85% 30%, rgba(255, 255, 255, 0.03), transparent 25%);
+  pointer-events: none;
+}
+
+/* Loading and Error states */
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  height: 300px;
+}
+
+.loading-spinner {
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  border-radius: 50%;
+  border-top: 2px solid #2196F3;
+  width: 30px;
+  height: 30px;
+  animation: spin 1s linear infinite;
+  margin-bottom: 16px;
+}
+
+.error-message {
+  background-color: rgba(255, 59, 48, 0.1);
+  color: #ff3b30;
+  padding: 16px;
+  border-radius: 8px;
+  margin: 20px 0;
+  text-align: center;
+  border: 1px solid rgba(255, 59, 48, 0.2);
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  text-align: center;
+  height: 300px;
+}
+
+.empty-icon {
+  font-size: 3rem;
+  margin-bottom: 16px;
+  opacity: 0.5;
+}
+
+.empty-state h3 {
+  margin: 0 0 8px 0;
+  color: #fff;
+}
+
+.empty-state p {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+/* Wallet address display */
+.wallet-address-display {
+  font-size: 0.8rem;
+  background: rgba(33, 150, 243, 0.1);
+  padding: 3px 8px;
+  border-radius: 8px;
+  font-weight: normal;
+  margin-left: 10px;
+  color: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(33, 150, 243, 0.2);
+}
+
+/* Time range selector */
+.time-range-selector {
+  display: flex;
+  align-items: center;
+  margin: 0 auto;
+}
+
+.time-label {
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.7);
+  margin-right: 10px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.time-buttons {
+  display: flex;
+  gap: 5px;
+}
+
+.time-buttons button {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.7);
+  padding: 5px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 0.8rem;
+}
+
+.time-buttons button:hover {
+  background: rgba(33, 150, 243, 0.1);
+  border-color: rgba(33, 150, 243, 0.2);
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.time-buttons button.active {
+  background: rgba(33, 150, 243, 0.2);
+  border-color: rgba(33, 150, 243, 0.3);
+  color: #fff;
+}
+
+/* Remove old summary section styles and add date range banner */
+.date-range-banner {
+  display: flex;
+  align-items: center;
+  background: rgba(33, 150, 243, 0.08);
+  border: 1px solid rgba(33, 150, 243, 0.15);
+  border-radius: 8px;
+  padding: 10px 15px;
+  margin-bottom: 20px;
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.date-icon {
+  color: #2196F3;
+  margin-right: 10px;
+  font-size: 1rem;
+}
+
+.date-text {
+  font-weight: 500;
+}
+
+/* Sortable columns */
+.sortable {
+  cursor: pointer;
+  position: relative;
+  user-select: none;
+  padding-right: 24px !important;
+  transition: background-color 0.2s ease;
+}
+
+.sortable:hover {
+  background-color: rgba(33, 150, 243, 0.1);
+}
+
+.sort-icon {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 0.8rem;
+  opacity: 0.3;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.sort-icon.active {
+  opacity: 1;
+  color: #2196F3;
+}
+
+/* Tokens Section */
+.tokens-section {
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 20px;
+  background: rgba(33, 150, 243, 0.05);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.section-header h3 {
+  margin: 0;
+  font-size: 1rem;
+  color: rgba(255, 255, 255, 0.9);
+  font-weight: 500;
+}
+
+.tokens-count {
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.6);
+  background: rgba(33, 150, 243, 0.1);
+  padding: 3px 8px;
+  border-radius: 10px;
+  border: 1px solid rgba(33, 150, 243, 0.2);
+}
+
+.tokens-table-container {
+  overflow-x: auto;
+  max-height: 400px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.2) rgba(255, 255, 255, 0.05);
+}
+
+.tokens-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.tokens-table th {
+  background-color: rgba(0, 0, 0, 0.3);
+  padding: 12px 15px;
+  text-align: left;
+  color: rgba(255, 255, 255, 0.7);
+  font-weight: 500;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.tokens-table td {
+  padding: 10px 15px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.tokens-table tr:last-child td {
+  border-bottom: none;
+}
+
+.tokens-table tr:hover {
+  background-color: rgba(33, 150, 243, 0.05);
+}
+
+/* Clickable Row */
+.clickable-row {
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.clickable-row:hover {
+  background-color: rgba(33, 150, 243, 0.1) !important;
+}
+
+.clickable-row:active {
+  background-color: rgba(33, 150, 243, 0.15) !important;
+}
+
+.clickable-row::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 0;
+  background-color: rgba(33, 150, 243, 0.3);
+  transition: height 0.2s ease;
+}
+
+.clickable-row:hover::after {
+  height: 2px;
+}
+
+.token-name {
+  display: flex;
+  flex-direction: column;
+}
+
+.token-name.clickable {
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.token-name.clickable:hover {
+  background-color: rgba(33, 150, 243, 0.1);
+}
+
+.token-name.clickable:active {
+  background-color: rgba(33, 150, 243, 0.2);
+}
+
+.token-name-text {
+  font-weight: 500;
+  color: #2196F3;
+  display: flex;
+  align-items: center;
+}
+
+.copied-indicator {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 8px;
+  color: #4caf50;
+  background-color: rgba(76, 175, 80, 0.1);
+  border-radius: 50%;
+  width: 18px;
+  height: 18px;
+  font-size: 0.7rem;
+  animation: fadeIn 0.3s ease;
+}
+
+.token-address {
+  font-size: 0.7rem;
+  color: rgba(255, 255, 255, 0.5);
+  margin-top: 3px;
+  font-family: monospace;
+}
+
+td.positive {
+  color: #4caf50;
+}
+
+td.negative {
+  color: #f44336;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { transform: translateY(30px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 768px) {
+  .movements-modal-header {
+    flex-direction: column;
+    gap: 10px;
+    align-items: flex-start;
+  }
+  
+  .time-range-selector {
+    margin: 10px 0;
+    width: 100%;
+    justify-content: space-between;
+  }
+  
+  .stat-card {
+    min-width: 100%;
+  }
+  
+  .summary-stats {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .close-button {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+  }
+  
+  .summary-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+}
+
+/* Make the modal scrollable on very small screens */
+@media (max-height: 700px) {
+  .movements-modal-content {
+    max-height: 90vh;
+  }
+}
+
+/* Custom scrollbar for the table container */
+.tokens-table-container::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.tokens-table-container::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.tokens-table-container::-webkit-scrollbar-thumb {
+  background: rgba(33, 150, 243, 0.3);
+  border-radius: 3px;
+}
+
+.tokens-table-container::-webkit-scrollbar-thumb:hover {
+  background: rgba(33, 150, 243, 0.5);
+}
+
+/* Remove all the summary section styles below */
+/* Summary Section */
+.summary-section {
+  display: none;
+}
+
+.summary-header {
+  display: none;
+}
+
+.period-label {
+  display: none;
+}
+
+.summary-stats {
+  display: none;
+}
+
+.stat-card {
+  display: none;
+}
+
+.stat-card.compact {
+  display: none;
+}
+
+.stat-card:hover {
+  display: none;
+}
+
+.stat-icon {
+  display: none;
+}
+
+.stat-card.compact .stat-icon {
+  display: none;
+}
+
+.stat-icon.positive {
+  display: none;
+}
+
+.stat-icon.negative {
+  display: none;
+}
+
+.stat-content {
+  display: none;
+}
+
+.stat-card.compact .stat-content h4 {
+  display: none;
+}
+
+.stat-card.compact .stat-content p {
+  display: none;
+}
+
+.stat-content h4 {
+  display: none;
+}
+
+.stat-content p {
+  display: none;
+}
+
+.stat-content p.positive {
+  display: none;
+}
+
+.stat-content p.negative {
+  display: none;
+}
+
+.pnl-percentage {
+  display: none;
+} 

@@ -1,0 +1,277 @@
+.token-popup-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1100; /* Higher than modal to appear on top */
+  animation: fadeIn 0.3s ease;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.token-popup-content {
+  background-color: #000;
+  border-radius: 16px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+  width: 90%;
+  max-width: 900px;
+  max-height: 85vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  animation: slideUp 0.3s ease;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  position: relative;
+}
+
+.token-popup-content::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(33, 150, 243, 0.3), transparent);
+}
+
+.token-popup-header {
+  padding: 20px 24px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: linear-gradient(180deg, rgba(33, 150, 243, 0.1) 0%, rgba(20, 20, 20, 0.9) 100%);
+  position: relative;
+}
+
+.token-popup-header h2 {
+  margin: 0;
+  font-size: 1.4rem;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+}
+
+.token-address-display {
+  font-size: 0.8rem;
+  background: rgba(33, 150, 243, 0.1);
+  padding: 5px 10px;
+  border-radius: 8px;
+  font-weight: normal;
+  color: rgba(255, 255, 255, 0.8);
+  border: 1px solid rgba(33, 150, 243, 0.2);
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+}
+
+.token-address-display:hover {
+  background: rgba(33, 150, 243, 0.2);
+  color: #fff;
+}
+
+.token-popup-body {
+  padding: 20px;
+  overflow-y: auto;
+  flex: 1;
+  color: #fff;
+  position: relative;
+}
+
+.token-popup-body::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(circle at 15% 50%, rgba(33, 150, 243, 0.05), transparent 25%),
+              radial-gradient(circle at 85% 30%, rgba(255, 255, 255, 0.03), transparent 25%);
+  pointer-events: none;
+}
+
+/* Movements Section */
+.movements-section {
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+}
+
+.movements-count {
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.6);
+  background: rgba(33, 150, 243, 0.1);
+  padding: 3px 8px;
+  border-radius: 10px;
+  border: 1px solid rgba(33, 150, 243, 0.2);
+}
+
+.movements-table-container {
+  overflow-x: auto;
+  max-height: 400px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.2) rgba(255, 255, 255, 0.05);
+  position: relative;
+  background-color: rgba(20, 20, 20, 0.8);
+}
+
+.movements-table-container::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 40px;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(0, 0, 0, 0.8));
+  z-index: 10;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.movements-table-container.scrollable::before {
+  opacity: 1;
+}
+
+.movements-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+  table-layout: fixed;
+}
+
+.movements-table th,
+.movements-table td {
+  padding: 12px 15px;
+  text-align: left;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.movements-table th {
+  background-color: rgba(30, 30, 30, 0.95);
+  color: rgba(255, 255, 255, 0.8);
+  font-weight: 500;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  letter-spacing: 0.02em;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+
+.movements-table th:first-child {
+  width: 150px;
+}
+
+.movements-table th:nth-child(2),
+.movements-table th:nth-child(4) {
+  width: 20%;
+}
+
+.movements-table th:nth-child(3),
+.movements-table th:nth-child(5) {
+  width: 15%;
+}
+
+.movements-table tr:last-child td {
+  border-bottom: none;
+}
+
+.movements-table tr:hover {
+  background-color: rgba(33, 150, 243, 0.05);
+}
+
+.movements-table td.positive {
+  color: #4caf50;
+}
+
+.movements-table td.negative {
+  color: #f44336;
+}
+
+/* Add subtle row dividers */
+.movements-table tr:not(:last-child) {
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+/* Add subtle hover effect for rows */
+.movements-table tbody tr:hover td {
+  background-color: rgba(33, 150, 243, 0.03);
+}
+
+/* Custom scrollbar for the table container */
+.movements-table-container::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.movements-table-container::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+}
+
+.movements-table-container::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+}
+
+.movements-table-container::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 768px) {
+  .token-popup-header {
+    flex-direction: column;
+    gap: 10px;
+    align-items: flex-start;
+  }
+  
+  .token-address-display {
+    margin-top: 5px;
+  }
+
+  .close-button {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+  }
+  
+  .movements-table {
+    table-layout: auto;
+  }
+  
+  .movements-table th:first-child,
+  .movements-table th:nth-child(2),
+  .movements-table th:nth-child(3),
+  .movements-table th:nth-child(4),
+  .movements-table th:nth-child(5) {
+    width: auto;
+  }
+}
+
+/* Make the modal scrollable on very small screens */
+@media (max-height: 700px) {
+  .token-popup-content {
+    max-height: 90vh;
+  }
+  
+  .movements-table-container {
+    max-height: 300px;
+  }
+} 
