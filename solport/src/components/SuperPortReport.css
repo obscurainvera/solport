@@ -80,35 +80,171 @@
   border-radius: 4px;
 }
 
-/* Filter panel */
-.filter-panel {
-  background-color: rgba(18, 18, 20, 0.95);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: var(--apple-border-radius);
-  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.35);
-  backdrop-filter: blur(25px);
-  -webkit-backdrop-filter: blur(25px);
-  color: var(--apple-silver);
-  animation: fadeInDown 0.3s forwards;
-  z-index: 10;
-  margin-bottom: 1rem;
-  overflow: hidden;
+/* Filter backdrop */
+.filter-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.3);
+  z-index: 999;
+  animation: fadeIn 0.2s ease forwards;
 }
 
-@keyframes fadeInDown {
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Filter panel with premium finish */
+.filter-panel {
+  background-color: var(--true-black);
+  background-image: 
+    linear-gradient(to bottom, rgba(30, 30, 30, 0.2) 0%, rgba(0, 0, 0, 0) 100%),
+    radial-gradient(circle at top right, rgba(40, 40, 45, 0.3), transparent 70%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  box-shadow: 
+    0 10px 30px rgba(0, 0, 0, 0.5),
+    0 1px 0 rgba(255, 255, 255, 0.06) inset;
+  color: #fff;
+  animation: slideInRight 0.25s ease-out forwards;
+  z-index: 1000;
+  overflow: hidden;
+  position: fixed;
+  top: 80px;
+  right: 20px;
+  width: 340px;
+  max-width: 90vw;
+  max-height: calc(100vh - 100px);
+  overflow-y: auto;
+}
+
+/* Premium filter panel header */
+.filter-panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  background-image: linear-gradient(to bottom, rgba(30, 30, 30, 0.4), rgba(20, 20, 20, 0.2));
+}
+
+.filter-panel-title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.95);
+  letter-spacing: 0.3px;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.filter-close-btn {
+  color: rgba(255, 255, 255, 0.6);
+  padding: 0;
+  font-size: 14px;
+  transition: all 0.2s ease;
+  background: transparent;
+  border: none;
+}
+
+.filter-close-btn:hover {
+  color: white;
+  background: transparent;
+  transform: scale(1.1);
+}
+
+@keyframes slideInRight {
   from {
     opacity: 0;
-    transform: translateY(-10px);
+    transform: translateX(100%);
   }
   to {
     opacity: 1;
-    transform: translateY(0);
+    transform: translateX(0);
   }
 }
 
 .filter-section {
-  margin-bottom: 1.5rem;
+  margin-bottom: 28px;
+  padding: 0 24px;
   position: relative;
+}
+
+.filter-section-title {
+  font-size: 14px;
+  font-weight: 500;
+  margin-bottom: 18px;
+  color: rgba(255, 255, 255, 0.9);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  position: relative;
+  letter-spacing: 0.3px;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.2);
+}
+
+.filter-section-title svg {
+  color: var(--apple-blue);
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.3));
+}
+
+/* Fix row spacing */
+.filter-panel .g-3 {
+  --bs-gutter-x: 16px;
+  --bs-gutter-y: 16px;
+  margin-left: 0;
+  margin-right: 0;
+  padding: 0 4px;
+}
+
+.filter-panel .card-body {
+  padding: 16px 0;
+}
+
+/* Premium form controls */
+.filter-panel .form-control,
+.filter-panel .form-select {
+  background-color: rgba(20, 20, 20, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 13px;
+  border-radius: 6px;
+  padding: 10px 14px;
+  height: auto;
+  transition: all 0.2s ease;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.filter-panel .form-control:focus,
+.filter-panel .form-select:focus {
+  border-color: rgba(10, 132, 255, 0.3);
+  box-shadow: 0 0 0 3px rgba(10, 132, 255, 0.1);
+  background-color: rgba(25, 25, 25, 0.8);
+  outline: none;
+}
+
+.filter-panel .form-control::placeholder {
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.filter-panel .form-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.75);
+  margin-bottom: 8px;
+  letter-spacing: 0.3px;
+}
+
+/* Input group styling */
+.filter-panel .input-group-text {
+  background-color: rgba(30, 30, 30, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-right: none;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 12px;
+  padding: 0 12px;
 }
 
 .filter-section:last-child {
@@ -741,6 +877,73 @@
   max-width: 280px;
   text-align: center;
 }
+
+/* Add a footer for buttons */
+.filter-panel .card-body form {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+/* Premium button container */
+.filter-panel .d-flex.justify-content-end {
+  margin-top: 20px;
+  padding: 20px 24px;
+  background: linear-gradient(to bottom, rgba(20, 20, 20, 0.8), rgba(15, 15, 15, 0.9));
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  gap: 14px;
+  box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.1);
+}
+
+/* Premium button styling */
+.filter-panel .btn-primary {
+  background: linear-gradient(135deg, #0a84ff, #0055b3);
+  border: none;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 10px 18px;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  letter-spacing: 0.3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.filter-panel .btn-primary:hover {
+  background: linear-gradient(135deg, #0a8fff, #0060cc);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+.filter-panel .btn-primary:active {
+  transform: translateY(0);
+}
+
+.filter-panel .btn-outline-secondary {
+  background: rgba(30, 30, 30, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 12px;
+  font-weight: 500;
+  padding: 10px 18px;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+  letter-spacing: 0.3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.filter-panel .btn-outline-secondary:hover {
+  background: rgba(40, 40, 40, 0.6);
+  border-color: rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.9);
+}
+
 
 /* Media queries for responsiveness */
 @media (max-width: 992px) {

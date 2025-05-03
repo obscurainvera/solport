@@ -260,6 +260,12 @@ function PortSummaryReport() {
 
   const toggleFilters = () => {
     setShowFilters(prevState => !prevState);
+    // When opening filters, add a class to the body to prevent scrolling
+    if (!showFilters) {
+      document.body.classList.add('filters-open');
+    } else {
+      document.body.classList.remove('filters-open');
+    }
   };
 
   const handleRowClick = (row) => {
@@ -321,16 +327,18 @@ function PortSummaryReport() {
       <div className="port-summary-content">
         {showFilters && (
           <>
-            <div className="filter-backdrop" onClick={toggleFilters}></div>
-            <div className="filter-panel" ref={filterPanelRef}>
+            <div className="port-filter-backdrop" onClick={toggleFilters}></div>
+            <div className="port-filter-panel" ref={filterPanelRef}>
               <button className="close-filter-button" onClick={toggleFilters}>
                 <FaTimes />
               </button>
-              <FilterForm 
-                onApply={handleApplyFilters} 
-                initialFilters={filters} 
-                availableTags={availableTags}
-              />
+              <div className="port-filter-form-wrapper">
+                <FilterForm 
+                  onApply={handleApplyFilters} 
+                  initialFilters={filters} 
+                  availableTags={availableTags}
+                />
+              </div>
             </div>
           </>
         )}

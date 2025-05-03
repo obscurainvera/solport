@@ -26,10 +26,7 @@ const TOKEN_AGE_RANGES = [
 ];
 
 function FilterForm({ onApply, initialFilters = {}, availableTags = [] }) {
-  console.log('FilterForm rendering with props:', { initialFilters, availableTags });
-  
-  // Initialize component state properly from props
-  // This ensures state is reset when the component is remounted
+  // State for filter values
   const [filters, setFilters] = useState({
     tokenId: initialFilters.tokenId || '',
     tokenName: initialFilters.tokenName || '',
@@ -39,19 +36,6 @@ function FilterForm({ onApply, initialFilters = {}, availableTags = [] }) {
     maxTokenAge: initialFilters.maxTokenAge || '',
     selectedTags: initialFilters.selectedTags || [],
   });
-
-  // Clean up state when props change
-  useEffect(() => {
-    setFilters({
-      tokenId: initialFilters.tokenId || '',
-      tokenName: initialFilters.tokenName || '',
-      minMarketCap: initialFilters.minMarketCap || '',
-      maxMarketCap: initialFilters.maxMarketCap || '',
-      minTokenAge: initialFilters.minTokenAge || '',
-      maxTokenAge: initialFilters.maxTokenAge || '',
-      selectedTags: initialFilters.selectedTags || [],
-    });
-  }, [initialFilters]);
 
   // State for popup visibility
   const [showMarketCapPopup, setShowMarketCapPopup] = useState(false);
@@ -310,31 +294,15 @@ function FilterForm({ onApply, initialFilters = {}, availableTags = [] }) {
 
   // Reset filters
   const handleReset = () => {
-    // Clear all filter values
-    setFilters({
-      tokenId: '',
-      tokenName: '',
-      minMarketCap: '',
-      maxMarketCap: '',
-      minTokenAge: '',
-      maxTokenAge: '',
-      selectedTags: []
-    });
-    
-    // Reset all selection states
+    setFilters({ tokenId: '', tokenName: '', minMarketCap: '', maxMarketCap: '', minTokenAge: '', maxTokenAge: '', selectedTags: [] });
     setSelectedMarketCapRanges([]);
     setSelectedTokenAgeRanges([]);
-    setCustomMarketCap({ min: '', max: '' });
-    setCustomTokenAge({ min: '', max: '' });
-    
-    // Close any open popups
     setShowMarketCapPopup(false);
     setShowTokenAgePopup(false);
     setShowMarketCapCustom(false);
     setShowTokenAgeCustom(false);
-    setShowTagPopup(false);
-    
-    // Apply empty filters
+    setCustomMarketCap({ min: '', max: '' });
+    setCustomTokenAge({ min: '', max: '' });
     onApply({});
   };
 

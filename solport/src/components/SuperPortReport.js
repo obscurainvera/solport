@@ -342,10 +342,20 @@ const SuperPortReport = () => {
       
       {/* Filter Panel */}
       {showFilters && (
-        <Row className="mb-4">
-          <Col>
-            <Card className="filter-panel" ref={filterPanelRef}>
-              <Card.Body>
+        <>
+          <div className="filter-backdrop" onClick={() => setShowFilters(false)}></div>
+          <Card className="filter-panel" ref={filterPanelRef}>
+            <div className="filter-panel-header">
+              <h5 className="filter-panel-title">Filter Options</h5>
+              <Button 
+                variant="link" 
+                className="filter-close-btn" 
+                onClick={() => setShowFilters(false)}
+              >
+                <FaTimes />
+              </Button>
+            </div>
+            <Card.Body>
                 <Form onSubmit={applyFilters}>
                   {/* Wallet Breakdown Filters */}
                   <div className="filter-section">
@@ -430,8 +440,7 @@ const SuperPortReport = () => {
                 </Form>
               </Card.Body>
             </Card>
-          </Col>
-        </Row>
+          </>
       )}
       
       {/* Data Table */}

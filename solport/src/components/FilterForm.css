@@ -10,7 +10,6 @@
   margin: 0 auto;
   overflow: hidden;
   font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
-  z-index: 1;
 }
 
 .filter-form::before {
@@ -259,7 +258,7 @@
   background: rgba(0, 0, 0, 0.7);
   backdrop-filter: blur(4px);
   -webkit-backdrop-filter: blur(4px);
-  z-index: 9990;
+  z-index: 90;
   animation: fadeIn 0.2s ease;
 }
 
@@ -274,7 +273,7 @@
   border-radius: 8px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
   padding: 12px;
-  z-index: 9999;
+  z-index: 100;
   animation: fadeIn 0.2s ease;
 }
 
@@ -346,7 +345,7 @@
   border-radius: 8px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
   padding: 16px;
-  z-index: 9999;
+  z-index: 150;
   animation: fadeIn 0.2s ease;
 }
 
@@ -684,23 +683,4 @@
 
 .search-clear-icon:hover {
   color: rgba(255, 255, 255, 0.9);
-}
-
-/* Style the filter form specifically when inside PortSummaryReport */
-.port-summary-container .filter-form {
-  margin: 0;
-  max-width: 100%;
-  border: none;
-  box-shadow: none;
-}
-
-/* Error state styling for form validation */
-.filter-input-error {
-  border-color: rgba(255, 59, 48, 0.5) !important;
-}
-
-.filter-error-message {
-  color: rgba(255, 59, 48, 0.9);
-  font-size: 0.7rem;
-  margin-top: 4px;
 }
