@@ -101,7 +101,7 @@ def analyzeSolanaAttention():
                 "tokens_processed": result
             })
             response.headers.add('Access-Control-Allow-Origin', '*')
-            return response
+            return response     
         
         logger.error("Solana attention analysis failed - no data processed")
         response = jsonify({

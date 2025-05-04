@@ -13,6 +13,7 @@ from database.auth.TokenHandler import TokenHandler
 from database.auth.CredentialsHandler import CredentialsHandler
 from framework.analyticshandlers.AnalyticsHandler import AnalyticsHandler
 from database.notification.NotificationHandler import NotificationHandler
+from database.smartmoneymovements.SmartMoneyMovementsHandler import SmartMoneyMovementsHandler
 from typing import Optional, Any, List, Tuple
 from logs.logger import get_logger
 from framework.analyticsframework.models.BaseModels import ExecutionState, BaseStrategyConfig
@@ -78,6 +79,7 @@ class SQLitePortfolioDB:
         self.analytics = AnalyticsHandler(self.conn_manager)
         self.notification = NotificationHandler(self.conn_manager)
         self.smWalletBehaviour = SmartMoneyWalletBehaviourHandler(self.conn_manager)
+        self.smartMoneyMovements = SmartMoneyMovementsHandler(self.conn_manager)
         
         # Map handler names to instances for dynamic access
         self._handlers = {
@@ -94,7 +96,8 @@ class SQLitePortfolioDB:
             'credentials': self.credentials,
             'analytics': self.analytics,
             'notification': self.notification,
-            'smWalletBehaviour': self.smWalletBehaviour
+            'smWalletBehaviour': self.smWalletBehaviour,
+            'smartMoneyMovements' : self.smartMoneyMovements
         }
 
     def getActiveExecutions(self) -> List[Tuple[ExecutionState, BaseStrategyConfig]]:
@@ -146,7 +149,8 @@ class SQLitePortfolioDB:
             self.volume,
             self.pumpfun,
             self.analytics,
-            self.smWalletBehaviour
+            self.smWalletBehaviour,
+            self.smartMoneyMovements
         ]:
             if hasattr(handler, name):
                 return getattr(handler, name)
