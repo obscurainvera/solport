@@ -42,6 +42,7 @@ class AnalyticsHandler(BaseSQLiteHandler):
                     status INTEGER DEFAULT 1,
                     active INTEGER DEFAULT 1,
                     superuser INTEGER DEFAULT 0,
+                    isjournalstrategy INTEGER DEFAULT 1,
                     createdat TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     updatedat TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
@@ -62,6 +63,8 @@ class AnalyticsHandler(BaseSQLiteHandler):
                     amounttakenout DECIMAL,
                     realizedpnl DECIMAL,
                     realizedpnlpercent DECIMAL,
+                    recordedtokenage INTEGER,
+                    completedtokenage INTEGER,
                     status INTEGER NOT NULL,
                     notes TEXT,
                     createdat TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -99,8 +102,8 @@ class AnalyticsHandler(BaseSQLiteHandler):
                         strategyname, source, description,
                         strategyentryconditions, chartconditions, investmentinstructions,
                         profittakinginstructions, riskmanagementinstructions,
-                        moonbaginstructions, additionalinstructions, status, active, superuser, createdat, updatedat
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        moonbaginstructions, additionalinstructions, status, active, superuser, isjournalstrategy, createdat, updatedat
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ''', (
                     strategyConfig['strategyname'],
                     strategyConfig['source'],
@@ -115,6 +118,7 @@ class AnalyticsHandler(BaseSQLiteHandler):
                     strategyConfig.get('status', StrategyStatus.ACTIVE.value),
                     strategyConfig.get('active', True),
                     1 if strategyConfig.get('superuser', False) else 0,
+                    1 if strategyConfig.get('isjournalstrategy', False) else 0,
                     strategyConfig.get('createdat', datetime.now()),
                     strategyConfig.get('updatedat', datetime.now())
                 ))
@@ -179,8 +183,8 @@ class AnalyticsHandler(BaseSQLiteHandler):
                     INSERT INTO strategyexecution (
                         strategyid, tokenid, tokenname, status, allotedamount,
                         description, remainingcoins, investedamount, avgentryprice,
-                        realizedpnl, realizedpnlpercent, notes, createdat, updatedat
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        realizedpnl, realizedpnlpercent, recordedtokenage, notes, createdat, updatedat
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ''', (
                     executionData.strategyid,
                     executionData.tokenid,
@@ -193,6 +197,7 @@ class AnalyticsHandler(BaseSQLiteHandler):
                     str(executionData.avgentryprice) if executionData.avgentryprice is not None else None,
                     str(executionData.realizedpnl) if executionData.realizedpnl is not None else None,
                     str(executionData.realizedpnlpercent) if executionData.realizedpnlpercent is not None else None,
+                    executionData.recordedtokenage if hasattr(executionData, 'recordedtokenage') else None,
                     executionData.notes,
                     executionData.createdat,
                     executionData.updatedat
@@ -356,8 +361,9 @@ class AnalyticsHandler(BaseSQLiteHandler):
             return False
 
     def updateExecution(self, executionId: int, investedAmount: Decimal = None, 
-                       remainingCoins: Decimal = None, avgEntryPrice: Decimal = None,
-                       status: ExecutionStatus = None, amountTakenOut: Decimal = None) -> bool:
+                        remainingCoins: Decimal = None, avgEntryPrice: Decimal = None,
+                        status: ExecutionStatus = None, amountTakenOut: Decimal = None,
+                        recordedTokenAge: int = None, completedTokenAge: int = None) -> bool:
         """Update execution details"""
         try:
             # Build update query parts
@@ -379,6 +385,14 @@ class AnalyticsHandler(BaseSQLiteHandler):
             if amountTakenOut is not None:
                 updateParts.append("amounttakenout = ?")
                 values.append(str(amountTakenOut))
+                
+            if recordedTokenAge is not None:
+                updateParts.append("recordedtokenage = ?")
+                values.append(recordedTokenAge)
+                
+            if completedTokenAge is not None:
+                updateParts.append("completedtokenage = ?")
+                values.append(completedTokenAge)
                 
             if status is not None:
                 updateParts.append("status = ?")

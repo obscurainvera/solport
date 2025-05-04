@@ -479,3 +479,80 @@ class PushTokenAPI:
         except Exception as e:
             logger.error(f"Error pushing token to strategy: {str(e)}", exc_info=True)
             return None 
+            
+    def pushTokenToStrategyWithEntryPrices(self, tokenId: str, sourceType: str, strategyId: int, 
+                                          description: Optional[str] = None,
+                                          entryPrices: List[float] = None,
+                                          allocatedAmounts: List[float] = None) -> Optional[int]:
+        """
+        Push a token to a specific strategy with entry price points and allocated amounts
+        
+        Args:
+            tokenId: ID of the token to push
+            sourceType: Type of data source
+            strategyId: ID of the strategy to push to
+            description: Optional description for the execution
+            entryPrices: List of entry price points
+            allocatedAmounts: List of allocated amounts corresponding to entry prices
+            
+        Returns:
+            Optional[int]: Execution ID if successful, None otherwise
+        """
+        try:
+            # Get token data from source
+            tokenData = self.getSourceTokenDataHandler(sourceType, tokenId)
+            if not tokenData:
+                logger.error(f"Token {tokenId} not found in {sourceType} source")
+                return None
+
+            # Get strategy configuration
+            strategyConfig = self.analyticsHandler.getStrategyById(strategyId)
+            if not strategyConfig:
+                logger.error(f"Strategy with ID {strategyId} not found")
+                return None
+
+            # Verify strategy is for the correct source type
+            if strategyConfig['source'] != sourceType:
+                logger.error(f"Strategy {strategyId} is not configured for source type {sourceType}")
+                return None
+
+            # Get the appropriate strategy handler
+            strategyHandler = self.strategyHandlers.get(sourceType)
+            if not strategyHandler:
+                logger.error(f"No strategy handler found for source type: {sourceType}")
+                return None
+
+            # Convert dictionary to StrategyConfig model
+            strategyConfigModel = StrategyConfig(**strategyConfig)
+            
+            # Add entry prices and allocated amounts to description if provided
+            if entryPrices and allocatedAmounts:
+                entryInfo = "\nEntry Prices and Allocated Amounts:\n"
+                for i, (price, amount) in enumerate(zip(entryPrices, allocatedAmounts)):
+                    entryInfo += f"Entry {i+1}: Price ${price} - Amount ${amount}\n"
+                
+                if description:
+                    description = description + entryInfo
+                else:
+                    description = entryInfo
+
+            # Process token through specific strategy
+            executionId = self.strategyFramework.handleStrategyForTokenWithoutValidation(
+                strategy=strategyHandler,
+                tokenData=tokenData,
+                strategyConfig=strategyConfigModel,
+                description=description,
+                entryPrices=entryPrices,
+                allocatedAmounts=allocatedAmounts
+            )
+
+            if executionId:
+                logger.info(f"Successfully pushed token {tokenId} to strategy {strategyId} with entry prices")
+                return executionId
+            else:
+                logger.error(f"Failed to push token {tokenId} to strategy {strategyId} with entry prices")
+                return None
+
+        except Exception as e:
+            logger.error(f"Error pushing token to strategy with entry prices: {str(e)}", exc_info=True)
+            return None
