@@ -17,8 +17,8 @@ TOKEN_REFRESH_BUFFER_MINUTES = 1
 RELOGIN_BUFFER_MINUTES = 5
 
 # Define the Chainedge cookie
-CHAINEDGE_COOKIE = '_ga=GA1.1.60016713.1730025993; __stripe_mid=86d76ae8-5f87-4e05-8e8e-c5eaf0b99f8895f778; _ga_D6FYDK42KW=deleted; _ga_30LVG9BH2W=GS1.1.1744184486.295.0.1744184486.0.0.0; _ga_BRMXHSC2T7=GS1.1.1744184486.255.0.1744184486.0.0.0; _ga_QSLT10C1WE=GS1.1.1744184486.128.0.1744184486.0.0.0; csrftoken=IzcbpugTBOq7bzrqtsYjX298mBNafmy0; sessionid=6lx05n6m0sz2iugrul7q9rl5ucitadqj; _ga_D6FYDK42KW=GS1.1.1744192655.652.1.1744192685.0.0.'
-SOLSCAN_COOKIE ='_ga=GA1.1.1697493596.1730686033; _ga_PS3V7B7KV0=GS1.1.1744186648.254.1.1744187510.0.0.0; cf_clearance=a9dU4Li55V4mpHAX3ICiOCRT9Fkgu6ycJzw.jtCHWNY-1744187510-1.2.1.1-xET_gHmpiSU7HyrktQgiu6nZHII.mWTEGJXon5Ehncto8tMmOvBf7WOKWimJGqhS0x8qbte0obySpUL.K.2qmIybPhuauK3_b.HEenK66g4wLQlSenA9UhQ1HSP6Mz9BdRzKSxCROPyrSyPfrO7sApxTZklEpXv54P9ubLbybMP5LZIBeYy_xVGl23noWF_Z8S5luHeakphLZ_5LvZOmQCtyG7FLhgAGUI01Fv8KjKbQ9q4gefOcaob9334DxoZ6Zg7JlcYMH1o9tMEhaNjZ46IhVeJkf1HR5B0BuUX5.JrnIDlJLGR2g7VtFPy7KCZrb.geaG61OfEzTMHP09wk2nQHYa.M8bKb3RWcqv58gCqHKVlOZV.1YjURGYVUMydF'
+CHAINEDGE_COOKIE = '_ga=GA1.1.60016713.1730025993; __stripe_mid=86d76ae8-5f87-4e05-8e8e-c5eaf0b99f8895f778; _ga_D6FYDK42KW=deleted; csrftoken=y5DJ5mM0eDvvNb2CKdD5m53bOJkwOYms; sessionid=un2tyneefkhkr9kze6zs47mt32nocw7p; _ga_30LVG9BH2W=GS1.1.1746105089.392.0.1746105089.0.0.0; _ga_BRMXHSC2T7=GS1.1.1746105089.352.0.1746105089.0.0.0; _ga_QSLT10C1WE=GS1.1.1746105089.225.0.1746105089.0.0.0; _ga_D6FYDK42KW=GS1.1.1746105063.771.1.1746105187.0.0.0'
+SOLSCAN_COOKIE ='_ga=GA1.1.1697493596.1730686033; _ga_PS3V7B7KV0=GS1.1.1746075759.308.0.1746075759.0.0.0; cf_clearance=0za0WnMlMvQXyENYCJ9tkSh2KgqrC_ZnWPxX7ofzJa8-1746105247-1.2.1.1-GhbwZFoxT_rt7CDP0SeaJI5HcuV0DlBvOiFjhBtgYgSHmxZz13.C4rj1_Zsp.3EAjSfz8cwTXlVVK.WUgykKHsnERKBx9DSUKoE5Ohme_LYHGsF6kx8kNoLDzHkc3GV2wbXn3y6CELMUNa2oIcsnjxQAnsZ7doTvYyPM.bgQ7IO0Pv7w8iHvwYkqaHp9SJvihUgXrQkggK3rfHzpHc62HN9PeYEeAnVneSl6SbaGAt8DdYggEFkNP6vbwiuA8CdLtOoGJb1ys0EkxR2zi6T2s3aTDu_WUE69B8rJ5Y.pyblj7wn.mcuRXzb7XLnYK4uzz5VNk79oKyUs1A4M2vhUbZQl.67rF6fKhsOrQpWFCquou_ASukxuhceZVxG1gJVH'
 TRADING_TERMINAL_COOKIE = '_ga=GA1.1.60016713.1730025993; _ga_30LVG9BH2W=deleted; _ga_QSLT10C1WE=deleted; wallet_created=true; wallet_exported=true; passkey_wallet=true; refreshToken=undefined; _ga_D6FYDK42KW=GS1.1.1743506365.611.1.1743506835.0.0.0; accessToken=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzQzNTA3ODQ5LCJpYXQiOjE3NDMzMTIwODksImp0aSI6Ijg4NThlMGRiODM2NDQ4YTE4ZGYzZTcxYWUyMThmZWQwIiwidXNlcl9pZCI6MTQ2MCwid2FsbGV0X2NyZWF0ZWQiOnRydWUsIndhbGxldF9leHBvcnRlZCI6dHJ1ZSwicGFzc2tleV93YWxsZXQiOnRydWUsInJlZmVycmVyX2xpbmsiOiIiLCJyZWZlcnJlcl92YWxpZCI6ZmFsc2V9.rEnYGufiUsV2R8-yP_MBVNxTevtNk2Wc_AczMxRUAKE; _ga_30LVG9BH2W=GS1.1.1743506945.272.1.1743506952.0.0.0; _ga_BRMXHSC2T7=GS1.1.1743506945.232.1.1743506952.0.0.0; _ga_QSLT10C1WE=GS1.1.1743506945.105.1.1743506952.0.0.0'
 
 
@@ -28,22 +28,22 @@ COOKIE_MAP = {
     # Action-specific cookies
     'portfolio': {
         CHAINEDGE_COOKIE: {
-            'expiry': datetime(2025, 4, 10)
+            'expiry': datetime(2025, 5, 2)
         }
     },
     'walletsinvested': {
         CHAINEDGE_COOKIE: {
-            'expiry': datetime(2025, 4, 10)
+            'expiry': datetime(2025, 5, 2)
         }       
     },
     'solscan': {
         SOLSCAN_COOKIE: {
-            'expiry': datetime(2025, 4, 10)
+            'expiry': datetime(2025, 5, 2)
         }
     },
     'smartmoneywallets': {
         CHAINEDGE_COOKIE: {
-            'expiry': datetime(2025, 4, 10)
+            'expiry': datetime(2025, 5, 2)
         }
     },
     'smwallettoppnltoken': {
@@ -53,7 +53,7 @@ COOKIE_MAP = {
     },
     'attention': {
         CHAINEDGE_COOKIE: {
-            'expiry': datetime(2025, 4, 10)  
+            'expiry': datetime(2025, 5, 2)  
         }
     },
     'volumebot': {

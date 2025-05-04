@@ -25,6 +25,8 @@ class AttentionAction:
         self.timeout = 60
         self.max_retries = 3
         self.api_url = "https://app.chainedge.io/attention_score_query/"
+        self.solana_api_url = "https://app.chainedge.io/attention_score_query_sol/?days=30D"
+        self.perps_api_url = "https://app.chainedge.io/perps_attention_score/"
     
     def _configure_headers(self):
         """Set up request headers"""
@@ -34,13 +36,13 @@ class AttentionAction:
             'origin': "https://app.chainedge.io",
             'priority': 'u=1, i',
             'referer': f'https://app.chainedge.io/attention_score/',
-            'sec-ch-ua': '"Not A(Brand";v="8", "Chromium";v="132", "Microsoft Edge";v="132"',
+            'sec-ch-ua': '"Microsoft Edge";v="135", "Not-A.Brand";v="8", "Chromium";v="135"',
             'sec-ch-ua-mobile': '?0',
             'sec-ch-ua-platform': '"macOS"',
             'sec-fetch-dest': 'empty',
             'sec-fetch-mode': 'cors',
             'sec-fetch-site': 'same-origin',
-            'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36 Edg/132.0.0.0',
+            'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36 Edg/135.0.0.0',
             'x-requested-with': 'XMLHttpRequest'
         }
     
@@ -217,8 +219,8 @@ class AttentionAction:
             Optional[Dict[str, Any]]: API response as JSON or None if failed
         """
         try:
-            response = self.session.post(
-                "https://app.chainedge.io/attention_score_query_sol/",
+            response = self.session.get(
+                self.solana_api_url,
                 headers={**self.headers, 'Cookie': cookie},
                 timeout=self.timeout
             )
@@ -233,4 +235,72 @@ class AttentionAction:
         except Exception as e:
             logger.error(f"API request failed: {str(e)}")
             return None
-    
+
+    def persistAttentionDataForPerpsFromAPI(self, cookie: str) -> Optional[List[AttentionData]]:
+        """
+        Execute perps attention score request and process the response
+        
+        Args:
+            cookie: Authentication cookie for the API
+            
+        Returns:
+            Optional[List[AttentionData]]: List of processed attention data or None if failed
+        """
+        startTime = time.time()
+        try:
+            # Fetch data from API
+            responseJson = self._fetchDataForPerpsFromAPI(cookie)
+            if not responseJson:
+                return None
+                
+            # Log API response structure
+            self._logAPIResponseStructure(responseJson)
+
+            # Parse the response
+            attentionData = attentionParser.parsePerpsAttentionData(responseJson)
+            
+            if attentionData:
+                # Store the data in the database
+                self.persistAttentionData(attentionData)
+                
+                # Log success
+                logger.info(f"Successfully processed {len(attentionData)} perps attention scores at {datetime.now()}")
+                executionTime = time.time() - startTime
+                logger.info(f"Action completed in {executionTime:.2f} seconds")
+                return attentionData
+            
+            return None
+            
+        except Exception as e:
+            logger.error(f"Failed to fetch perps attention scores: {str(e)}")
+            executionTime = time.time() - startTime
+            logger.error(f"Action failed after {executionTime:.2f} seconds")
+            return None
+
+    def _fetchDataForPerpsFromAPI(self, cookie: str) -> Optional[Dict[str, Any]]:
+        """
+        Fetch perps data from the API
+        
+        Args:
+            cookie: Authentication cookie for the API
+            
+        Returns:
+            Optional[Dict[str, Any]]: API response as JSON or None if failed
+        """
+        try:
+            response = self.session.get(
+                self.perps_api_url,
+                headers={**self.headers, 'Cookie': cookie},
+                timeout=self.timeout
+            )
+            
+            response.raise_for_status()
+            
+            if not response.content:
+                raise ValueError("Empty response received")
+                
+            return response.json()
+            
+        except Exception as e:
+            logger.error(f"API request failed: {str(e)}")
+            return None

@@ -21,7 +21,7 @@ def parsePortSummaryAPIResponse(response: Dict[str, Any]) -> List[PortfolioSumma
                 chainname=str(rawItem['chain_name']),
                 tokenid=str(rawItem['token_id']),
                 name=str(rawItem['name']),
-                tokenage=_parseTokenAge(rawItem.get('tokenagetoday', '')),
+                tokenage=str(rawItem.get('tokenagetoday', '')),
                 mcap=_convertKmString(rawItem['fdv_or_mcap']),
                 currentprice=_safeDecimal(rawItem.get('price_1h', '0')),
                 avgprice=_safeDecimal(rawItem['avg_buy_price']),
@@ -93,7 +93,7 @@ def _convertKmString(value: Any) -> float:
 def filterPortfolioItems(item: PortfolioSummary) -> bool:
     """Filter out invalid or unwanted portfolio items"""
     # Minimum smart balance threshold
-    if item.smartbalance < 100_000:
+    if item.smartbalance < 100000:
         return False
         
     return True
@@ -102,15 +102,3 @@ def _parseMarketcap(value: Any) -> str:
     """Handle marketcap normalization"""
     strValue = str(value).lower().replace('mil', 'million')
     return re.sub(r'\s+', '_', strValue)
-
-def _parseTokenAge(tokenage: str) -> int:
-    """Parse token age from string to integer"""
-    if tokenage.endswith('d'):
-        return int(tokenage[:-1])
-    elif tokenage.endswith('w'):
-        return int(tokenage[:-1]) * 7
-    elif tokenage.endswith('m'):
-        return int(tokenage[:-1]) * 30
-    else:
-        logger.warning(f"Unknown token age format: {tokenage}")
-        return 0
