@@ -998,6 +998,34 @@ function Operations() {
     xhr.send(JSON.stringify({}));
   };
 
+  // Perps Attention Analysis function
+  const analyzePerpsAttention = () => {
+    showLoading('perps-attention-analysis');
+    console.log(`Sending XHR request to: ${API_BASE_URL}/api/attention/perps/analyze`);
+    
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', `${API_BASE_URL}/api/attention/perps/analyze`, true);
+    xhr.setRequestHeader('Content-Type', 'application/json');
+    xhr.setRequestHeader('Accept', 'application/json');
+    
+    xhr.onload = function() {
+      if (xhr.status === 200) {
+        const response = JSON.parse(xhr.responseText);
+        showStatus('perps-attention-analysis-status', 'Perps attention analysis completed successfully');
+      } else {
+        showStatus('perps-attention-analysis-status', 'Failed to analyze perps attention', true);
+      }
+      hideLoading('perps-attention-analysis');
+    };
+    
+    xhr.onerror = function() {
+      showStatus('perps-attention-analysis-status', 'Failed to connect to the server', true);
+      hideLoading('perps-attention-analysis');
+    };
+    
+    xhr.send(JSON.stringify({}));
+  };
+
   // Scheduler functions
   const updateJobSchedule = async () => {
     if (!selectedJobId) {
@@ -1678,6 +1706,13 @@ function Operations() {
             >
               <FaRegLightbulb />
               <span>Solana Attention</span>
+            </button>
+            <button 
+              className={`nav-tile ${activeSection === 'perps-attention-section' ? 'active' : ''}`}
+              onClick={() => scrollToSection('perps-attention-section')}
+            >
+              <FaRegChartBar />
+              <span>Perps Attention</span>
             </button>
             <button 
               className={`nav-tile ${activeSection === 'scheduler-section' ? 'active' : ''}`}
@@ -2375,6 +2410,47 @@ function Operations() {
           </div>
         </section>
 
+        {/* Perps Attention Section */}
+        <section className="section" id="perps-attention-section">
+          <div className="section-content">
+            <div className="section-row">
+              <div className="col">
+                <h1 className="premium-title">PERPS ATTENTION</h1>
+                <p className="premium-subtitle">Analyze Perpetuals market attention patterns</p>
+                <div className="section-description">
+                  <p>
+                    Track and analyze attention patterns in the perpetuals market to identify potential opportunities.
+                    Monitor social trends, trading volumes, and other attention metrics for perpetual contracts.
+                  </p>
+                </div>
+              </div>
+              <div className="col">
+                <div className="luxury-card">
+                  <div className="card-content">
+                    <div className="card-header">
+                      <h3>Perps Attention Analysis</h3>
+                      <div className="badge badge-blue">Analytics</div>
+                    </div>
+                    <div className="pattern pattern-grid"></div>
+                    <p>
+                      Analyze perpetuals market attention patterns to identify potential opportunities.
+                    </p>
+                    <button 
+                      className="luxury-button" 
+                      onClick={analyzePerpsAttention}
+                      disabled={loading['perps-attention-analysis']}
+                    >
+                      Analyze Perps Attention
+                      {loading['perps-attention-analysis'] && <div className="loading-spinner"></div>}
+                    </button>
+                    <div id="perps-attention-analysis-status" className="status-message"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
         {/* Scheduler Section */}
         <section className="section" id="scheduler-section">
           <div className="section-content">
@@ -2716,4 +2792,4 @@ function Operations() {
   );
 }
 
-export default Operations; 
+export default Operations;
