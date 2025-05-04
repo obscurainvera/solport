@@ -194,6 +194,81 @@ def pushTokenToStrategy():
             'message': f'Internal server error: {str(e)}'
         }), 500
 
+@push_token_bp.route('/api/analyticsframework/pushtokenstrategywithentrys', methods=['POST'])
+def pushTokenToStrategyWithEntryPrices():
+    """
+    API endpoint to push a token to a specific strategy with entry price points and allocated amounts
+    """
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({'status': 'error', 'message': 'No data provided'}), 400
+
+        # Validate required fields
+        tokenId = data.get('token_id')
+        sourceType = data.get('source_type')
+        strategyId = data.get('strategy_id')
+        description = data.get('description')
+        entryPrices = data.get('entry_prices', [])
+        allocatedAmounts = data.get('allocated_amounts', [])
+        
+        if not all([tokenId, sourceType, strategyId]):
+            return jsonify({
+                'status': 'error',
+                'message': 'Missing required fields: token_id, source_type, and strategy_id'
+            }), 400
+
+        if not SourceType.isValidSource(sourceType):
+            return jsonify({
+                'status': 'error',
+                'message': f'Invalid source type: {sourceType}'
+            }), 400
+            
+        # Validate entry prices and allocated amounts
+        if len(entryPrices) != len(allocatedAmounts):
+            return jsonify({
+                'status': 'error',
+                'message': 'Entry prices and allocated amounts must have the same length'
+            }), 400
+
+        # Initialize PushTokenAPI and push token to strategy with entry prices
+        pushTokenApiInstance = PushTokenAPI()
+        executionId = pushTokenApiInstance.pushTokenToStrategyWithEntryPrices(
+            tokenId=tokenId,
+            sourceType=sourceType,
+            strategyId=strategyId,
+            description=description,
+            entryPrices=entryPrices,
+            allocatedAmounts=allocatedAmounts
+        )
+
+        if executionId:
+            return jsonify({
+                'status': 'success',
+                'message': 'Token pushed to strategy successfully with entry prices',
+                'data': {
+                    'token_id': tokenId,
+                    'source': sourceType,
+                    'strategy_id': strategyId,
+                    'execution_id': executionId,
+                    'description': description,
+                    'entry_prices': entryPrices,
+                    'allocated_amounts': allocatedAmounts
+                }
+            }), 200
+        else:
+            return jsonify({
+                'status': 'error',
+                'message': 'Failed to push token to strategy with entry prices'
+            }), 500
+
+    except Exception as e:
+        logger.error(f"Push token to strategy with entry prices API error: {str(e)}", exc_info=True)
+        return jsonify({
+            'status': 'error',
+            'message': f'Internal server error: {str(e)}'
+        }), 500
+
 @push_token_bp.route('/api/analyticsframework/strategies', methods=['GET'])
 def getStrategies():
     """

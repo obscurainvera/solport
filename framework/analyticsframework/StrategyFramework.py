@@ -108,6 +108,16 @@ class StrategyFramework:
                          strategyConfig: BaseStrategyConfig, description: Optional[str] = None) -> Optional[int]:
         """Create a new strategy execution"""
         try:
+            # Try to get token age from DexScreener
+            tokenAge = None
+            try:
+                tokenPriceInfo = self.dexScreener.getTokenPrice(tokenData.tokenid)
+                if tokenPriceInfo and hasattr(tokenPriceInfo, 'tokenAge'):
+                    tokenAge = tokenPriceInfo.tokenAge
+                    logger.info(f"Retrieved token age for {tokenData.tokenid}: {tokenAge} days")
+            except Exception as e:
+                logger.error(f"Failed to get token age for {tokenData.tokenid}: {str(e)}")
+
             # Create execution state with only required initial details
             executionState = ExecutionState(
                 executionid=0,  # Set by database
@@ -117,6 +127,7 @@ class StrategyFramework:
                 allotedamount=strategyConfig.investmentinstructions.allocatedamount,
                 status=ExecutionStatus.ACTIVE,
                 description=description or strategyConfig.description,
+                recordedtokenage=tokenAge,  # Set token age if available
                 createdat=datetime.now(),
                 updatedat=datetime.now()
             )
@@ -453,7 +464,9 @@ class StrategyFramework:
             logger.error(f"Error checking stop loss: {str(e)}")
             return False
         
-    def handleStrategyForTokenWithoutValidation(self, strategy: BaseStrategy, tokenData: BaseTokenData, strategyConfig: BaseStrategyConfig, description: Optional[str] = None) -> Optional[int]:
+    def handleStrategyForTokenWithoutValidation(self, strategy: BaseStrategy, tokenData: BaseTokenData, strategyConfig: BaseStrategyConfig, 
+                                                description: Optional[str] = None, entryPrices: List[float] = None, 
+                                                allocatedAmounts: List[float] = None) -> Optional[int]:
         """Process token through a single strategy"""
         try:
 
@@ -473,12 +486,35 @@ class StrategyFramework:
                     totalCoins = sum(t['coins'] for t in tradeDetails)
                     avgEntryPrice = totalAmount / totalCoins if totalCoins > 0 else Decimal('0')
                     
+                    # Try to get token age from DexScreener if not already set
+                    tokenAge = None
+                    try:
+                        executionData = self.analyticsHandler.getExecutionById(executionId)
+                        if executionData and not executionData.get('recordedtokenage'):
+                            tokenPriceInfo = self.dexScreener.getTokenPrice(tokenData.tokenid)
+                            if tokenPriceInfo and hasattr(tokenPriceInfo, 'tokenAge'):
+                                tokenAge = tokenPriceInfo.tokenAge
+                                logger.info(f"Retrieved token age for {tokenData.tokenid}: {tokenAge} days")
+                    except Exception as e:
+                        logger.error(f"Failed to get token age for {tokenData.tokenid}: {str(e)}")
+                    
+                    # If entry prices and allocated amounts are provided, include them in the notes
+                    notes = None
+                    if entryPrices and allocatedAmounts and len(entryPrices) == len(allocatedAmounts):
+                        entryInfo = {}
+                        for i, (price, amount) in enumerate(zip(entryPrices, allocatedAmounts)):
+                            entryInfo[f"entry_{i+1}"] = {"price": price, "amount": amount}
+                        notes = json.dumps(entryInfo)
+                        logger.info(f"Added entry prices and allocated amounts to execution {executionId}: {notes}")
+                    
                     self.analyticsHandler.updateExecution(
                         executionId=executionId,
                         investedAmount=totalAmount,
                         remainingCoins=totalCoins,
                         avgEntryPrice=avgEntryPrice,
-                        status=ExecutionStatus.INVESTED
+                        status=ExecutionStatus.INVESTED,
+                        recordedTokenAge=tokenAge,
+                        notes=notes
                     )
                 
                 else:
