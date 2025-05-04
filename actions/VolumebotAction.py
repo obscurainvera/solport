@@ -114,6 +114,7 @@ class VolumebotAction:
             logger.info(f"Making request to: {url} with params: {params}")
             
             response = requests.get(url, headers=headers, params=params)
+            
             response.raise_for_status()
             return response.json()
 
@@ -225,7 +226,7 @@ class VolumebotAction:
                         successCount += 1
                         logger.info(f"Successfully pushed token {tokenData.tokenid} ({tokenData.tokenname}) to strategy framework (timeago: {timeDiff} seconds)")
                     else:
-                        logger.warning(f"Failed to push token {tokenData.tokenid} ({tokenData.tokenname}) to strategy framework")
+                        logger.warning(f"Failed to push token {tokenData.tokenid} ({tokenData.tokenname}) to strategy framework - no active strategies or processing error")
                 
                 except Exception as token_error:
                     logger.error(f"Error processing token {token.tokenid}: {str(token_error)}")

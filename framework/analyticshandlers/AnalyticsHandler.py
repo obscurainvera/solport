@@ -141,13 +141,13 @@ class AnalyticsHandler(BaseSQLiteHandler):
                 if pushSource == PushSource.API:
                     cursor.execute('''
                         SELECT * FROM strategyconfig 
-                        WHERE source = ? AND active = 1 AND status = ? AND superuser = 1
-                    ''', (source, StrategyStatus.ACTIVE.value))
+                        WHERE source = ? AND active = 1 AND superuser = 1
+                    ''', (source,))
                 else:
                     cursor.execute('''
                         SELECT * FROM strategyconfig 
-                        WHERE source = ? AND active = 1 AND status = ? AND superuser = 0
-                    ''', (source, StrategyStatus.ACTIVE.value))
+                        WHERE source = ? AND active = 1 AND superuser = 0
+                    ''', (source,))
                 
                 columns = [col[0] for col in cursor.description]
                 strategies = []

@@ -91,3 +91,36 @@ class AttentionScheduler:
         except Exception as e:
             logger.error(f"Failed to execute Solana attention analysis: {str(e)}") 
             return False
+
+    def persistAttentionDataForPerpsFromAPI(self):
+        """Execute Perps-specific attention score collection and analysis"""
+        validCookies = [
+            cookie for cookie in COOKIE_MAP.get('attention', {})
+            if isValidCookie(cookie, 'attention')
+        ]
+
+        if not validCookies:
+            logger.warning("No valid cookies available for Perps attention API")
+            return False
+
+        try:
+            for cookie in validCookies:
+                logger.info(f"Using cookie for Perps API: {cookie[:15]}...")
+                
+                # Get and process Perps attention scores
+                attentionData = self.action.persistAttentionDataForPerpsFromAPI(cookie=cookie)
+
+                # Update inactive tokens after processing new data
+                self.db.attention.updateInactiveTokens()
+                logger.info("Updated status of inactive Perps tokens")
+                
+                if attentionData and len(attentionData) > 0:
+                    logger.info(f"Successfully processed {len(attentionData)} Perps attention scores")
+                    return len(attentionData)
+                
+                logger.warning("No Perps attention data received")
+                return False
+                
+        except Exception as e:
+            logger.error(f"Failed to execute Perps attention analysis: {str(e)}") 
+            return False

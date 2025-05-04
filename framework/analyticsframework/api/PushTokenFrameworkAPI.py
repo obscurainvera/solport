@@ -183,7 +183,11 @@ class PushTokenAPI:
                         f"with strategy {strategyConfig.strategyid} "
                         f"(execution_id: {executionId})"
                     )
+                else:
+                    logger.warning(f"Failed to process token {tokenData.tokenid} with strategy {strategyConfig.strategyid}")
                     
+            if not success:
+                logger.warning(f"Token {tokenData.tokenid} failed to process with any strategy")
             return success
             
         except Exception as e:

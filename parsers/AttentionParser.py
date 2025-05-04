@@ -323,4 +323,52 @@ def parseSolanaAttentionData(apiResponse: Dict[str, Any]) -> Optional[List[Atten
             continue
     
     logger.info(f"Successfully parsed {successfully_parsed} Solana attention data items")
-    return parsedItems if parsedItems else None 
+    return parsedItems if parsedItems else None
+
+
+def parsePerpsAttentionData(response: Dict[str, Any]) -> List[AttentionData]:
+    """
+    Parse Perps attention data from API response
+    
+    Args:
+        response: Raw API response containing Perps attention data
+        
+    Returns:
+        List[AttentionData]: List of parsed attention data objects
+    """
+    attentionData = []
+    currentDate = datetime.now().strftime("%Y-%m-%d")
+    
+    
+    try:
+        # Extract data6 which contains the Perps attention scores
+        perpsData = response.get('data6', [])
+        
+        for item in perpsData:
+            # Get attention score
+            attention_score = _get_attention_score(item)
+            tokenname = str(item.get('token_symbol', ''))
+                
+            try:
+                attentionData.append(
+                    AttentionData(
+                        name=tokenname,
+                        chain='perps',
+                        attentionscore=Decimal(attention_score),
+                        change1dbps=_convertToBps(item.get('1d_chg_bps')),
+                        change7dbps=_convertToBps(item.get('7d_chg_bps', 0)),
+                        change30dbps=_convertToBps(item.get('30d_chg_bps', 0)),
+                        recordedat=datetime.now(),
+                        datasource='chainedge',
+                        tokenid="perps_"+ tokenname
+                    )
+                )
+            except (ValueError, TypeError, KeyError) as e:
+                logger.error(f"Failed to parse Perps attention item: {str(e)}")
+                continue
+                
+        return attentionData
+        
+    except Exception as e:
+        logger.error(f"Failed to parse Perps attention data: {str(e)}")
+        return []

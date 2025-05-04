@@ -95,14 +95,28 @@ class AttentionHandler(BaseSQLiteHandler):
                 # Check if token exists
                 existing = self._getExistingTokenRegistryEntry(cursor, data.tokenid)
                 status = existing['currentstatus'] if existing else AttentionStatusEnum.NEW.value
+                
+                # If status is NEW and difference between current time and createdat > 24 hrs, set status to ACTIVE
+                if status == AttentionStatusEnum.NEW.value and existing:
+                    # Fetch createdat from registry entry
+                    createdat = existing['createdat'] if 'createdat' in existing.keys() else None
+                    if createdat:
+                        try:
+                            createdat_dt = datetime.fromisoformat(createdat)
+                        except Exception:
+                            # fallback for possible datetime format issues
+                            createdat_dt = datetime.strptime(createdat, "%Y-%m-%d %H:%M:%S")
+                        if currentTime.date() != createdat_dt.date():
+                            status = AttentionStatusEnum.ACTIVE.value
+                
                 if status == AttentionStatusEnum.INACTIVE.value:
-                    status = AttentionStatusEnum.NEW.value
+                    status = AttentionStatusEnum.NEW.value        
                 
                 if existing:
                     # Check if last seen time is different from current time
                     lastSeenTime = datetime.fromisoformat(existing['lastseenat'])
                     if lastSeenTime.date() != currentTime.date():
-                        self._updateExistingTokenRegistryEntry(cursor, data.tokenid, currentTime,status)
+                        self._updateExistingTokenRegistryEntry(cursor, data.tokenid, currentTime, status)
                         logger.info(f"Updated existing token registry entry for {data.tokenid}")
                     return existing['id']
                 else:
@@ -129,7 +143,7 @@ class AttentionHandler(BaseSQLiteHandler):
             return None
         
         return cursor.execute("""
-            SELECT id, tokenid, chain, currentstatus, lastseenat 
+            SELECT id, tokenid, chain, currentstatus, lastseenat, createdat
             FROM attentiontokenregistry 
             WHERE tokenid = ?
         """, (tokenId,)).fetchone()
@@ -145,15 +159,26 @@ class AttentionHandler(BaseSQLiteHandler):
         """
         if not tokenId:
             return
-        
-        cursor.execute("""
-            UPDATE attentiontokenregistry 
-            SET lastseenat = ?,
-                updatedat = ?,
-                attentioncount = attentioncount + 1,
-                currentstatus = ?
-            WHERE tokenid = ?
-        """, (currentTime, currentTime, status, tokenId))
+
+        if status == AttentionStatusEnum.NEW.value:
+            cursor.execute("""
+                UPDATE attentiontokenregistry 
+                SET lastseenat = ?,
+                    updatedat = ?,
+                    attentioncount = attentioncount + 1,
+                    currentstatus = ?,
+                    createdat = ?
+                WHERE tokenid = ?
+            """, (currentTime, currentTime, status, currentTime, tokenId))
+        else:
+            cursor.execute("""
+                UPDATE attentiontokenregistry 
+                SET lastseenat = ?,
+                    updatedat = ?,
+                    attentioncount = attentioncount + 1,
+                    currentstatus = ?
+                WHERE tokenid = ?
+            """, (currentTime, currentTime, status, tokenId))
 
     def _createNewTokenRegistryEntry(self, cursor, data: AttentionData, currentTime: datetime) -> Optional[int]:
         """
