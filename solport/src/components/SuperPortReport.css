@@ -80,192 +80,585 @@
   border-radius: 4px;
 }
 
-/* Filter backdrop */
-.filter-backdrop {
+/* SuperPort Filter Styling - Based on FilterForm but with unique class names */
+
+/* SuperPort Filter Backdrop - Replica of FilterForm */
+.sp-filter-backdrop {
   position: fixed;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  background: rgba(0, 0, 0, 0.3);
-  z-index: 999;
-  animation: fadeIn 0.2s ease forwards;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  z-index: 80; /* Specific z-index value for proper interaction */
+  animation: sp-fadeIn 0.2s ease;
+  pointer-events: all;
 }
 
-@keyframes fadeIn {
+/* SuperPort Filter Panel - Replica of FilterForm */
+.sp-filter-panel {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 400px;
+  max-height: calc(100vh - 100px);
+  overflow-y: auto;
+  background: var(--true-black, #000000);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  z-index: 100; /* Updated z-index value for proper interaction */
+  animation: sp-fadeIn 0.3s ease;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+  pointer-events: all !important;
+  padding: 16px 0;
+  margin: 0 auto;
+  overflow: hidden;
+  font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+}
+
+/* SuperPort Filter Panel Background - Replica of FilterForm */
+.sp-filter-panel::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-image: 
+    linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+  background-size: 20px 20px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* SuperPort Filter Panel Accent - Replica of FilterForm */
+.sp-filter-panel::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 150px;
+  height: 150px;
+  background: radial-gradient(
+    circle at top right,
+    rgba(10, 132, 255, 0.15),
+    transparent 70%
+  );
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* SuperPort Filter Panel Header - Replica of FilterForm */
+.sp-filter-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 16px 16px;
+  margin-bottom: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  background-color: transparent;
+}
+
+/* SuperPort Filter Panel Title - Replica of FilterForm */
+.sp-filter-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-color, rgba(255, 255, 255, 0.9));
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sp-filter-title svg {
+  color: var(--accent-color, #4285f4);
+  filter: drop-shadow(0 0 5px rgba(10, 132, 255, 0.4));
+}
+
+/* SuperPort Filter Reset Button - Replica of FilterForm */
+.sp-filter-reset {
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  padding: 5px 8px;
+  border-radius: 4px;
+}
+
+.sp-filter-reset:hover {
+  color: rgba(255, 255, 255, 0.9);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.sp-filter-reset:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* SuperPort Filter Form Body - Replica of FilterForm */
+.sp-filter-body {
+  padding: 0 16px;
+  margin-bottom: 16px;
+}
+
+.sp-filter-row {
+  margin-bottom: 16px;
+}
+
+.sp-filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  position: relative;
+  margin-bottom: 12px;
+}
+
+/* SuperPort Filter Group Label - Replica of FilterForm */
+.sp-filter-group label {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.7);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  transition: color 0.2s;
+  font-weight: 500;
+}
+
+.sp-filter-group:hover label {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.sp-filter-icon {
+  font-size: 0.7rem;
+  margin-right: 4px;
+  color: rgba(255, 255, 255, 0.7);
+  opacity: 0.7;
+}
+
+/* SuperPort Filter Input Styles - Replica of FilterForm */
+.sp-filter-group input {
+  width: 100%;
+  background: rgba(30, 30, 30, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  padding: 8px 12px;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 0.75rem;
+  transition: all 0.2s ease;
+}
+
+.sp-filter-group input:focus {
+  outline: none;
+  border-color: rgba(10, 132, 255, 0.4);
+  background: rgba(10, 132, 255, 0.03);
+  box-shadow: 0 0 0 1px rgba(10, 132, 255, 0.1);
+}
+
+.sp-filter-group input::placeholder {
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.sp-filter-input-with-icon {
+  position: relative;
+}
+
+.sp-filter-input-icon {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 0.75rem;
+  pointer-events: none;
+  transition: all 0.2s ease;
+}
+
+.sp-filter-input-with-icon input {
+  padding-right: 32px;
+}
+
+.sp-filter-input-with-icon input:focus + .sp-filter-input-icon {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+/* SuperPort Filter Footer - Replica of FilterForm */
+.sp-filter-footer {
+  display: flex;
+  justify-content: flex-end;
+  padding: 0 16px 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  background-color: transparent;
+}
+
+.sp-filter-apply {
+  background: var(--accent-color, #4285f4);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 16px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sp-filter-apply:hover {
+  filter: brightness(1.1);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.sp-filter-apply:active {
+  transform: translateY(0);
+}
+
+/* SuperPort Selector Styling - Replica of FilterForm */
+.sp-filter-selector {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(30, 30, 30, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  padding: 8px 12px;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-height: 34px;
+}
+
+.sp-filter-selector:hover {
+  background: rgba(30, 30, 30, 0.9);
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+.sp-filter-dropdown-icon {
+  transition: transform 0.2s ease;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.7rem;
+}
+
+.sp-filter-dropdown-icon.open {
+  transform: rotate(180deg);
+}
+
+.sp-filter-selector:hover .sp-filter-dropdown-icon {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+/* SuperPort Popup Styling - Replica of FilterForm */
+.sp-filter-dropdown-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  z-index: 90;
+  animation: sp-fadeIn 0.2s ease;
+  pointer-events: all;
+}
+
+.sp-filter-popup {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 280px;
+  background: rgba(25, 25, 25, 0.98);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  padding: 12px;
+  z-index: 100;
+  animation: sp-slideIn 0.2s ease;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.sp-filter-popup h5 {
+  font-size: 0.8rem;
+  font-weight: 600;
+  margin: 0 0 10px 0;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+/* SuperPort Popup Option - Replica of FilterForm */
+.sp-filter-popup-option {
+  padding: 8px 12px;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sp-filter-popup-option:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: white;
+}
+
+.sp-filter-popup-option.selected {
+  background: rgba(10, 132, 255, 0.15);
+  color: var(--accent-color, #4285f4);
+}
+
+.sp-filter-popup-option.selected:hover {
+  background: rgba(10, 132, 255, 0.25);
+}
+
+.sp-filter-check-icon {
+  font-size: 0.7rem;
+  color: var(--accent-color, #4285f4);
+  filter: drop-shadow(0 0 4px rgba(10, 132, 255, 0.4));
+}
+
+/* SuperPort Category Label - Replica of FilterForm */
+.sp-filter-category-label {
+  padding: 6px 10px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.6);
+  background: rgba(0, 0, 0, 0.2);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  position: sticky;
+  top: 0;
+  z-index: 5;
+}
+
+/* SuperPort Custom Range Popup Styling - Replica of FilterForm */
+.sp-filter-custom-range-popup {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 280px;
+  background: rgba(25, 25, 25, 0.98);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  padding: 16px;
+  z-index: 150;
+  animation: sp-slideIn 0.2s ease;
+}
+
+.sp-filter-custom-range-popup h5 {
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin: 0 0 16px 0;
+  color: rgba(255, 255, 255, 0.9);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* SuperPort Custom Range Inputs - Replica of FilterForm */
+.sp-filter-custom-range-inputs {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.sp-filter-custom-input-group {
+  flex: 1;
+}
+
+.sp-filter-custom-input-group label {
+  font-size: 0.7rem;
+  color: rgba(255, 255, 255, 0.7);
+  margin-bottom: 6px;
+  display: block;
+}
+
+.sp-filter-custom-input-group input {
+  width: 100%;
+  background: rgba(30, 30, 30, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+  padding: 8px 10px;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 0.75rem;
+}
+
+.sp-filter-custom-input-group input:focus {
+  outline: none;
+  border-color: rgba(10, 132, 255, 0.4);
+  background: rgba(10, 132, 255, 0.03);
+}
+
+/* SuperPort Custom Range Actions - Replica of FilterForm */
+.sp-filter-custom-range-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.sp-filter-custom-range-actions button {
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 0.7rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.sp-filter-custom-range-actions button:first-child {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.sp-filter-custom-range-actions button:last-child {
+  background: var(--accent-color, #4285f4);
+  border: none;
+  color: white;
+}
+
+.sp-filter-custom-range-actions button:first-child:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.sp-filter-custom-range-actions button:last-child:hover {
+  filter: brightness(1.1);
+  transform: translateY(-1px);
+}
+
+.filter-actions .btn-primary:hover {
+  background: linear-gradient(135deg, #0a8cff, #0060e6);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 15px rgba(10, 132, 255, 0.4);
+}
+
+.filter-actions .btn-primary:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 5px rgba(10, 132, 255, 0.2);
+}
+
+/* SuperPort Animations - Luxury Apple-inspired design */
+@keyframes sp-fadeIn {
   from { opacity: 0; }
   to { opacity: 1; }
 }
 
-/* Filter panel with premium finish */
-.filter-panel {
-  background-color: var(--true-black);
-  background-image: 
-    linear-gradient(to bottom, rgba(30, 30, 30, 0.2) 0%, rgba(0, 0, 0, 0) 100%),
-    radial-gradient(circle at top right, rgba(40, 40, 45, 0.3), transparent 70%);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 10px;
-  box-shadow: 
-    0 10px 30px rgba(0, 0, 0, 0.5),
-    0 1px 0 rgba(255, 255, 255, 0.06) inset;
-  color: #fff;
-  animation: slideInRight 0.25s ease-out forwards;
-  z-index: 1000;
-  overflow: hidden;
-  position: fixed;
-  top: 80px;
-  right: 20px;
-  width: 340px;
-  max-width: 90vw;
-  max-height: calc(100vh - 100px);
-  overflow-y: auto;
-}
-
-/* Premium filter panel header */
-.filter-panel-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 20px 24px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-  background-image: linear-gradient(to bottom, rgba(30, 30, 30, 0.4), rgba(20, 20, 20, 0.2));
-}
-
-.filter-panel-title {
-  margin: 0;
-  font-size: 15px;
-  font-weight: 500;
-  color: rgba(255, 255, 255, 0.95);
-  letter-spacing: 0.3px;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
-}
-
-.filter-close-btn {
-  color: rgba(255, 255, 255, 0.6);
-  padding: 0;
-  font-size: 14px;
-  transition: all 0.2s ease;
-  background: transparent;
-  border: none;
-}
-
-.filter-close-btn:hover {
-  color: white;
-  background: transparent;
-  transform: scale(1.1);
-}
-
-@keyframes slideInRight {
-  from {
+@keyframes sp-slideIn {
+  from { 
     opacity: 0;
-    transform: translateX(100%);
+    transform: translateY(-20px);
   }
-  to {
+  to { 
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes sp-slideInRight {
+  from { 
+    opacity: 0;
+    transform: translateX(30px);
+  }
+  to { 
     opacity: 1;
     transform: translateX(0);
   }
 }
 
-.filter-section {
-  margin-bottom: 28px;
-  padding: 0 24px;
-  position: relative;
+@keyframes sp-gradient-shift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
 }
 
-.filter-section-title {
-  font-size: 14px;
-  font-weight: 500;
-  margin-bottom: 18px;
-  color: rgba(255, 255, 255, 0.9);
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  position: relative;
-  letter-spacing: 0.3px;
-  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.2);
+@keyframes sp-pulse {
+  0% { opacity: 0.8; }
+  50% { opacity: 1; }
+  100% { opacity: 0.8; }
 }
 
-.filter-section-title svg {
-  color: var(--apple-blue);
-  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.3));
-}
-
-/* Fix row spacing */
-.filter-panel .g-3 {
-  --bs-gutter-x: 16px;
-  --bs-gutter-y: 16px;
-  margin-left: 0;
-  margin-right: 0;
-  padding: 0 4px;
-}
-
-.filter-panel .card-body {
-  padding: 16px 0;
-}
-
-/* Premium form controls */
-.filter-panel .form-control,
+/* Dropdown overlay z-index adjustments for proper interaction */
+.filter-panel .dropdown-menu,
+.filter-panel .form-select option,
 .filter-panel .form-select {
-  background-color: rgba(20, 20, 20, 0.6);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  color: rgba(255, 255, 255, 0.9);
-  font-size: 13px;
-  border-radius: 6px;
-  padding: 10px 14px;
-  height: auto;
-  transition: all 0.2s ease;
-  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.1);
+  z-index: 150 !important; /* Ensure dropdowns appear above other elements */
 }
 
-.filter-panel .form-control:focus,
-.filter-panel .form-select:focus {
-  border-color: rgba(10, 132, 255, 0.3);
-  box-shadow: 0 0 0 3px rgba(10, 132, 255, 0.1);
-  background-color: rgba(25, 25, 25, 0.8);
-  outline: none;
+/* Bootstrap dropdown overlay */
+.dropdown-menu {
+  z-index: 150 !important;
 }
 
-.filter-panel .form-control::placeholder {
-  color: rgba(255, 255, 255, 0.4);
+/* Custom range popup */
+.filter-custom-range-popup {
+  z-index: 150 !important;
 }
 
-.filter-panel .form-label {
-  font-size: 12px;
-  font-weight: 500;
-  color: rgba(255, 255, 255, 0.75);
-  margin-bottom: 8px;
-  letter-spacing: 0.3px;
+/* Dropdown overlay */
+.filter-dropdown-overlay {
+  z-index: 90 !important;
 }
 
-/* Input group styling */
-.filter-panel .input-group-text {
-  background-color: rgba(30, 30, 30, 0.6);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  border-right: none;
-  color: rgba(255, 255, 255, 0.6);
-  font-size: 12px;
-  padding: 0 12px;
+/* Scrollbar styling */
+.filter-panel::-webkit-scrollbar {
+  width: 6px;
 }
 
-.filter-section:last-child {
-  margin-bottom: 0;
+.filter-panel::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.1);
+}
+
+.filter-panel::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.2);
+  border-radius: 3px;
+}
+
+.filter-panel::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(255, 255, 255, 0.3);
+}
+
+/* SuperPort Filter Sections - Luxury Apple-inspired design */
+.filter-section {
+  margin-bottom: 16px; /* Reduced margin */
+  position: relative;
+  z-index: 1;
+  padding: 0 16px; /* Reduced padding */
 }
 
 .filter-section-title {
-  font-size: 11px;
-  font-weight: 500;
-  color: rgba(255, 255, 255, 0.7);
-  margin-bottom: 1rem;
-  letter-spacing: 0.7px;
-  text-transform: uppercase;
+  font-size: 0.75rem; /* Smaller font */
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.85);
+  margin-bottom: 10px; /* Reduced margin */
   display: flex;
   align-items: center;
-}
-
-.filter-section-title svg {
-  margin-right: 8px;
-  opacity: 0.6;
-  font-size: 10px;
+  gap: 6px; /* Reduced gap */
+  padding: 0;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  position: relative;
 }
 
 .filter-section-title::after {
@@ -276,123 +669,10 @@
   margin-left: 10px;
 }
 
-.filter-panel .form-label {
-  color: var(--apple-silver);
-  font-size: 11px;
-  font-weight: 500;
-  margin-bottom: 6px;
-  opacity: 0.8;
-}
-
-.filter-panel .form-control,
-.filter-panel .form-select {
-  background-color: rgba(30, 30, 32, 0.6);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  color: white;
-  border-radius: 6px;
-  padding: 8px 12px;
-  font-size: 13px;
-  transition: all 0.2s ease;
-  height: auto;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.filter-panel .form-control:focus,
-.filter-panel .form-select:focus {
-  background-color: rgba(35, 35, 38, 0.8);
-  border-color: rgba(10, 132, 255, 0.3);
-  box-shadow: 0 0 0 2px rgba(10, 132, 255, 0.15);
-  color: white;
-}
-
-.filter-panel .form-control::placeholder {
-  color: rgba(170, 170, 173, 0.4);
-  font-size: 12px;
-}
-
-.filter-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 12px;
-  margin-top: 1.5rem;
-  padding-top: 1.5rem;
-  border-top: 1px solid rgba(255, 255, 255, 0.05);
-}
-
-.filter-panel .btn-primary {
-  background-color: rgba(10, 132, 255, 0.8);
-  border: none;
-  color: white;
-  font-weight: 500;
-  border-radius: 6px;
-  padding: 8px 18px;
-  transition: all 0.2s ease;
-  letter-spacing: 0.3px;
-  box-shadow: 0 2px 8px rgba(10, 132, 255, 0.25);
-}
-
-.filter-panel .btn-primary:hover {
-  background-color: rgba(10, 132, 255, 1);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(10, 132, 255, 0.35);
-}
-
-.filter-panel .btn-secondary {
-  background-color: rgba(40, 40, 45, 0.6);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  color: rgba(255, 255, 255, 0.7);
-  font-weight: 500;
-  border-radius: 6px;
-  padding: 8px 18px;
-  transition: all 0.2s ease;
-  letter-spacing: 0.3px;
-}
-
-.filter-panel .btn-secondary:hover {
-  background-color: rgba(50, 50, 55, 0.7);
-  color: white;
-}
-
-.input-group-number {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-}
-
-.input-group-number .form-control {
-  border-radius: 6px !important;
-}
-
-.input-group-text {
-  background-color: rgba(30, 30, 32, 0.6);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  color: rgba(255, 255, 255, 0.5);
-  padding: 0.375rem 0.75rem;
-  font-size: 11px;
-  border-radius: 6px;
-  letter-spacing: 0.3px;
-}
-
-.breakdown-filter-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 10px;
-}
-
-.breakdown-filter-section {
-  margin-bottom: 1.25rem;
-}
-
-.breakdown-filter-section-title {
-  font-size: 11px;
-  font-weight: 500;
-  color: rgba(255, 255, 255, 0.6);
-  margin-bottom: 0.75rem;
-  letter-spacing: 0.5px;
-}
-
-.input-with-icon {
-  position: relative;
+.filter-section-title svg {
+  color: var(--apple-blue);
+  filter: drop-shadow(0 0 4px rgba(10, 132, 255, 0.4));
+  font-size: 0.9rem;
 }
 
 .input-with-icon .form-control {
@@ -422,6 +702,10 @@
   -webkit-backdrop-filter: blur(20px);
   border: 1px solid rgba(255, 255, 255, 0.1);
   margin-bottom: 24px;
+  height: calc(100vh - 150px); /* Use most of the viewport height */
+  min-height: 600px; /* Ensure minimum height */
+  display: flex;
+  flex-direction: column;
 }
 
 /* Custom scrollbar for better visibility */
@@ -474,6 +758,8 @@
   border-spacing: 0;
   color: var(--apple-silver);
   font-size: 13px;
+  flex: 1;
+  overflow-y: auto;
 }
 
 /* Sticky header */
@@ -502,7 +788,7 @@
 
 /* Table header styling */
 .strategy-table th {
-  padding: 12px 16px;
+  padding: 8px 16px;
   text-align: left;
   font-weight: 500;
   color: var(--apple-silver);
@@ -517,6 +803,7 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   background-color: rgba(30, 30, 32, 0.95);
+  height: 36px;
 }
 
 /* Ensure Smart Balance text alignment */
@@ -524,37 +811,37 @@
   text-align: right;
 }
 
-/* Define column widths - give wallet breakdown approx 70% */
+/* Define column widths - more balanced distribution */
 .strategy-table th:nth-child(1), /* Token */
 .strategy-table td:nth-child(1) {
-  width: 8%;
+  width: 15%;
 }
 
 .strategy-table th:nth-child(2), /* Age */
 .strategy-table td:nth-child(2) {
-  width: 6%;
+  width: 8%;
 }
 
 .strategy-table th:nth-child(3), /* Smart Balance */
 .strategy-table td:nth-child(3) {
-  width: 8%;
+  width: 12%;
   white-space: nowrap;
 }
 
 .strategy-table th:nth-child(4), /* Attention */
 .strategy-table td:nth-child(4) {
-  width: 18%; /* Increased from 8% to 18% (10% more) */
+  width: 15%;
   white-space: nowrap;
 }
 
 .strategy-table th:nth-child(5), /* Wallet Breakdown */
 .strategy-table td:nth-child(5) {
-  width: 60%;
+  width: 50%;
 }
 
 /* Table cell styling */
 .strategy-table td {
-  padding: 14px 16px;
+  padding: 8px 16px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.03);
   transition: all 0.2s ease;
   font-size: 13px;
@@ -563,6 +850,7 @@
   vertical-align: middle;
   overflow: hidden;
   text-overflow: ellipsis;
+  line-height: 1.2;
 }
 
 .strategy-table tr:last-child td {
@@ -696,26 +984,110 @@
 /* Wallet categories styling */
 .wallet-categories-container {
   width: 100%;
-  padding: 4px 0;
+  padding: 8px 0;
+  overflow-x: auto;
+  margin: 4px 0;
 }
 
 .categories-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 12px;
-  color: var(--apple-silver);
-  table-layout: fixed;
+  font-size: 0.9rem;
+  min-width: 400px;
+  margin: 0 auto;
+}
+
+.categories-table th {
+  padding: 8px 12px;
+  text-align: center;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.8);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+  background-color: rgba(0, 0, 0, 0.2);
+  vertical-align: middle;
+}
+
+.categories-table td {
+  padding: 8px 12px;
+  text-align: center;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  vertical-align: middle;
+  height: 42px;
+}
+
+.category-name {
+  text-align: left !important;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.wallet-count-amount {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.wallet-count {
+  color: rgba(255, 255, 255, 0.9);
+  font-weight: 600;
+  font-size: 1rem;
+}
+
+.wallet-separator {
+  color: rgba(255, 255, 255, 0.3);
+}
+
+.wallet-amount {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.9rem;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  justify-content: center;
+}
+
+.wallet-amount .invested {
+  color: rgba(0, 255, 0, 0.7); /* Green for invested amount */
+}
+
+.wallet-amount .taken-out {
+  color: rgba(255, 100, 100, 0.7); /* Red for taken out amount */
+}
+
+.wallet-amount .separator {
+  color: rgba(255, 255, 255, 0.4);
+  margin: 0 2px;
+}
+
+/* Totals row styling */
+.totals-row {
+  background-color: rgba(0, 0, 0, 0.2);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.totals-row .category-name {
+  color: rgba(255, 255, 255, 0.9);
+  font-weight: 600;
+}
+
+.wallet-count-amount.totals .wallet-count,
+.wallet-count-amount.totals .wallet-amount {
+  color: rgba(255, 255, 255, 1);
+  font-weight: 600;
 }
 
 /* Ensure all table headers are properly centered */
 .categories-table th {
   text-align: center !important;
   font-weight: 500;
-  padding: 6px 8px;
+  padding: 2px 4px;
   background-color: rgba(40, 40, 42, 0.5);
   border: 1px solid rgba(255, 255, 255, 0.05);
-  font-size: 10px;
-  letter-spacing: 0.5px;
+  font-size: 8px;
+  letter-spacing: 0.3px;
   text-transform: uppercase;
   position: sticky;
   top: 0;
@@ -724,6 +1096,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  height: 18px;
 }
 
 /* Target the second header specifically (300K-1M) */
@@ -733,18 +1106,20 @@
 
 .categories-table th:first-child {
   text-align: center;
-  width: 20%; /* Reduced from 40% to 20% */
+  width: 22%;
 }
 
 .categories-table th:not(:first-child) {
-  width: 26.67%; /* Increased slightly to distribute the space from Type column */
+  width: 26%;
 }
 
 .categories-table td {
   text-align: center;
-  padding: 6px 8px;
+  padding: 2px 4px;
   border: 1px solid rgba(255, 255, 255, 0.05);
   vertical-align: middle;
+  line-height: 1;
+  height: 18px;
 }
 
 .categories-table td.category-name {
@@ -836,15 +1211,19 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 12px 16px;
+  padding: 8px 16px;
   background: rgba(24, 24, 26, 0.8);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
   border-top: 1px solid rgba(255, 255, 255, 0.05);
-  font-size: 12px;
+  font-size: 11px;
   color: var(--apple-silver-muted);
   border-bottom-left-radius: var(--apple-border-radius);
   border-bottom-right-radius: var(--apple-border-radius);
+  position: sticky;
+  bottom: 0;
+  z-index: 10;
+  height: 36px;
 }
 
 /* Empty state styling */
@@ -944,6 +1323,39 @@
   color: rgba(255, 255, 255, 0.9);
 }
 
+/* SuperPort Form Controls - Luxury Apple-inspired design */
+.filter-panel .form-control,
+.filter-panel .form-select {
+  width: 100%;
+  background: rgba(35, 35, 40, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  padding: 12px 16px;
+  color: rgba(255, 255, 255, 0.95);
+  font-size: 0.9rem;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  height: auto;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.super-token-age-select option {
+  background-color: rgba(35, 35, 40, 0.95);
+  color: rgba(255, 255, 255, 0.9);
+  padding: 12px 16px;
+  font-size: 0.9rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.filter-panel .form-control:focus,
+.filter-panel .form-select:focus {
+  outline: none;
+  border-color: rgba(10, 132, 255, 0.5);
+  background: rgba(40, 40, 45, 0.8);
+  box-shadow: 0 0 0 2px rgba(10, 132, 255, 0.2), 0 2px 8px rgba(0, 0, 0, 0.3);
+  transform: translateY(-1px);
+}
 
 /* Media queries for responsiveness */
 @media (max-width: 992px) {
@@ -1004,24 +1416,25 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 4px;
+  gap: 2px;
+  font-size: 9px;
 }
 
 .wallet-count {
   font-weight: 500;
   color: white;
-  font-size: 12px;
+  font-size: 9px;
 }
 
 .wallet-separator {
   color: var(--apple-silver-muted);
   opacity: 0.7;
-  font-size: 10px;
+  font-size: 9px;
 }
 
 .wallet-amount {
-  font-size: 10px;
-  color: var(--apple-silver);
+  font-size: 9px;
+  color: var(--apple-silver-muted);
   font-weight: 400;
 }
 

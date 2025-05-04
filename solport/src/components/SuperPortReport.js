@@ -7,8 +7,10 @@ import {
 } from 'react-bootstrap';
 import { 
   FaFilter, FaRegCopy, FaCheckCircle, FaExclamationTriangle, 
-  FaHistory, FaCoins, FaUsers, FaWallet, FaTimes, FaSearch
+  FaHistory, FaCoins, FaUsers, FaWallet, FaTimes, FaSearch,
+  FaChevronDown, FaCheck
 } from 'react-icons/fa';
+import WalletInvestedModal from './WalletInvestedModal';
 import './SuperPortReport.css';
 
 const SuperPortReport = () => {
@@ -21,6 +23,23 @@ const SuperPortReport = () => {
   const [totalRecords, setTotalRecords] = useState(0);
   const [executionTime, setExecutionTime] = useState(0);
   const [activeFilters, setActiveFilters] = useState(0);
+  const [selectedToken, setSelectedToken] = useState(null);
+  const [showWalletModal, setShowWalletModal] = useState(false);
+  
+  // Filter popup states
+  const [showWalletCategoryPopup, setShowWalletCategoryPopup] = useState(false);
+  const [showWalletTypePopup, setShowWalletTypePopup] = useState(false);
+  const [showTokenAgePopup, setShowTokenAgePopup] = useState(false);
+  
+  // Define token age ranges
+  const TOKEN_AGE_RANGES = [
+    { id: '1-5', label: '1-5 days', min: 1, max: 5 },
+    { id: '5-10', label: '5-10 days', min: 5, max: 10 },
+    { id: '10-20', label: '10-20 days', min: 10, max: 20 },
+    { id: '20-50', label: '20-50 days', min: 20, max: 50 },
+    { id: '50-100', label: '50-100 days', min: 50, max: 100 },
+    { id: '>100', label: '> 100 days', min: 100, max: null }
+  ];
   
   // Filter states
   const [filters, setFilters] = useState({
@@ -29,6 +48,9 @@ const SuperPortReport = () => {
     walletType: '',
     minWalletCount: '',
     minAmountInvested: '',
+    
+    // Token age filter
+    tokenAgeRange: '',
     
     // Default sort options (not shown in UI)
     sortBy: 'smartbalance',
@@ -57,7 +79,9 @@ const SuperPortReport = () => {
   // Handle outside click to close filter panel
   useEffect(() => {
     function handleClickOutside(event) {
-      if (filterPanelRef.current && !filterPanelRef.current.contains(event.target)) {
+      // Only close if clicking on the backdrop directly
+      // This prevents closing when clicking on filter panel elements
+      if (event.target.className === 'sp-filter-backdrop') {
         setShowFilters(false);
       }
     }
@@ -66,7 +90,7 @@ const SuperPortReport = () => {
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [filterPanelRef]);
+  }, []);
   
   // Copy token ID to clipboard
   const copyToClipboard = (tokenId) => {
@@ -78,20 +102,61 @@ const SuperPortReport = () => {
       .catch(err => console.error('Failed to copy:', err));
   };
   
+  // Handle token click to show wallet invested modal
+  const handleTokenClick = (token) => {
+    setSelectedToken(token);
+    setShowWalletModal(true);
+  };
+  
+  // Close wallet invested modal
+  const closeWalletModal = () => {
+    setSelectedToken(null);
+    setShowWalletModal(false);
+  };
+
   // Fetch report data from API
   const fetchReportData = async () => {
     setLoading(true);
     setError(null);
     
     try {
-      // Build query parameters - only include non-empty values
-      const queryParams = Object.entries(filters)
-        .filter(([_, value]) => value !== '')
+      // Process token age range if selected
+      let queryParams = {};
+      
+      // Copy all non-empty filters
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value !== '') {
+          queryParams[key] = value;
+        }
+      });
+      
+      // Handle token age range conversion
+      if (filters.tokenAgeRange) {
+        const selectedRange = TOKEN_AGE_RANGES.find(range => range.id === filters.tokenAgeRange);
+        if (selectedRange) {
+          // Remove tokenAgeRange from params
+          delete queryParams.tokenAgeRange;
+          
+          // Add min/max token age parameters
+          if (selectedRange.min !== null) {
+            queryParams.minTokenAge = selectedRange.min;
+          }
+          if (selectedRange.max !== null) {
+            queryParams.maxTokenAge = selectedRange.max;
+          }
+        }
+      }
+      
+      // Convert to URL query string
+      const queryString = Object.entries(queryParams)
         .map(([key, value]) => `${key}=${encodeURIComponent(value)}`)
         .join('&');
       
-      console.log("Fetching data with params:", queryParams);
-      const response = await axios.get(`/api/reports/superportreport${queryParams ? `?${queryParams}` : ''}`);
+      // Add limit parameter to fetch more records (at least 15)
+      const queryWithLimit = queryString ? `${queryString}&limit=15` : 'limit=15';
+      
+      console.log("Fetching data with params:", queryWithLimit);
+      const response = await axios.get(`/api/reports/superportreport?${queryWithLimit}`);
       
       if (response.data && response.data.data) {
         setReportData(response.data.data);
@@ -119,9 +184,12 @@ const SuperPortReport = () => {
   
   // Apply filters
   const applyFilters = (e) => {
-    e.preventDefault();
+    if (e) e.preventDefault();
     fetchReportData();
     setShowFilters(false);
+    setShowWalletCategoryPopup(false);
+    setShowWalletTypePopup(false);
+    setShowTokenAgePopup(false);
   };
   
   // Reset filters
@@ -132,6 +200,9 @@ const SuperPortReport = () => {
       walletType: '',
       minWalletCount: '',
       minAmountInvested: '',
+      
+      // Token age filter
+      tokenAgeRange: '',
       
       // Default sort options
       sortBy: 'smartbalance',
@@ -206,54 +277,11 @@ const SuperPortReport = () => {
 
   // Render wallet category breakdown
   const renderWalletCategories = (item) => {
-    // Prepare data for each PNL category
-    const categoryData = [
-      {
-        name: 'No Selling',
-        cat1: {
-          count: item.pnl_category_1_no_withdrawal_count || 0,
-          amount: item.pnl_category_1_no_withdrawal_amount || 0
-        },
-        cat2: {
-          count: item.pnl_category_2_no_withdrawal_count || 0,
-          amount: item.pnl_category_2_no_withdrawal_amount || 0
-        },
-        cat3: {
-          count: item.pnl_category_3_no_withdrawal_count || 0,
-          amount: item.pnl_category_3_no_withdrawal_amount || 0
-        }
-      },
-      {
-        name: '< 30%',
-        cat1: {
-          count: item.pnl_category_1_partial_withdrawal_count || 0,
-          amount: item.pnl_category_1_partial_withdrawal_amount || 0
-        },
-        cat2: {
-          count: item.pnl_category_2_partial_withdrawal_count || 0,
-          amount: item.pnl_category_2_partial_withdrawal_amount || 0
-        },
-        cat3: {
-          count: item.pnl_category_3_partial_withdrawal_count || 0,
-          amount: item.pnl_category_3_partial_withdrawal_amount || 0
-        }
-      },
-      {
-        name: '> 30%',
-        cat1: {
-          count: item.pnl_category_1_significant_withdrawal_count || 0,
-          amount: item.pnl_category_1_significant_withdrawal_amount || 0
-        },
-        cat2: {
-          count: item.pnl_category_2_significant_withdrawal_count || 0,
-          amount: item.pnl_category_2_significant_withdrawal_amount || 0
-        },
-        cat3: {
-          count: item.pnl_category_3_significant_withdrawal_count || 0,
-          amount: item.pnl_category_3_significant_withdrawal_amount || 0
-        }
-      }
-    ];
+    // Check if the item has the new wallet_data structure
+    if (!item.wallet_data) {
+      console.warn('Item is missing wallet_data structure:', item);
+      return <div className="wallet-categories-container">No wallet data available</div>;
+    }
     
     // Format amount with K, M, B for readability
     const formatCompactAmount = (amount) => {
@@ -273,6 +301,13 @@ const SuperPortReport = () => {
       return `$${num.toFixed(0)}`;
     };
     
+    // Extract the wallet data categories
+    const walletData = item.wallet_data;
+    const categories = ['0-300K', '300K-1M', '>1M'];
+    
+    // Prepare data for each wallet type
+    const walletTypes = ['No Selling', '<30%', '>30%'];
+    
     return (
       <div className="wallet-categories-container">
         <table className="categories-table">
@@ -285,32 +320,59 @@ const SuperPortReport = () => {
             </tr>
           </thead>
           <tbody>
-            {categoryData.map((row, index) => (
+            {walletTypes.map((type, index) => (
               <tr key={index}>
-                <td className="category-name">{row.name}</td>
-                <td>
-                  <div className="wallet-count-amount">
-                    <span className="wallet-count">{row.cat1.count}</span>
-                    <span className="wallet-separator">·</span>
-                    <span className="wallet-amount">{formatCompactAmount(row.cat1.amount)}</span>
-                  </div>
-                </td>
-                <td>
-                  <div className="wallet-count-amount">
-                    <span className="wallet-count">{row.cat2.count}</span>
-                    <span className="wallet-separator">·</span>
-                    <span className="wallet-amount">{formatCompactAmount(row.cat2.amount)}</span>
-                  </div>
-                </td>
-                <td>
-                  <div className="wallet-count-amount">
-                    <span className="wallet-count">{row.cat3.count}</span>
-                    <span className="wallet-separator">·</span>
-                    <span className="wallet-amount">{formatCompactAmount(row.cat3.amount)}</span>
-                  </div>
-                </td>
+                <td className="category-name">{type}</td>
+                {categories.map((category, catIndex) => {
+                  // Get the data for this category and type
+                  const categoryData = walletData[category]?.category_data?.[type] || {
+                    total_number_of_wallets: 0,
+                    total_invested_amount: 0,
+                    total_amount_taken_out: 0
+                  };
+                  
+                  return (
+                    <td key={catIndex}>
+                      <div className="wallet-count-amount">
+                        <span className="wallet-count">{categoryData.total_number_of_wallets}</span>
+                        <span className="wallet-separator">·</span>
+                        <span className="wallet-amount">
+                          <span className="invested">{formatCompactAmount(categoryData.total_invested_amount)}</span>
+                          <span className="separator">/</span>
+                          <span className="taken-out">{formatCompactAmount(categoryData.total_amount_taken_out)}</span>
+                        </span>
+                      </div>
+                    </td>
+                  );
+                })}
               </tr>
             ))}
+            
+            {/* Add a totals row */}
+            <tr className="totals-row">
+              <td className="category-name">Totals</td>
+              {categories.map((category, catIndex) => {
+                const totalData = walletData[category] || {
+                  total_number_of_wallets: 0,
+                  total_invested_amount: 0,
+                  total_amount_taken_out: 0
+                };
+                
+                return (
+                  <td key={catIndex}>
+                    <div className="wallet-count-amount totals">
+                      <span className="wallet-count">{totalData.total_number_of_wallets}</span>
+                      <span className="wallet-separator">·</span>
+                      <span className="wallet-amount">
+                        <span className="invested">{formatCompactAmount(totalData.total_invested_amount)}</span>
+                        <span className="separator">/</span>
+                        <span className="taken-out">{formatCompactAmount(totalData.total_amount_taken_out)}</span>
+                      </span>
+                    </div>
+                  </td>
+                );
+              })}
+            </tr>
           </tbody>
         </table>
       </div>
@@ -319,7 +381,7 @@ const SuperPortReport = () => {
 
   return (
     <Container fluid className="superport-report px-4 py-3">
-      <Row className="mb-4">
+      <Row className="mb-3">
         <Col>
           <h2 className="page-title">SuperPort Report</h2>
           <p className="page-description">
@@ -343,104 +405,244 @@ const SuperPortReport = () => {
       {/* Filter Panel */}
       {showFilters && (
         <>
-          <div className="filter-backdrop" onClick={() => setShowFilters(false)}></div>
-          <Card className="filter-panel" ref={filterPanelRef}>
-            <div className="filter-panel-header">
-              <h5 className="filter-panel-title">Filter Options</h5>
-              <Button 
-                variant="link" 
-                className="filter-close-btn" 
-                onClick={() => setShowFilters(false)}
+          <div className="sp-filter-backdrop" onClick={() => setShowFilters(false)}></div>
+          <div className="sp-filter-panel" ref={filterPanelRef}>
+            <div className="sp-filter-header">
+              <h3 className="sp-filter-title"><FaFilter /> Filter Options</h3>
+              <button 
+                className="sp-filter-reset" 
+                onClick={resetFilters}
+                disabled={Object.values(filters).every(val => val === '')}
               >
-                <FaTimes />
-              </Button>
+                <FaTimes /> Reset
+              </button>
             </div>
-            <Card.Body>
-                <Form onSubmit={applyFilters}>
-                  {/* Wallet Breakdown Filters */}
-                  <div className="filter-section">
-                    <h6 className="filter-section-title"><FaUsers /> Wallet Breakdown Filters</h6>
-                    <Row className="g-3">
-                      <Col md={6}>
-                        <Form.Group>
-                          <Form.Label>Category</Form.Label>
-                          <Form.Select
-                            name="walletCategory"
-                            value={filters.walletCategory}
-                            onChange={handleFilterChange}
-                          >
-                            <option value="">All Categories</option>
-                            <option value="0-300K">0-300K</option>
-                            <option value="300K-1M">300K-1M</option>
-                            <option value=">1M">Greater than 1M</option>
-                          </Form.Select>
-                        </Form.Group>
-                      </Col>
-                      <Col md={6}>
-                        <Form.Group>
-                          <Form.Label>Type</Form.Label>
-                          <Form.Select
-                            name="walletType"
-                            value={filters.walletType}
-                            onChange={handleFilterChange}
-                          >
-                            <option value="">All Types</option>
-                            <option value="no-selling">No Selling</option>
-                            <option value="<30%">Less than 30%</option>
-                            <option value=">30%">Greater than 30%</option>
-                          </Form.Select>
-                        </Form.Group>
-                      </Col>
-                    </Row>
-                    <Row className="g-3 mt-1">
-                      <Col md={6}>
-                        <Form.Group>
-                          <Form.Label>Minimum Number of Wallets</Form.Label>
-                          <Form.Control
-                            type="number"
-                            name="minWalletCount"
-                            value={filters.minWalletCount}
-                            onChange={handleFilterChange}
-                            placeholder="Enter minimum wallets"
-                          />
-                        </Form.Group>
-                      </Col>
-                      <Col md={6}>
-                        <Form.Group>
-                          <Form.Label>Minimum Amount Invested</Form.Label>
-                          <InputGroup>
-                            <InputGroup.Text>$</InputGroup.Text>
-                            <Form.Control
-                              type="number"
-                              name="minAmountInvested"
-                              value={filters.minAmountInvested}
-                              onChange={handleFilterChange}
-                              placeholder="Enter minimum amount"
-                            />
-                          </InputGroup>
-                        </Form.Group>
-                      </Col>
-                    </Row>
+            <div className="sp-filter-body">
+              {/* Wallet Breakdown Filters */}
+              <div className="sp-filter-row">
+                <div className="sp-filter-group">
+                  <label><FaUsers className="sp-filter-icon" /> Wallet Category</label>
+                  <div 
+                    className="sp-filter-selector" 
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setShowWalletTypePopup(false);
+                      setShowTokenAgePopup(false);
+                      setShowWalletCategoryPopup(!showWalletCategoryPopup);
+                    }}
+                  >
+                    {filters.walletCategory ? filters.walletCategory : 'All Categories'}
+                    <FaChevronDown className={`sp-filter-dropdown-icon ${showWalletCategoryPopup ? 'open' : ''}`} />
                   </div>
-                  
-                  <div className="filter-actions">
-                    <Button 
-                      variant="secondary" 
-                      onClick={resetFilters}
-                    >
-                      <FaTimes className="me-1" /> Reset
-                    </Button>
-                    <Button 
-                      variant="primary" 
-                      type="submit"
-                    >
-                      <FaFilter className="me-1" /> Apply
-                    </Button>
+                  {showWalletCategoryPopup && (
+                    <>
+                      <div className="sp-filter-dropdown-overlay" onClick={() => setShowWalletCategoryPopup(false)}></div>
+                      <div className="sp-filter-popup">
+                        <h5>Select Wallet Category</h5>
+                        <div 
+                          className={`sp-filter-popup-option ${filters.walletCategory === '' ? 'selected' : ''}`}
+                          onClick={() => {
+                            setFilters(prev => ({ ...prev, walletCategory: '' }));
+                            setShowWalletCategoryPopup(false);
+                          }}
+                        >
+                          All Categories
+                          {filters.walletCategory === '' && <FaCheck className="sp-filter-check-icon" />}
+                        </div>
+                        <div 
+                          className={`sp-filter-popup-option ${filters.walletCategory === '0-300K' ? 'selected' : ''}`}
+                          onClick={() => {
+                            setFilters(prev => ({ ...prev, walletCategory: '0-300K' }));
+                            setShowWalletCategoryPopup(false);
+                          }}
+                        >
+                          0-300K
+                          {filters.walletCategory === '0-300K' && <FaCheck className="sp-filter-check-icon" />}
+                        </div>
+                        <div 
+                          className={`sp-filter-popup-option ${filters.walletCategory === '300K-1M' ? 'selected' : ''}`}
+                          onClick={() => {
+                            setFilters(prev => ({ ...prev, walletCategory: '300K-1M' }));
+                            setShowWalletCategoryPopup(false);
+                          }}
+                        >
+                          300K-1M
+                          {filters.walletCategory === '300K-1M' && <FaCheck className="sp-filter-check-icon" />}
+                        </div>
+                        <div 
+                          className={`sp-filter-popup-option ${filters.walletCategory === '>1M' ? 'selected' : ''}`}
+                          onClick={() => {
+                            setFilters(prev => ({ ...prev, walletCategory: '>1M' }));
+                            setShowWalletCategoryPopup(false);
+                          }}
+                        >
+                          Greater than 1M
+                          {filters.walletCategory === '>1M' && <FaCheck className="sp-filter-check-icon" />}
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </div>
+                
+                <div className="sp-filter-group">
+                  <label><FaWallet className="sp-filter-icon" /> Wallet Type</label>
+                  <div 
+                    className="sp-filter-selector" 
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setShowWalletCategoryPopup(false);
+                      setShowTokenAgePopup(false);
+                      setShowWalletTypePopup(!showWalletTypePopup);
+                    }}
+                  >
+                    {filters.walletType ? filters.walletType : 'All Types'}
+                    <FaChevronDown className={`sp-filter-dropdown-icon ${showWalletTypePopup ? 'open' : ''}`} />
                   </div>
-                </Form>
-              </Card.Body>
-            </Card>
-          </>
+                  {showWalletTypePopup && (
+                    <>
+                      <div className="sp-filter-dropdown-overlay" onClick={() => setShowWalletTypePopup(false)}></div>
+                      <div className="sp-filter-popup">
+                        <h5>Select Wallet Type</h5>
+                        <div 
+                          className={`sp-filter-popup-option ${filters.walletType === '' ? 'selected' : ''}`}
+                          onClick={() => {
+                            setFilters(prev => ({ ...prev, walletType: '' }));
+                            setShowWalletTypePopup(false);
+                          }}
+                        >
+                          All Types
+                          {filters.walletType === '' && <FaCheck className="sp-filter-check-icon" />}
+                        </div>
+                        <div 
+                          className={`sp-filter-popup-option ${filters.walletType === 'no-selling' ? 'selected' : ''}`}
+                          onClick={() => {
+                            setFilters(prev => ({ ...prev, walletType: 'no-selling' }));
+                            setShowWalletTypePopup(false);
+                          }}
+                        >
+                          No Selling
+                          {filters.walletType === 'no-selling' && <FaCheck className="sp-filter-check-icon" />}
+                        </div>
+                        <div 
+                          className={`sp-filter-popup-option ${filters.walletType === '<30%' ? 'selected' : ''}`}
+                          onClick={() => {
+                            setFilters(prev => ({ ...prev, walletType: '<30%' }));
+                            setShowWalletTypePopup(false);
+                          }}
+                        >
+                          Less than 30%
+                          {filters.walletType === '<30%' && <FaCheck className="sp-filter-check-icon" />}
+                        </div>
+                        <div 
+                          className={`sp-filter-popup-option ${filters.walletType === '>30%' ? 'selected' : ''}`}
+                          onClick={() => {
+                            setFilters(prev => ({ ...prev, walletType: '>30%' }));
+                            setShowWalletTypePopup(false);
+                          }}
+                        >
+                          Greater than 30%
+                          {filters.walletType === '>30%' && <FaCheck className="sp-filter-check-icon" />}
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </div>
+                
+                <div className="sp-filter-group">
+                  <label>Minimum Wallets</label>
+                  <div className="sp-filter-input-with-icon">
+                    <input
+                      type="number"
+                      name="minWalletCount"
+                      value={filters.minWalletCount}
+                      onChange={handleFilterChange}
+                      placeholder="Enter minimum number of wallets"
+                    />
+                    <FaUsers className="sp-filter-input-icon" />
+                  </div>
+                </div>
+                
+                <div className="sp-filter-group">
+                  <label>Minimum Amount Invested</label>
+                  <div className="sp-filter-input-with-icon">
+                    <input
+                      type="number"
+                      name="minAmountInvested"
+                      value={filters.minAmountInvested}
+                      onChange={handleFilterChange}
+                      placeholder="Enter minimum amount in $"
+                    />
+                    <FaCoins className="sp-filter-input-icon" />
+                  </div>
+                </div>
+              </div>
+              
+              {/* Token Age Filters */}
+              <div className="sp-filter-row">
+                <div className="sp-filter-group">
+                  <label><FaHistory className="sp-filter-icon" /> Token Age Range</label>
+                  <div 
+                    className="sp-filter-selector" 
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setShowWalletCategoryPopup(false);
+                      setShowWalletTypePopup(false);
+                      setShowTokenAgePopup(!showTokenAgePopup);
+                    }}
+                  >
+                    {filters.tokenAgeRange ? 
+                      TOKEN_AGE_RANGES.find(range => range.id === filters.tokenAgeRange)?.label : 
+                      'All Ages'}
+                    <FaChevronDown className={`sp-filter-dropdown-icon ${showTokenAgePopup ? 'open' : ''}`} />
+                  </div>
+                  {showTokenAgePopup && (
+                    <>
+                      <div className="sp-filter-dropdown-overlay" onClick={() => setShowTokenAgePopup(false)}></div>
+                      <div className="sp-filter-popup">
+                        <h5>Select Token Age Range</h5>
+                        <div 
+                          className={`sp-filter-popup-option ${filters.tokenAgeRange === '' ? 'selected' : ''}`}
+                          onClick={() => {
+                            setFilters(prev => ({ ...prev, tokenAgeRange: '' }));
+                            setShowTokenAgePopup(false);
+                          }}
+                        >
+                          All Ages
+                          {filters.tokenAgeRange === '' && <FaCheck className="sp-filter-check-icon" />}
+                        </div>
+                        {TOKEN_AGE_RANGES.map(range => (
+                          <div 
+                            key={range.id}
+                            className={`sp-filter-popup-option ${filters.tokenAgeRange === range.id ? 'selected' : ''}`}
+                            onClick={() => {
+                              setFilters(prev => ({ ...prev, tokenAgeRange: range.id }));
+                              setShowTokenAgePopup(false);
+                            }}
+                          >
+                            {range.label}
+                            {filters.tokenAgeRange === range.id && <FaCheck className="sp-filter-check-icon" />}
+                          </div>
+                        ))}
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+            
+            <div className="sp-filter-footer">
+              <button 
+                className="sp-filter-apply" 
+                onClick={applyFilters}
+              >
+                <FaFilter /> Apply Filters
+              </button>
+            </div>
+          </div>
+        </>
       )}
       
       {/* Data Table */}
@@ -489,7 +691,7 @@ const SuperPortReport = () => {
                           >
                             <div 
                               className="strategy-name"
-                              onClick={() => copyToClipboard(item.tokenid)}
+                              onClick={() => handleTokenClick(item)}
                             >
                               <span className="strategy-name-text">
                                 {item.name} 
@@ -555,6 +757,14 @@ const SuperPortReport = () => {
           </div>
         </Col>
       </Row>
+      
+      {/* Wallet Invested Modal */}
+      {selectedToken && showWalletModal && (
+        <WalletInvestedModal 
+          token={selectedToken} 
+          onClose={closeWalletModal} 
+        />
+      )}
     </Container>
   );
 };

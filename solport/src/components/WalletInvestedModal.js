@@ -467,39 +467,7 @@ function WalletInvestedModal({ token, onClose }) {
             </div>
           ) : (
             <>
-              <div className="wallet-stats">
-                <div className="stat-card">
-                  <FaWallet className="stat-icon" />
-                  <div className="stat-content">
-                    <h3>Total Wallets</h3>
-                    <p>{wallets.length}</p>
-                  </div>
-                </div>
-                <div className="stat-card">
-                  <FaMoneyBillWave className="stat-icon" />
-                  <div className="stat-content">
-                    <h3>Total Smart Holding</h3>
-                    <p>{formatCurrency(totalSmartHolding)}</p>
-                  </div>
-                </div>
-                <div className="stat-card">
-                  <FaExchangeAlt className="stat-icon" />
-                  <div className="stat-content">
-                    <h3>Total Realized PNL</h3>
-                    <p className={totalRealizedPNL >= 0 ? 'positive' : 'negative'}>
-                      {formatCurrency(totalRealizedPNL)}
-                    </p>
-                  </div>
-                </div>
-                <div className="stat-card">
-                  <FaExchangeAlt className="stat-icon" />
-                  <div className="stat-content">
-                    <h3>Total Remaining Value</h3>
-                    <p>{formatCurrency(totalRemainingAmount)}</p>
-                  </div>
-                </div>
-              </div>
-              
+
               <div className="wallet-table-container" ref={tableContainerRef}>
                 <table className="wallet-table">
                   <thead>
