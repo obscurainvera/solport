@@ -1,10 +1,11 @@
 from database.operations.base_handler import BaseSQLiteHandler
-from typing import List, Dict, Optional, Any
+from typing import List, Dict, Optional, Any, Tuple
 from decimal import Decimal
 import sqlite3
 from logs.logger import get_logger
 from datetime import datetime
 import json
+import time
 
 logger = get_logger(__name__)
 
@@ -34,7 +35,11 @@ class SuperPortReportHandler(BaseSQLiteHandler):
                           maxTokenAge: float = None,
                           minAttentionCount: int = None,
                           sortBy: str = "smartbalance",
-                          sortOrder: str = "desc") -> List[Dict[str, Any]]:
+                          sortOrder: str = "desc",
+                          walletCategory: str = None,
+                          walletType: str = None,
+                          minWalletCount: int = 0,
+                          minAmountInvested: float = 0) -> List[Dict[str, Any]]:
         """
         Get combined report data with optional filters.
         
@@ -53,7 +58,69 @@ class SuperPortReportHandler(BaseSQLiteHandler):
         Returns:
             List of combined report data dictionaries
         """
+        start_time = time.time()
+        logger.info(f"Starting SuperPortReport query with filters: tokenId={tokenId}, name={name}, chainName={chainName}")
+        
         # Build the base query for token information
+        query, params = self._build_base_query(
+            tokenId=tokenId,
+            name=name,
+            chainName=chainName,
+            minMarketCap=minMarketCap,
+            maxMarketCap=maxMarketCap,
+            minTokenAge=minTokenAge,
+            maxTokenAge=maxTokenAge,
+            minAttentionCount=minAttentionCount,
+            sortBy=sortBy,
+            sortOrder=sortOrder
+        )
+        # Execute query to get token data
+        with self.transaction() as cursor:
+            cursor.execute(query, params)
+            tokens = cursor.fetchall()
+            
+            # Process token data
+            superPortReportData = self._process_token_data(cursor, tokens)
+            
+            # Apply wallet breakdown filters if specified
+            if walletCategory or walletType or minWalletCount > 0 or minAmountInvested > 0:
+                superPortReportData = self.filterTokensByWalletBreakdown(
+                    superPortReportData,
+                    category=walletCategory,
+                    type_filter=walletType,
+                    min_wallets=minWalletCount,
+                    min_amount=minAmountInvested
+                )
+            
+            # Log performance metrics
+            end_time = time.time()
+            execution_time = end_time - start_time
+            logger.info(f"SuperPortReport query completed in {execution_time:.2f} seconds, found {len(superPortReportData)} tokens")
+            
+            return superPortReportData
+
+    def _build_base_query(self, tokenId=None, name=None, chainName=None, minMarketCap=None, 
+                        maxMarketCap=None, minTokenAge=None, maxTokenAge=None, 
+                        minAttentionCount=None, sortBy="smartbalance", sortOrder="desc") -> Tuple[str, List]:
+        """
+        Build the base SQL query and parameters for token filtering.
+        
+        Args:
+            tokenId: Filter by token ID (partial match)
+            name: Filter by token name (partial match)
+            chainName: Filter by chain name (partial match)
+            minMarketCap: Minimum market cap filter
+            maxMarketCap: Maximum market cap filter
+            minTokenAge: Minimum token age filter
+            maxTokenAge: Maximum token age filter
+            minAttentionCount: Minimum attention count filter
+            sortBy: Field to sort by (default: smartbalance)
+            sortOrder: Sort order (asc or desc, default: desc)
+            
+        Returns:
+            Tuple of (query_string, params_list)
+        """
+        # Base query for token information
         query = """
             SELECT 
                 p.portsummaryid,
@@ -125,35 +192,42 @@ class SuperPortReportHandler(BaseSQLiteHandler):
             sort_field = f"p.{sortBy}"
             
         query += f" ORDER BY {sort_field} {sortOrder.upper()}"
-
-        # Execute query
-        with self.transaction() as cursor:
-            cursor.execute(query, params)
-            tokens = cursor.fetchall()
+        
+        return query, params
+    
+    def _process_token_data(self, cursor, tokens) -> List[Dict[str, Any]]:
+        """
+        Process raw token data from database query into structured dictionaries.
+        
+        Args:
+            cursor: Database cursor
+            tokens: Raw token data from database query
             
-            # Convert results to list of dictionaries with detailed wallet analysis
-            superPortReportData = []
-            for token in tokens:
-                tokenData = {
-                    'portsummaryid': token[0],
-                    'chainname': token[1],
-                    'tokenid': token[2],
-                    'name': token[3],
-                    'tokenage': float(token[4]) if token[4] else None,
-                    'mcap': float(token[5]) if token[5] else None,
-                    'avgprice': float(token[6]) if token[6] else None,
-                    'smartbalance': float(token[7]) if token[7] else None,
-                    'attention_status': token[8],
-                    'attention_count': token[9],
-                    'total_wallets': token[10],
-                }
-                
-                # Get wallet categories data for this token
-                walletCategories = self._getWalletCategoriesForToken(cursor, token[2])
-                tokenData.update(walletCategories)
-                
-                superPortReportData.append(tokenData)
-
+        Returns:
+            List of processed token data dictionaries
+        """
+        superPortReportData = []
+        for token in tokens:
+            tokenData = {
+                'portsummaryid': token[0],
+                'chainname': token[1],
+                'tokenid': token[2],
+                'name': token[3],
+                'tokenage': float(token[4]) if token[4] else None,
+                'mcap': float(token[5]) if token[5] else None,
+                'avgprice': float(token[6]) if token[6] else None,
+                'smartbalance': float(token[7]) if token[7] else None,
+                'attention_status': token[8],
+                'attention_count': token[9],
+                'total_wallets': token[10],
+            }
+            
+            # Get wallet categories data for this token
+            walletCategories = self._getWalletCategoriesForToken(cursor, token[2])
+            tokenData.update(walletCategories)
+            
+            superPortReportData.append(tokenData)
+            
         return superPortReportData
     
     def _getWalletCategoriesForToken(self, cursor, tokenId: str) -> Dict[str, Any]:
@@ -197,28 +271,37 @@ class SuperPortReportHandler(BaseSQLiteHandler):
             'pnl_category_1_count': 0,
             'pnl_category_1_no_withdrawal_count': 0,
             'pnl_category_1_no_withdrawal_total': 0,
+            'pnl_category_1_no_withdrawal_taken_out': 0,
             'pnl_category_1_partial_withdrawal_count': 0,
             'pnl_category_1_partial_withdrawal_total': 0,
+            'pnl_category_1_partial_withdrawal_taken_out': 0,
             'pnl_category_1_significant_withdrawal_count': 0,
             'pnl_category_1_significant_withdrawal_total': 0,
+            'pnl_category_1_significant_withdrawal_taken_out': 0,
             
             # PNL category 2: 300K-1M
             'pnl_category_2_count': 0,
             'pnl_category_2_no_withdrawal_count': 0,
             'pnl_category_2_no_withdrawal_total': 0,
+            'pnl_category_2_no_withdrawal_taken_out': 0,
             'pnl_category_2_partial_withdrawal_count': 0,
             'pnl_category_2_partial_withdrawal_total': 0,
+            'pnl_category_2_partial_withdrawal_taken_out': 0,
             'pnl_category_2_significant_withdrawal_count': 0,
             'pnl_category_2_significant_withdrawal_total': 0,
+            'pnl_category_2_significant_withdrawal_taken_out': 0,
             
             # PNL category 3: >1M
             'pnl_category_3_count': 0,
             'pnl_category_3_no_withdrawal_count': 0,
             'pnl_category_3_no_withdrawal_total': 0,
+            'pnl_category_3_no_withdrawal_taken_out': 0,
             'pnl_category_3_partial_withdrawal_count': 0,
             'pnl_category_3_partial_withdrawal_total': 0,
+            'pnl_category_3_partial_withdrawal_taken_out': 0,
             'pnl_category_3_significant_withdrawal_count': 0,
             'pnl_category_3_significant_withdrawal_total': 0,
+            'pnl_category_3_significant_withdrawal_taken_out': 0,
         }
         
         # Process each wallet
@@ -251,14 +334,17 @@ class SuperPortReportHandler(BaseSQLiteHandler):
                 # No withdrawal
                 result[f'pnl_category_{pnl_category}_no_withdrawal_count'] += 1
                 result[f'pnl_category_{pnl_category}_no_withdrawal_total'] += total_invested
+                result[f'pnl_category_{pnl_category}_no_withdrawal_taken_out'] += 0  # By definition, no amount taken out
             elif withdrawal_percentage <= 30:
                 # Partial withdrawal (≤30%)
                 result[f'pnl_category_{pnl_category}_partial_withdrawal_count'] += 1
                 result[f'pnl_category_{pnl_category}_partial_withdrawal_total'] += total_invested
+                result[f'pnl_category_{pnl_category}_partial_withdrawal_taken_out'] += amount_taken_out
             else:
                 # Significant withdrawal (>30%)
                 result[f'pnl_category_{pnl_category}_significant_withdrawal_count'] += 1
                 result[f'pnl_category_{pnl_category}_significant_withdrawal_total'] += total_invested
+                result[f'pnl_category_{pnl_category}_significant_withdrawal_taken_out'] += amount_taken_out
         
         return result
     
@@ -280,9 +366,10 @@ class SuperPortReportHandler(BaseSQLiteHandler):
         except (ValueError, TypeError):
             return Decimal('0')
 
-    def filterTokensByWalletBreakdown(self, tokens, category=None, type_filter=None, min_wallets=0, min_amount=0):
+    def filterTokensByWalletBreakdown(self, tokens, category=None, type_filter=None, min_wallets=0, min_amount=0) -> List[Dict[str, Any]]:
         """
         Filter tokens based on wallet category, type, count, and invested amount.
+        This is a post-processing filter applied after the database query.
         
         Args:
             tokens: List of token data to filter
@@ -296,6 +383,10 @@ class SuperPortReportHandler(BaseSQLiteHandler):
         """
         filtered_tokens = []
         
+        # Skip filtering if no filters are set
+        if not category and not type_filter and min_wallets <= 0 and min_amount <= 0:
+            return tokens
+            
         # Map category to the appropriate property access
         category_map = {
             "0-300K": "cat1",
@@ -314,56 +405,54 @@ class SuperPortReportHandler(BaseSQLiteHandler):
         type_idx = type_map.get(type_filter)
         
         for token in tokens:
-            # Skip filtering if no filters are set
-            if not category and not type_filter and min_wallets <= 0 and min_amount <= 0:
-                filtered_tokens.append(token)
-                continue
+            # Prepare wallet data structure for filtering
             
             # Prepare wallet data as in renderWalletCategories function
+            # Ensure all values are properly converted to numbers and handle None values
             categoryData = [
                 {
                     "name": "No Selling",
                     "cat1": {
-                        "count": token.get("pnl_category_1_no_withdrawal_count", 0) or 0,
-                        "amount": token.get("pnl_category_1_no_withdrawal_amount", 0) or 0
+                        "count": self._to_decimal(token.get("pnl_category_1_no_withdrawal_count", 0)),
+                        "amount": self._to_decimal(token.get("pnl_category_1_no_withdrawal_total", 0))
                     },
                     "cat2": {
-                        "count": token.get("pnl_category_2_no_withdrawal_count", 0) or 0,
-                        "amount": token.get("pnl_category_2_no_withdrawal_amount", 0) or 0
+                        "count": self._to_decimal(token.get("pnl_category_2_no_withdrawal_count", 0)),
+                        "amount": self._to_decimal(token.get("pnl_category_2_no_withdrawal_total", 0))
                     },
                     "cat3": {
-                        "count": token.get("pnl_category_3_no_withdrawal_count", 0) or 0,
-                        "amount": token.get("pnl_category_3_no_withdrawal_amount", 0) or 0
+                        "count": self._to_decimal(token.get("pnl_category_3_no_withdrawal_count", 0)),
+                        "amount": self._to_decimal(token.get("pnl_category_3_no_withdrawal_total", 0))
                     }
                 },
                 {
                     "name": "< 30%",
                     "cat1": {
-                        "count": token.get("pnl_category_1_partial_withdrawal_count", 0) or 0,
-                        "amount": token.get("pnl_category_1_partial_withdrawal_amount", 0) or 0
+                        "count": self._to_decimal(token.get("pnl_category_1_partial_withdrawal_count", 0)),
+                        "amount": self._to_decimal(token.get("pnl_category_1_partial_withdrawal_total", 0))
                     },
                     "cat2": {
-                        "count": token.get("pnl_category_2_partial_withdrawal_count", 0) or 0,
-                        "amount": token.get("pnl_category_2_partial_withdrawal_amount", 0) or 0
+                        "count": self._to_decimal(token.get("pnl_category_2_partial_withdrawal_count", 0)),
+                        "amount": self._to_decimal(token.get("pnl_category_2_partial_withdrawal_total", 0))
                     },
                     "cat3": {
-                        "count": token.get("pnl_category_3_partial_withdrawal_count", 0) or 0,
-                        "amount": token.get("pnl_category_3_partial_withdrawal_amount", 0) or 0
+                        "count": self._to_decimal(token.get("pnl_category_3_partial_withdrawal_count", 0)),
+                        "amount": self._to_decimal(token.get("pnl_category_3_partial_withdrawal_total", 0))
                     }
                 },
                 {
                     "name": "> 30%",
                     "cat1": {
-                        "count": token.get("pnl_category_1_significant_withdrawal_count", 0) or 0,
-                        "amount": token.get("pnl_category_1_significant_withdrawal_amount", 0) or 0
+                        "count": self._to_decimal(token.get("pnl_category_1_significant_withdrawal_count", 0)),
+                        "amount": self._to_decimal(token.get("pnl_category_1_significant_withdrawal_total", 0))
                     },
                     "cat2": {
-                        "count": token.get("pnl_category_2_significant_withdrawal_count", 0) or 0,
-                        "amount": token.get("pnl_category_2_significant_withdrawal_amount", 0) or 0
+                        "count": self._to_decimal(token.get("pnl_category_2_significant_withdrawal_count", 0)),
+                        "amount": self._to_decimal(token.get("pnl_category_2_significant_withdrawal_total", 0))
                     },
                     "cat3": {
-                        "count": token.get("pnl_category_3_significant_withdrawal_count", 0) or 0,
-                        "amount": token.get("pnl_category_3_significant_withdrawal_amount", 0) or 0
+                        "count": self._to_decimal(token.get("pnl_category_3_significant_withdrawal_count", 0)),
+                        "amount": self._to_decimal(token.get("pnl_category_3_significant_withdrawal_total", 0))
                     }
                 }
             ]
@@ -378,7 +467,7 @@ class SuperPortReportHandler(BaseSQLiteHandler):
                 
                 if wallet_count < min_wallets:
                     include_token = False
-                if min_amount > 0 and wallet_amount < min_amount:
+                if min_amount > 0 and wallet_amount < self._to_decimal(min_amount):
                     include_token = False
             
             # If only category is specified
@@ -389,7 +478,7 @@ class SuperPortReportHandler(BaseSQLiteHandler):
                 
                 if total_count < min_wallets:
                     include_token = False
-                if min_amount > 0 and total_amount < min_amount:
+                if min_amount > 0 and total_amount < self._to_decimal(min_amount):
                     include_token = False
             
             # If only type is specified
@@ -400,7 +489,7 @@ class SuperPortReportHandler(BaseSQLiteHandler):
                 
                 if total_count < min_wallets:
                     include_token = False
-                if min_amount > 0 and total_amount < min_amount:
+                if min_amount > 0 and total_amount < self._to_decimal(min_amount):
                     include_token = False
             
             # If only min_wallets or min_amount is specified
@@ -411,7 +500,7 @@ class SuperPortReportHandler(BaseSQLiteHandler):
                 
                 if total_count < min_wallets:
                     include_token = False
-                if min_amount > 0 and total_amount < min_amount:
+                if min_amount > 0 and total_amount < self._to_decimal(min_amount):
                     include_token = False
             
             if include_token:
