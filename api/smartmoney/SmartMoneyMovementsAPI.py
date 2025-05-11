@@ -117,8 +117,8 @@ def process_token_movements():
         action = SmartMoneyMovementsAction(db)
         
         # Get all active wallets for the token
-        activeWallets = db.walletsInvested.getActiveWalletsByTokenId(tokenAddress)
-        if not activeWallets:
+        activeWalletsAddresses = db.walletsInvested.getActiveWalletsByTokenId(tokenAddress)
+        if not activeWalletsAddresses:
             return jsonify({
                 'success': True,
                 'message': f'No active wallets found for token {tokenAddress}'
@@ -128,8 +128,7 @@ def process_token_movements():
         results: List[Dict[str, str]] = []
         skipped_count = 0
         
-        for wallet in activeWallets:
-            walletAddress = wallet['walletaddress']
+        for walletAddress in activeWalletsAddresses:
             
             # Check if we should process this wallet
             if not shouldProcessWallet(action, walletAddress):

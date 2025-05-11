@@ -36,6 +36,10 @@ class SmartMoneyMovementsAction:
             lastFetchedTime = self.smartMoneyMovementsHandler.getLastFetchedTime(walletAddress)
             current_time = int(datetime.now().timestamp())
             
+            # If lastFetchedTime is null or empty, set it to 90 days ago
+            if lastFetchedTime is None:
+                lastFetchedTime = int((datetime.now() - timedelta(days=90)).timestamp())
+            
             # Get all transactions since last fetch
             transactions = self.getAllTransactions(walletAddress, lastFetchedTime, current_time)
             if not transactions:

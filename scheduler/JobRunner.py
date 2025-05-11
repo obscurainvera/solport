@@ -253,20 +253,20 @@ class JobRunner:
             # if 'wallets_invested_in_a_token' not in job_ids:
             #     self.addWalletsInvestedInATokenJobs()
             
-            if 'attention_analysis' not in job_ids:
-                self.addAttentionAnalysisJobs()
+            # if 'attention_analysis' not in job_ids:
+            #     self.addAttentionAnalysisJobs()
 
             # if 'daily_token_deactivation' not in job_ids:
             #     self.addTokenDeactivationJob()
 
-            if 'volume_bot_analysis' not in job_ids:
-                self.addVolumeBotJobs()
+            # if 'volume_bot_analysis' not in job_ids:
+            #     self.addVolumeBotJobs()
 
-            if 'pump_fun_analysis' not in job_ids:
-                self.addPumpFunJobs()
+            # if 'pump_fun_analysis' not in job_ids:
+            #     self.addPumpFunJobs()
             
-            if 'execution_monitoring' not in job_ids:
-                self.addExecutionMonitoringJobs()
+            # if 'execution_monitoring' not in job_ids:
+            #     self.addExecutionMonitoringJobs()
             
             logger.info("All jobs configured successfully")
             

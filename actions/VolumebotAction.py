@@ -114,7 +114,6 @@ class VolumebotAction:
             logger.info(f"Making request to: {url} with params: {params}")
             
             response = requests.get(url, headers=headers, params=params)
-            
             response.raise_for_status()
             return response.json()
 

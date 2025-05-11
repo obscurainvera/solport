@@ -52,7 +52,7 @@ class WalletsInvestedInvestmentDetailsScheduler:
                     tokenId=None
                 )
                 
-                logger.info(f"Found {len(walletsWithHighSMTokenHoldings)} active wallets for analysis with min holding {threshold}")
+                logger.info(f"Found {len(walletsWithHighSMTokenHoldings)} active wallets for investement analysis with min holding {threshold}")
                 
                 for wallet in walletsWithHighSMTokenHoldings:
                     try:
