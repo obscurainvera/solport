@@ -60,12 +60,6 @@ class WalletsInvestedScheduler:
                         )
                         logger.info(f"Wallets invested analysis for {token['tokenid']} - {token['name']} completed")
                         
-                        # # Sleep between API calls
-                        # delay = random.uniform(10,30)
-                        # logger.info(f"Sleeping for {delay} seconds")
-                        # time.sleep(delay)
-                        # logger.info("Sleep completed")
-                        
                     except Exception as e:
                         logger.error(f"Failed to process token {token['tokenid']}: {str(e)}")
                         continue
