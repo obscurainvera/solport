@@ -32,6 +32,10 @@ function Strategy() {
   const [isDescriptionModalOpen, setIsDescriptionModalOpen] = useState(false);
   const [tempDescription, setTempDescription] = useState('');
   const [activeDescriptionType, setActiveDescriptionType] = useState(''); // 'token' or 'strategy'
+  
+  // State for Top Traders
+  const [topTradersLoading, setTopTradersLoading] = useState(false);
+  const [topTradersStatus, setTopTradersStatus] = useState({ message: '', isError: false, visible: false });
 
   // Open description modal with current description
   const openDescriptionModal = (type) => {
@@ -48,6 +52,52 @@ function Strategy() {
       setStrategyDescription(tempDescription);
     }
     setIsDescriptionModalOpen(false);
+  };
+  
+  // Process top traders data
+  const processTopTraders = async () => {
+    try {
+      setTopTradersLoading(true);
+      setTopTradersStatus({ 
+        message: 'Processing top traders data...', 
+        isError: false, 
+        visible: true 
+      });
+      
+      // Get the cookie from localStorage or use the one from environment
+      const cookie = localStorage.getItem('chainedge_cookie') || process.env.REACT_APP_DEFAULT_CHAINEDGE_COOKIE;
+      
+      const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:8080'}/api/top-traders/process`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          cookie: cookie
+        }),
+      });
+      
+      const data = await response.json();
+      
+      if (response.ok) {
+        setTopTradersStatus({ 
+          message: data.message || 'Top traders data processed successfully!',
+          isError: false,
+          visible: true
+        });
+      } else {
+        throw new Error(data.message || 'Failed to process top traders data');
+      }
+    } catch (error) {
+      console.error('Error processing top traders:', error);
+      setTopTradersStatus({ 
+        message: error.message || 'An error occurred while processing top traders data',
+        isError: true,
+        visible: true
+      });
+    } finally {
+      setTopTradersLoading(false);
+    }
   };
 
   // Cancel and close modal
@@ -402,14 +452,43 @@ function Strategy() {
     <div className="strategy-container">
       <div className="strategy-header">
         <div className="strategy-title">
-          <h1>Strategy Operations</h1>
+          <h1>Strategy Framework</h1>
         </div>
-        <p className="subtitle">Manage portfolio tagging, execution monitoring, and analytics integration</p>
+        <p className="strategy-description">
+          Create, manage, and monitor your trading strategies with powerful analytics and automation.
+        </p>
       </div>
 
       <div className="strategy-content">
         <div className="strategy-section">
           <div className="section-grid">
+            {/* Top Traders Card */}
+            <div className="strategy-card">
+              <div className="card-header">
+                <h2>Top Traders Analysis</h2>
+                <p>Process and analyze top traders data from the API</p>
+              </div>
+              <div className="card-content">
+                <button 
+                  className="luxury-button" 
+                  onClick={processTopTraders}
+                  disabled={topTradersLoading}
+                >
+                  Process Top Traders
+                  {topTradersLoading && <span className="loading-spinner"></span>}
+                </button>
+                
+                {topTradersStatus.visible && (
+                  <div className={`status-message ${topTradersStatus.isError ? 'error' : 'success'}`}>
+                    {topTradersStatus.message}
+                    <button className="close-status" onClick={() => setTopTradersStatus(prev => ({...prev, visible: false}))}>
+                      <FaTimes />
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+            
             {/* Portfolio Tagger Card */}
             <div className="strategy-card">
               <div className="card-header">
