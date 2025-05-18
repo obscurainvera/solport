@@ -103,9 +103,34 @@ const SuperPortReport = () => {
   };
   
   // Handle token click to show wallet invested modal
-  const handleTokenClick = (token) => {
-    setSelectedToken(token);
-    setShowWalletModal(true);
+  const handleTokenClick = async (token) => {
+    try {
+      // Show loading state
+      setLoading(true);
+      
+      // Fetch current price from DexScrenner API
+      const response = await axios.get(`/api/price/token/${token.tokenid}`);
+      
+      // Check for price in the correct response structure
+      if (response.data && response.data.status === 'success' && response.data.data && response.data.data.price) {
+        // Create a new token object with the current price
+        const tokenWithPrice = {
+          ...token,
+          currentprice: response.data.data.price
+        };
+        setSelectedToken(tokenWithPrice);
+      } else {
+        // If no price data, use the token as is
+        setSelectedToken(token);
+      }
+    } catch (err) {
+      console.error('Error fetching token price:', err);
+      // If there's an error, still show the modal with the original token
+      setSelectedToken(token);
+    } finally {
+      setLoading(false);
+      setShowWalletModal(true);
+    }
   };
   
   // Close wallet invested modal

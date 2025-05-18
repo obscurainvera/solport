@@ -202,7 +202,7 @@ function WalletInvestedModal({ token, onClose }) {
     
     const num = parseFloat(value);
     if (isNaN(num)) return '-';
-    
+  
     // Format with appropriate suffix
     if (Math.abs(num) >= 1_000_000) {
       return `$${(num / 1_000_000).toFixed(2)}M`;
@@ -211,6 +211,57 @@ function WalletInvestedModal({ token, onClose }) {
     } else {
       return `$${num.toFixed(2)}`;
     }
+  };
+  
+  // Format small decimal values with subscript notation for leading zeros
+  const formatSmallDecimal = (value, withCurrency = true) => {
+    if (value === null || value === undefined) return '-';
+    
+    const num = parseFloat(value);
+    if (isNaN(num)) return '-';
+    
+    // If the number is 0, just return 0
+    if (num === 0) return withCurrency ? '$0' : '0';
+    
+    // Convert to string and handle negative numbers
+    const isNegative = num < 0;
+    const absNum = Math.abs(num);
+    const numStr = absNum.toString();
+    
+    // If it's not a decimal or doesn't have leading zeros after decimal, return formatted
+    if (!numStr.includes('.') || !numStr.startsWith('0.')) {
+      return `${isNegative ? '-' : ''}${withCurrency ? '$' : ''}${numStr}`;
+    }
+    
+    // Count leading zeros after the decimal point
+    const decimalPart = numStr.split('.')[1];
+    let leadingZeros = 0;
+    
+    for (let i = 0; i < decimalPart.length; i++) {
+      if (decimalPart[i] === '0') {
+        leadingZeros++;
+      } else {
+        break;
+      }
+    }
+    
+    // If no leading zeros, return as is
+    if (leadingZeros === 0) {
+      return `${isNegative ? '-' : ''}${withCurrency ? '$' : ''}${numStr}`;
+    }
+    
+    // Create the formatted string with subscript
+    const subscriptDigits = ['₀', '₁', '₂', '₃', '₄', '₅', '₆', '₇', '₈', '₉'];
+    
+    // Get only the first two digits after the first non-zero digit
+    const remainingDigits = decimalPart.substring(leadingZeros, leadingZeros + 2);
+    
+    return `${isNegative ? '-' : ''}${withCurrency ? '$' : ''}0.${subscriptDigits[leadingZeros]}${remainingDigits}`;
+  };
+  
+  // Format average entry value with subscript notation
+  const formatAvgEntry = (value) => {
+    return formatSmallDecimal(value, true);
   };
   
   // Calculate remaining amount (coinquantity * current price)
@@ -558,14 +609,14 @@ function WalletInvestedModal({ token, onClose }) {
                           <td className="text-center" title={formatCurrency(wallet.amounttakenout)}>
                             {formatAbbreviatedCurrency(wallet.amounttakenout)}
                           </td>
-                          <td className="text-center" title={formatCurrency(wallet.avgentry)}>
-                            {formatAbbreviatedCurrency(wallet.avgentry)}
+                          <td className="text-center" title={wallet.avgentry}>
+                            {formatAvgEntry(wallet.avgentry)}
                           </td>
                           <td className="text-center remaining-amount" title={formatCurrency(remainingAmount)}>
                             {formatAbbreviatedCurrency(remainingAmount)}
                             {token && token.currentprice && (
                               <span className="current-price-note">
-                                @ {formatCurrency(token.currentprice)}
+                                @ {formatSmallDecimal(token.currentprice, true)}
                               </span>
                             )}
                           </td>
