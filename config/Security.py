@@ -46,6 +46,11 @@ COOKIE_MAP = {
             'expiry': datetime(2025, 5, 12)
         }
     },
+    'toptraders': {
+        CHAINEDGE_COOKIE: {
+            'expiry': datetime(2025, 5, 12)
+        }
+    },
     'smwallettoppnltoken': {
         CHAINEDGE_COOKIE: {
             'expiry': datetime(2025, 4, 4)
