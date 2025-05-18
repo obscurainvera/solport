@@ -7,6 +7,7 @@ import json
 from datetime import datetime
 from logs.logger import get_logger
 import pytz
+from utils.constants import EXCLUDE_TOKEN_IDS
 
 logger = get_logger(__name__)
 
@@ -317,26 +318,53 @@ class WalletsInvestedHandler(BaseSQLiteHandler):
             return False
 
     def getWalletsWithHighSMTokenHoldings(self, minBalance: Decimal, tokenId: Optional[str] = None) -> List[Dict]:
-        """Get wallets with high smart money holdings"""
+        """
+        Get wallets with high smart money holdings joined with portfolio summary data,
+        excluding specific tokens defined in EXCLUDE_TOKEN_IDS
+        
+        Args:
+            minBalance: Minimum balance threshold
+            tokenId: Optional specific token ID to filter
+            
+        Returns:
+            List[Dict]: List of wallet records with token details
+        """
         try:
             with self.conn_manager.transaction() as cursor:
+                # Create placeholders for excluded tokens
+                exclude_placeholders = ','.join(['?' for _ in EXCLUDE_TOKEN_IDS])
+                
                 if tokenId:
-                    cursor.execute("""
-                        SELECT walletinvestedid, walletaddress, tokenid, smartholding
-                        FROM walletsinvested
-                        WHERE smartholding >= ?
-                        AND tokenid = ?
-                        AND status = ?
-                        ORDER BY smartholding DESC
-                    """, (str(minBalance), tokenId, WalletInvestedStatusEnum.ACTIVE))
+                    cursor.execute(f"""
+                        SELECT 
+                            w.walletinvestedid,
+                            w.walletaddress,
+                            w.tokenid,
+                            w.smartholding,
+                            p.name as tokenname
+                        FROM walletsinvested w
+                        INNER JOIN portsummary p ON w.tokenid = p.tokenid
+                        WHERE w.smartholding >= ?
+                        AND w.tokenid = ?
+                        AND w.status = ?
+                        AND w.tokenid NOT IN ({exclude_placeholders})
+                        ORDER BY w.smartholding DESC
+                    """, (str(minBalance), tokenId, WalletInvestedStatusEnum.ACTIVE, *EXCLUDE_TOKEN_IDS))
                 else:
-                    cursor.execute("""
-                        SELECT walletinvestedid, walletaddress, tokenid, smartholding
-                        FROM walletsinvested
-                        WHERE smartholding >= ?
-                        AND status = ?
-                        ORDER BY smartholding DESC
-                    """, (str(minBalance), WalletInvestedStatusEnum.ACTIVE))
+                    cursor.execute(f"""
+                        SELECT 
+                            w.walletinvestedid,
+                            w.walletaddress,
+                            w.tokenid,
+                            w.smartholding,
+                            p.name as tokenname
+                        FROM walletsinvested w
+                        INNER JOIN portsummary p ON w.tokenid = p.tokenid
+                        WHERE w.smartholding >= ?
+                        AND w.status = ?
+                        AND w.tokenid NOT IN ({exclude_placeholders})
+                        ORDER BY w.smartholding DESC
+                    """, (str(minBalance), WalletInvestedStatusEnum.ACTIVE, *EXCLUDE_TOKEN_IDS))
                 
                 return [dict(row) for row in cursor.fetchall()]
                 
