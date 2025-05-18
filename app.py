@@ -43,6 +43,7 @@ from api.dexscrenner.DexScrennerAPI import dexscrenner_bp
 from api.smartmoney.SmartMoneyMovementsAPI import smart_money_movements_bp
 from api.smartmoneymovements.SmartMoneyMovementsReportAPI import smartMoneyMovementsReportBp
 from api.superport.SuperPortReportAPI import superport_report_bp
+from api.toptraders.TopTradersAPI import top_traders_bp
 
 logger = get_logger(__name__)
 
@@ -148,6 +149,7 @@ class PortfolioApp:
             self.app.register_blueprint(smart_money_movements_bp)
             self.app.register_blueprint(smartMoneyMovementsReportBp)
             self.app.register_blueprint(superport_report_bp)
+            self.app.register_blueprint(top_traders_bp)
             
             logger.info("Portfolio app initialized successfully")
         except Exception as e:
