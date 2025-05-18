@@ -32,6 +32,10 @@ function Operations() {
   // Base API URL
   const API_BASE_URL = 'http://localhost:8080';
   
+  // State for top traders processing
+  const [isProcessingTopTraders, setIsProcessingTopTraders] = useState(false);
+  const [topTradersStatus, setTopTradersStatus] = useState(null);
+  
   // State for floating navigation
   const [showFloatingNav, setShowFloatingNav] = useState(true);
   const [scrollPosition, setScrollPosition] = useState(0);
@@ -48,6 +52,48 @@ function Operations() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
   
+  // Process top traders data
+  const processTopTraders = async () => {
+    try {
+      setIsProcessingTopTraders(true);
+      setTopTradersStatus({ type: 'info', message: 'Processing top traders data...' });
+      
+      // Get the cookie from localStorage or use the one from environment
+      const cookie = localStorage.getItem('chainedge_cookie') || process.env.REACT_APP_DEFAULT_CHAINEDGE_COOKIE;
+      
+      const response = await fetch(`${API_BASE_URL}/api/top-traders/process`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          cookie: cookie
+        }),
+      });
+      
+      const data = await response.json();
+      
+      if (response.ok) {
+        setTopTradersStatus({ 
+          type: 'success', 
+          message: data.message || 'Top traders data processed successfully!',
+          executionTime: data.execution_time
+        });
+      } else {
+        throw new Error(data.message || 'Failed to process top traders data');
+      }
+    } catch (error) {
+      console.error('Error processing top traders:', error);
+      setTopTradersStatus({ 
+        type: 'error', 
+        message: error.message || 'An error occurred while processing top traders data',
+        executionTime: null
+      });
+    } finally {
+      setIsProcessingTopTraders(false);
+    }
+  };
+
   // Function to scroll to top and show nav panel
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -1697,8 +1743,15 @@ function Operations() {
               className={`nav-tile ${activeSection === 'attention-section' ? 'active' : ''}`}
               onClick={() => scrollToSection('attention-section')}
             >
-              <FaEye />
+              <FaEye className="nav-icon" />
               <span>Attention</span>
+            </button>
+            <button 
+              className={`nav-tile ${activeSection === 'top-traders-section' ? 'active' : ''}`}
+              onClick={() => scrollToSection('top-traders-section')}
+            >
+              <FaTrophy className="nav-icon" />
+              <span>Top Traders</span>
             </button>
             <button 
               className={`nav-tile ${activeSection === 'solana-attention-section' ? 'active' : ''}`}
@@ -2322,6 +2375,66 @@ function Operations() {
                   </button>
                     <div id="pump-schedule-status" className="status-message"></div>
                     </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Top Traders Section */}
+        <section className="section" id="top-traders-section">
+          <div className="section-content">
+            <div className="section-row">
+              <div className="col">
+                <h1 className="premium-title">TOP TRADERS</h1>
+                <p className="premium-subtitle">Track and analyze top performing traders</p>
+                <div className="section-description">
+                  <p>
+                    Monitor top traders and their performance metrics.
+                    Analyze their trading patterns and strategies.
+                  </p>
+                </div>
+              </div>
+              <div className="col">
+                <div className="luxury-card">
+                  <div className="card-content">
+                    <div className="card-header">
+                      <h3>Top Traders Analysis</h3>
+                      <div className="badge badge-gold">Analytics</div>
+                    </div>
+                    <div className="pattern pattern-grid"></div>
+                    <p>
+                      Process and analyze top traders data from the API.
+                    </p>
+                    <button 
+                      className="luxury-button" 
+                      onClick={processTopTraders}
+                      disabled={isProcessingTopTraders}
+                    >
+                      {isProcessingTopTraders ? (
+                        <>
+                          <FaSync className="spin" /> Processing...
+                        </>
+                      ) : (
+                        <>
+                          <FaTrophy /> Process Top Traders
+                        </>
+                      )}
+                    </button>
+                    {topTradersStatus && (
+                      <div className={`status-message ${topTradersStatus.type}`}>
+                        {topTradersStatus.type === 'success' ? (
+                          <FaCheck className="status-icon" />
+                        ) : (
+                          <FaExclamationTriangle className="status-icon" />
+                        )}
+                        <span>{topTradersStatus.message}</span>
+                        {topTradersStatus.executionTime && (
+                          <span className="execution-time">({topTradersStatus.executionTime})</span>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>

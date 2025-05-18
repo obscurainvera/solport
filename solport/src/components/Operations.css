@@ -93,6 +93,7 @@ body {
   letter-spacing: -0.02em;
   margin: 0;
   background: linear-gradient(90deg, #fff 0%, rgba(255, 255, 255, 0.7) 100%);
+  background-clip: text;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   text-align: center;
@@ -254,7 +255,8 @@ body {
   font-size: 2.5rem;
   font-weight: 700;
   margin-bottom: 0.5rem;
-  background: linear-gradient(135deg, var(--apple-white) 0%, var(--luxury-gold) 100%);
+  background: linear-gradient(135deg, var(--apple-blue), var(--apple-purple));
+  background-clip: text;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   letter-spacing: -0.02em;
@@ -1240,6 +1242,67 @@ body {
   position: relative;
   border: 1px solid rgba(255, 255, 255, 0.05);
   margin-top: 10px;
+}
+
+/* Top Traders Section Specific Styles */
+#top-traders-section .luxury-card {
+  background: linear-gradient(145deg, #1a1a2e, #16213e);
+  border: 1px solid var(--luxury-gold-border);
+  transition: var(--transition-standard);
+  overflow: hidden;
+}
+
+#top-traders-section .luxury-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 30px rgba(212, 175, 55, 0.2);
+}
+
+#top-traders-section .badge-gold {
+  background: var(--luxury-gold);
+  color: #000;
+  font-weight: 600;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+#top-traders-section .luxury-button {
+  background: linear-gradient(135deg, var(--luxury-gold), #f1c40f);
+  background-clip: padding-box;
+  color: #000;
+  font-weight: 600;
+  border: none;
+  padding: 12px 24px;
+  border-radius: var(--button-radius);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: var(--transition-standard);
+  margin-top: 16px;
+  width: 100%;
+}
+
+#top-traders-section .luxury-button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(212, 175, 55, 0.4);
+}
+
+#top-traders-section .luxury-button:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+#top-traders-section .spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 
 .status-message.success {
