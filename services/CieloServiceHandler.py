@@ -33,7 +33,6 @@ class CieloServiceHandler:
         """
         try:
             transactions = self.getAllTransactions(walletAddress, tokenId)
-            # logger.info(f"Transactions for {walletAddress} and token {tokenId}: {transactions}")
             if not transactions:
                 return None
             return self.calculateInvestmentDetails(transactions, tokenId)
@@ -55,6 +54,7 @@ class CieloServiceHandler:
         """
         allTransactions = []
         startFrom = None
+        apiCount=0
         
         while True:
             apiKeyData = self.db.credentials.getNextValidApiKey(
@@ -62,17 +62,18 @@ class CieloServiceHandler:
                 requiredCredits=self.creditsPerCall
             )
             if not apiKeyData:
-                logger.error("No valid API key available")
+                logger.info("No valid API key available")
                 return None
-                
-            # Get page of transactions
-            # logger.info(f"Getting transactions for {walletAddress} and token {tokenId} with API key {apiKeyData['apikey']}")
+            
+            logger.info(f"Fetching transactions from Cielo API for wallet {walletAddress} and token {tokenId}")
             result = self.getSwaps(
                 apiKey=apiKeyData['apikey'],
                 walletAddress=walletAddress,
                 tokenId=tokenId,
                 startFrom=startFrom
             )
+            apiCount += 1
+            logger.info(f"Completed network call to Cielo API for wallet {walletAddress} and token {tokenId} and call count {apiCount}")
             
             if not result:
                 break

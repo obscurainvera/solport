@@ -56,7 +56,7 @@ class WalletsInvestedInvestmentDetailsScheduler:
                 
                 for wallet in walletsWithHighSMTokenHoldings:
                     try:
-                        logger.info(f"Processing transactions for wallet {wallet['walletaddress']} token {wallet['tokenid']}")
+                        logger.info(f"Processing transactions for wallet {wallet['walletaddress']} token {wallet['tokenname']} ({wallet['tokenid']})")
                         success = self.action.updateInvestmentData(
                             cookie=cookie,
                             walletAddress=wallet['walletaddress'],
@@ -65,9 +65,9 @@ class WalletsInvestedInvestmentDetailsScheduler:
                         )
                         
                         if success:
-                            logger.info(f"Successfully analyzed wallet {wallet['walletaddress']}")
+                            logger.info(f"Successfully analyzed wallet {wallet['walletaddress']} for {wallet['tokenname']}")
                         else:
-                            logger.warning(f"Failed to analyze wallet {wallet['walletaddress']}")
+                            logger.warning(f"Failed to analyze wallet {wallet['walletaddress']} for {wallet['tokenname']}")
                         
                         
                     except Exception as e:
@@ -142,4 +142,4 @@ class WalletsInvestedInvestmentDetailsScheduler:
                 
         except Exception as e:
             logger.error(f"Failed to execute transaction analysis for token {tokenId}: {str(e)}")
-            return False 
+            return False
