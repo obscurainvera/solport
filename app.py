@@ -41,6 +41,7 @@ from api.portfolioallocation.PortfolioAllocationAPI import portfolio_allocation_
 from api.attention.AttentionReportAPI import attention_report_bp
 from api.dexscrenner.DexScrennerAPI import dexscrenner_bp
 from api.smartmoney.SmartMoneyMovementsAPI import smart_money_movements_bp
+from api.smartmoney.SmartMoneyMovementsSchedulerAPI import smart_money_movements_scheduler_bp
 from api.smartmoneymovements.SmartMoneyMovementsReportAPI import smartMoneyMovementsReportBp
 from api.superport.SuperPortReportAPI import superport_report_bp
 from api.toptraders.TopTradersAPI import top_traders_bp
@@ -147,6 +148,7 @@ class PortfolioApp:
             self.app.register_blueprint(attention_report_bp)
             self.app.register_blueprint(dexscrenner_bp)
             self.app.register_blueprint(smart_money_movements_bp)
+            self.app.register_blueprint(smart_money_movements_scheduler_bp)
             self.app.register_blueprint(smartMoneyMovementsReportBp)
             self.app.register_blueprint(superport_report_bp)
             self.app.register_blueprint(top_traders_bp)
