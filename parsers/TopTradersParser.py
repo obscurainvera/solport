@@ -14,7 +14,7 @@ class TopTradersParser:
     """Parser for top traders API response"""
     
     @staticmethod
-    def parseResponse(response_data: Dict[str, Any]) -> List[Dict]:
+    def parseResponse(response: Dict[str, Any]) -> List[Dict]:
         """
         Parse the API response into a list of trader dictionaries
         
@@ -25,7 +25,7 @@ class TopTradersParser:
             List[Dict]: List of parsed trader data
         """
         try:
-            if not response_data or 'data' not in response_data:
+            if not response or 'data' not in response:
                 logger.error("Invalid response data format")
                 return []
                 
@@ -34,17 +34,17 @@ class TopTradersParser:
             current_time = datetime.now(ist_timezone).strftime('%Y-%m-%d %H:%M:%S')
                 
             traders = []
-            for item in response_data['data']:
+            for item in response['data']:
                 try:
                     trader = {
                         'walletaddress': item.get('wallet', '').strip(),
                         'tokenid': item.get('token_id', '').strip(),
                         'tokenname': item.get('tokenname', '').strip(),
                         'chain': item.get('chain_org', '').strip().lower(),
-                        'pnl': TopTradersParser._parse_decimal(item.get('pnl')),
-                        'roi': TopTradersParser._parse_decimal(item.get('roi')),
-                        'avgentry': TopTradersParser._parse_decimal(item.get('avgentry')),
-                        'avgexit': TopTradersParser._parse_decimal(item.get('avgexit')),
+                        'pnl': TopTradersParser.parseDecimal(item.get('pnl')),
+                        'roi': TopTradersParser.parseDecimal(item.get('roi')),
+                        'avgentry': TopTradersParser.parseDecimal(item.get('avgentry')),
+                        'avgexit': TopTradersParser.parseDecimal(item.get('avgexit')),
                         'startedat': item.get('start_period'),
                         'createdat': current_time,
                         'updatedat': current_time
@@ -71,7 +71,7 @@ class TopTradersParser:
             return []
             
     @staticmethod
-    def _parse_decimal(value: Any) -> float:
+    def parseDecimal(value: Any) -> float:
         """
         Safely parse a value to float for SQLite compatibility, handling various input formats
         including subscript characters
