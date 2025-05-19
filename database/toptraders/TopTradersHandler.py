@@ -59,8 +59,8 @@ class TopTradersHandler(BaseSQLiteHandler):
                 cursor.execute('''
                     INSERT INTO toptraders (
                         walletaddress, tokenid, tokenname, chain, pnl, roi,
-                        avgentry, avgexit, startedat, updatedat
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+                        avgentry, avgexit, startedat, createdat, updatedat
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     ON CONFLICT(walletaddress, tokenid) DO UPDATE SET
                         tokenname = excluded.tokenname,
                         chain = excluded.chain,
@@ -69,7 +69,7 @@ class TopTradersHandler(BaseSQLiteHandler):
                         avgentry = excluded.avgentry,
                         avgexit = excluded.avgexit,
                         startedat = excluded.startedat,
-                        updatedat = CURRENT_TIMESTAMP
+                        updatedat = excluded.updatedat
                 ''', (
                     trader_data['walletaddress'],
                     trader_data['tokenid'],
@@ -79,7 +79,9 @@ class TopTradersHandler(BaseSQLiteHandler):
                     trader_data.get('roi'),
                     trader_data.get('avgentry'),
                     trader_data.get('avgexit'),
-                    trader_data.get('startedat')
+                    trader_data.get('startedat'),
+                    trader_data.get('createdat'),
+                    trader_data.get('updatedat')
                 ))
                 return True
         except Exception as e:
@@ -97,13 +99,23 @@ class TopTradersHandler(BaseSQLiteHandler):
             bool: True if all operations were successful, False otherwise
         """
         try:
+            # Get current time in IST for any missing timestamps
+            ist_timezone = pytz.timezone('Asia/Kolkata')
+            current_time = datetime.now(ist_timezone).strftime('%Y-%m-%d %H:%M:%S')
+            
             with self.conn_manager.transaction() as cursor:
                 for trader in traders_data:
+                    # Ensure createdat and updatedat are present
+                    if 'createdat' not in trader:
+                        trader['createdat'] = current_time
+                    if 'updatedat' not in trader:
+                        trader['updatedat'] = current_time
+                        
                     cursor.execute('''
                         INSERT INTO toptraders (
                             walletaddress, tokenid, tokenname, chain, pnl, roi,
-                            avgentry, avgexit, startedat, updatedat
-                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+                            avgentry, avgexit, startedat, createdat, updatedat
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                         ON CONFLICT(walletaddress, tokenid) DO UPDATE SET
                             tokenname = excluded.tokenname,
                             chain = excluded.chain,
@@ -112,7 +124,7 @@ class TopTradersHandler(BaseSQLiteHandler):
                             avgentry = excluded.avgentry,
                             avgexit = excluded.avgexit,
                             startedat = excluded.startedat,
-                            updatedat = CURRENT_TIMESTAMP
+                            updatedat = ?
                     ''', (
                         trader['walletaddress'],
                         trader['tokenid'],
@@ -122,7 +134,10 @@ class TopTradersHandler(BaseSQLiteHandler):
                         trader.get('roi'),
                         trader.get('avgentry'),
                         trader.get('avgexit'),
-                        trader.get('startedat')
+                        trader.get('startedat'),
+                        trader['createdat'],
+                        trader['updatedat'],
+                        current_time  # Always update the updatedat timestamp on conflict
                     ))
             return True
         except Exception as e:
