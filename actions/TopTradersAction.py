@@ -124,7 +124,7 @@ class TopTradersAction:
                 'order[0][column]': '0',
                 'order[0][dir]': 'asc',
                 'start': '0',
-                'length': '100',  # Adjust based on how many records you want to fetch
+                'length': '10000',  # Adjust based on how many records you want to fetch
                 'search[value]': '',
                 'search[regex]': 'false',
                 'cache': '0',
@@ -163,14 +163,14 @@ class TopTradersAction:
             
             # Fetch data from API
             logger.info("Fetching top traders data from API")
-            response_data = self.fetchTopTraders(validCookies[0])
-            if not response_data:
+            latestTopTradersData = self.fetchTopTraders(validCookies[0])
+            if not latestTopTradersData:
                 logger.error("Failed to fetch top traders data")
                 return False
             
             # Parse the response
             logger.info("Parsing API response")
-            topTradersData = self.parser.parseResponse(response_data)
+            topTradersData = self.parser.parseResponse(latestTopTradersData)
             if not topTradersData:
                 logger.error("No valid trader data found in response")
                 return False
