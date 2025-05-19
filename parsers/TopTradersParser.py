@@ -5,6 +5,7 @@ from typing import List, Dict, Any, Optional
 from datetime import datetime
 from decimal import Decimal, InvalidOperation
 import pytz
+import re
 from logs.logger import get_logger
 
 logger = get_logger(__name__)
@@ -28,6 +29,10 @@ class TopTradersParser:
                 logger.error("Invalid response data format")
                 return []
                 
+            # Get current time in IST for created_at and updated_at
+            ist_timezone = pytz.timezone('Asia/Kolkata')
+            current_time = datetime.now(ist_timezone).strftime('%Y-%m-%d %H:%M:%S')
+                
             traders = []
             for item in response_data['data']:
                 try:
@@ -40,7 +45,9 @@ class TopTradersParser:
                         'roi': TopTradersParser._parse_decimal(item.get('roi')),
                         'avgentry': TopTradersParser._parse_decimal(item.get('avgentry')),
                         'avgexit': TopTradersParser._parse_decimal(item.get('avgexit')),
-                        'startedat': item.get('start_period')
+                        'startedat': item.get('start_period'),
+                        'createdat': current_time,
+                        'updatedat': current_time
                     }
                     
                     # Convert startedat to proper datetime format if it exists
@@ -64,27 +71,47 @@ class TopTradersParser:
             return []
             
     @staticmethod
-    def _parse_decimal(value: Any) -> Optional[Decimal]:
+    def _parse_decimal(value: Any) -> float:
         """
-        Safely parse a value to Decimal, handling various input formats
+        Safely parse a value to float for SQLite compatibility, handling various input formats
+        including subscript characters
         
         Args:
             value: The value to parse (could be string, float, int, etc.)
             
         Returns:
-            Optional[Decimal]: The parsed Decimal or None if parsing fails
+            float: The parsed float value or 0.0 if parsing fails
         """
         if value is None or value == '':
-            return None
+            return 0.0
             
         try:
             # Handle string with currency symbols, commas, etc.
             if isinstance(value, str):
-                # Remove currency symbols and commas
-                cleaned = value.strip().replace('$', '').replace(',', '')
-                return Decimal(cleaned)
+                # Remove currency symbols, commas, and spaces
+                cleaned = value.strip().replace('$', '').replace(',', '').replace(' ', '')
+                
+                # Handle percentage values
+                if '%' in cleaned:
+                    cleaned = cleaned.replace('%', '')
+                    return float(cleaned) / 100
+                
+                # Handle empty or invalid strings
+                if not cleaned or cleaned.lower() in ['na', 'n/a', '-']:
+                    return 0.0
+                
+                # Handle subscript characters (like ₅ in 0.₅734)
+                subscript_map = {'₀': '0', '₁': '1', '₂': '2', '₃': '3', '₄': '4', 
+                                 '₅': '5', '₆': '6', '₇': '7', '₈': '8', '₉': '9'}
+                
+                for subscript, digit in subscript_map.items():
+                    cleaned = cleaned.replace(subscript, digit)
+                
+                return float(cleaned)
+                
             # Handle numeric types
-            return Decimal(str(value))
-        except (ValueError, InvalidOperation, TypeError) as e:
-            logger.warning(f"Could not parse value '{value}' as Decimal: {e}")
-            return None
+            return float(value)
+            
+        except (ValueError, TypeError) as e:
+            logger.warning(f"Could not parse value '{value}' as float: {e}")
+            return 0.0
