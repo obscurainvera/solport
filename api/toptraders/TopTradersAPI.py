@@ -10,7 +10,7 @@ logger = get_logger(__name__)
 top_traders_bp = Blueprint('top_traders', __name__)
 
 @top_traders_bp.route('/api/top-traders/process', methods=['POST', 'OPTIONS'])
-def process_top_traders():
+def getAllLatestTopTraders():
     """
     Trigger top traders data processing manually
     
@@ -33,29 +33,11 @@ def process_top_traders():
     logger.info("Manual top traders processing triggered")
     
     try:
-        # Get cookie from request or use default
-        request_data = request.get_json() or {}
-        cookie = request_data.get('cookie')
-        
-        if not cookie:
-            logger.warning("No cookie provided in request, using default from config")
-            # Get default cookie from environment variable
-            cookie = os.getenv('DEFAULT_CHAINEDGE_COOKIE')
-            if not cookie:
-                logger.error("No default cookie configured")
-                response = jsonify({
-                    "status": "error",
-                    "message": "No authentication cookie provided and no default configured"
-                })
-                response.headers.add('Access-Control-Allow-Origin', '*')
-                return response, 400
-        
-        # Initialize and execute
         db = SQLitePortfolioDB()
         action = TopTradersAction(db)
         
         # Process top traders data
-        success = action.processTopTraders(cookie)
+        success = action.getAllLatestTopTraders()
         
         execution_time = time.time() - start_time
         

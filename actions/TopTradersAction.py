@@ -12,6 +12,7 @@ from parsers.TopTradersParser import TopTradersParser
 from database.auth.TokenHandler import TokenHandler
 from database.auth.ServiceCredentialsEnum import ServiceCredentials
 from config.Security import isValidCookie
+from config.Security import COOKIE_MAP
 
 logger = get_logger(__name__)
 
@@ -143,7 +144,7 @@ class TopTradersAction:
             logger.error(f"Unexpected error in fetch_top_traders: {e}")
             return None
     
-    def processTopTraders(self) -> bool:
+    def getAllLatestTopTraders(self) -> bool:
         """
         Main method to process top traders data
         
@@ -151,15 +152,18 @@ class TopTradersAction:
             bool: True if successful, False otherwise
         """
         try:
-            # Get authentication cookie
-            cookie = self.getAuthCookie()
-            if not cookie:
-                logger.error("Failed to get valid authentication cookie")
+            validCookies = [
+            cookie for cookie in COOKIE_MAP.get('toptrader', {})
+            if isValidCookie(cookie, 'toptrader')
+        ]
+
+            if not validCookies:
+                logger.warning("No valid cookies available for attention API")
                 return False
             
             # Fetch data from API
             logger.info("Fetching top traders data from API")
-            response_data = self.fetchTopTraders(cookie)
+            response_data = self.fetchTopTraders(validCookies[0])
             if not response_data:
                 logger.error("Failed to fetch top traders data")
                 return False
