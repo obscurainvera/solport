@@ -49,7 +49,7 @@ COOKIE_MAP = {
     },
     'toptraders': {
         CHAINEDGE_COOKIE: {
-            'expiry': datetime(2025, 5, 12)
+            'expiry': date
         }
     },
     'smwallettoppnltoken': {
