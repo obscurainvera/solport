@@ -45,6 +45,7 @@ from api.smartmoney.SmartMoneyMovementsSchedulerAPI import smart_money_movements
 from api.smartmoneymovements.SmartMoneyMovementsReportAPI import smartMoneyMovementsReportBp
 from api.superport.SuperPortReportAPI import superport_report_bp
 from api.toptraders.TopTradersAPI import top_traders_bp
+from api.smartmoneypnl.SmartMoneyPNLReportAPI import smart_money_pnl_report_bp
 
 logger = get_logger(__name__)
 
@@ -152,6 +153,7 @@ class PortfolioApp:
             self.app.register_blueprint(smartMoneyMovementsReportBp)
             self.app.register_blueprint(superport_report_bp)
             self.app.register_blueprint(top_traders_bp)
+            self.app.register_blueprint(smart_money_pnl_report_bp)
             
             logger.info("Portfolio app initialized successfully")
         except Exception as e:
