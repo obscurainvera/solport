@@ -349,6 +349,261 @@ class SmartMoneyPNLReportHandler(BaseSQLiteHandler):
         except Exception as e:
             logger.error(f"Error getting wallet PNL details: {str(e)}")
             return None
+            
+    def getTokenInvestorsPNL(self, token_id: str, days: int = 30, limit: int = 100, sortBy: str = "pnl", sortOrder: str = "desc", minTotalPnl: float = None, minWalletPnl: float = None) -> Dict[str, Any]:
+        """
+        Get PNL data for all wallets that have invested in a specific token.
+        
+        Args:
+            token_id: The token ID/address to query
+            days: Number of days to look back
+            limit: Maximum number of wallets to return
+            sortBy: Field to sort by (pnl, invested, tokens, trades)
+            sortOrder: Sort order (asc or desc)
+            minTotalPnl: Minimum total PNL filter
+            minWalletPnl: Minimum wallet PNL filter
+            
+        Returns:
+            Dictionary with wallet PNL metrics and token-specific data
+        """
+        try:
+            start_time = time.time()
+            logger.info(f"Starting token investors PNL report for token {token_id} over {days} days")
+            
+            start_date, end_date = self._get_date_range(days)
+            sort_field, sort_order = self._get_sort_parameters(sortBy, sortOrder)
+            
+            # Get all wallet addresses that have invested in this token
+            with self.conn_manager.transaction() as cursor:
+                # Get all wallet addresses that have invested in this token
+                cursor.execute("""
+                    SELECT DISTINCT walletaddress 
+                    FROM walletsinvested 
+                    WHERE tokenid = ? AND status = 1
+                """, (token_id,))
+                
+                wallet_addresses = [row['walletaddress'] for row in cursor.fetchall()]
+                
+                if not wallet_addresses:
+                    logger.info(f"No wallets found with investments in token {token_id}")
+                    return {
+                        'wallets': [],
+                        'token': {'tokenId': token_id, 'tokenName': 'Unknown'},
+                        'period': {
+                            'days': days,
+                            'startDate': start_date.isoformat(),
+                            'endDate': end_date.isoformat()
+                        },
+                        'metrics': {
+                            'executionTimeSeconds': 0,
+                            'walletCount': 0
+                        }
+                    }
+                
+                # Get token name from the token_name_map we already have
+                token_name = token_name_map.get(token_id, 'Unknown')
+                
+                # Create placeholders for SQL IN clause
+                placeholders = ','.join(['?' for _ in wallet_addresses])
+                
+                # Query to get all transaction data for these wallets
+                query = f"""
+                SELECT 
+                    walletaddress,
+                    tokenaddress,
+                    SUM(buytokenchange) AS total_buytoken,
+                    SUM(selltokenchange) AS total_selltoken,
+                    SUM(buyusdchange) AS total_buyusd,
+                    SUM(sellusdchange) AS total_sellusd
+                FROM 
+                    smartmoneymovements
+                WHERE 
+                    walletaddress IN ({placeholders})
+                    AND date >= ? AND date <= ?
+                    AND tokenaddress NOT IN {SQL_EXCLUDED_TOKENS}
+                GROUP BY 
+                    walletaddress, tokenaddress
+                """
+                
+                params = wallet_addresses + [start_date, end_date]
+                cursor.execute(query, params)
+                results = cursor.fetchall()
+                
+                # Process transaction data
+                wallet_data = {}
+                token_name_map = {}
+                
+                # First, collect all token names
+                cursor.execute("""
+                    SELECT tokenid, name FROM portsummary
+                    WHERE tokenid IN (SELECT DISTINCT tokenaddress FROM smartmoneymovements)
+                """)
+                for row in cursor.fetchall():
+                    token_name_map[row['tokenid']] = row['name']
+                
+                # Process transaction data
+                for row in results:
+                    wallet_address = row['walletaddress']
+                    token_address = row['tokenaddress']
+                    total_buytoken = float(row['total_buytoken'] or 0)
+                    total_selltoken = float(row['total_selltoken'] or 0)
+                    total_buyusd = float(row['total_buyusd'] or 0)
+                    total_sellusd = float(row['total_sellusd'] or 0)
+                    remaining_balance = total_buytoken - total_selltoken
+                    
+                    if wallet_address not in wallet_data:
+                        wallet_data[wallet_address] = {
+                            'total_invested': 0,
+                            'total_taken_out': 0,
+                            'unique_tokens': set(),
+                            'token_balances': {},
+                            'tokens': []
+                        }
+                    
+                    wallet = wallet_data[wallet_address]
+                    wallet['total_invested'] += total_buyusd
+                    wallet['total_taken_out'] += total_sellusd
+                    wallet['unique_tokens'].add(token_address)
+                    
+                    if remaining_balance > 0:
+                        wallet['token_balances'][token_address] = remaining_balance
+                    
+                    # Create token detail entry
+                    token_realized_pnl = total_sellusd - total_buyusd
+                    token_name = token_name_map.get(token_address, 'Unknown')
+                    
+                    token_detail = {
+                        'tokenAddress': token_address,
+                        'tokenName': token_name,
+                        'buyTokenChange': total_buytoken,
+                        'sellTokenChange': total_selltoken,
+                        'buyUsdChange': total_buyusd,
+                        'sellUsdChange': total_sellusd,
+                        'remainingBalance': remaining_balance,
+                        'realizedPnl': token_realized_pnl,
+                        'currentPrice': 0,
+                        'remainingValue': 0,
+                        'totalPnl': token_realized_pnl
+                    }
+                    
+                    wallet['tokens'].append(token_detail)
+                
+                # Build wallet list with PNL data
+                wallets = []
+                for wallet_address, data in wallet_data.items():
+                    if data['total_invested'] > 0 and (token_id in data['token_balances'] or any(token == token_id for token in data['unique_tokens'])):
+                        realized_pnl = data['total_taken_out'] - data['total_invested']
+                        wallets.append({
+                            'walletAddress': wallet_address,
+                            'totalInvested': data['total_invested'],
+                            'totalTakenOut': data['total_taken_out'],
+                            'uniqueTokenCount': len(data['unique_tokens']),
+                            'realizedPnl': realized_pnl,
+                            'tokenBalances': data['token_balances'],
+                            'remainingValue': 0,
+                            'totalPnl': realized_pnl,
+                            'tradeCount': 0,
+                            'walletPnl': 0,
+                            'tokens': data['tokens']
+                        })
+                
+                # Get wallet PNL and trade count data
+                if wallets:
+                    wallet_addresses_list = [w['walletAddress'] for w in wallets]
+                    placeholders = ','.join(['?' for _ in wallet_addresses_list])
+                    
+                    wallet_info_query = f"""
+                    SELECT walletaddress, profitandloss, tradecount
+                    FROM smartmoneywallets
+                    WHERE walletaddress IN ({placeholders})
+                    """
+                    cursor.execute(wallet_info_query, wallet_addresses_list)
+                    wallet_info = {row['walletaddress']: row for row in cursor.fetchall()}
+                    
+                    for wallet in wallets:
+                        info = wallet_info.get(wallet['walletAddress'], {})
+                        if not info:
+                            logger.warning(f"No data found in smartmoneywallets for wallet {wallet['walletAddress']}")
+                        try:
+                            wallet['walletPnl'] = float(info.get('profitandloss', 0) or 0)
+                        except (ValueError, TypeError):
+                            wallet['walletPnl'] = 0
+                            
+                        try:
+                            wallet['tradeCount'] = int(info.get('tradecount', 0) or 0)
+                        except (ValueError, TypeError):
+                            wallet['tradeCount'] = 0
+                
+                # Apply wallet PNL filter if specified
+                if minWalletPnl is not None and minWalletPnl > 0:
+                    wallets = [w for w in wallets if w['walletPnl'] >= minWalletPnl]
+                
+                # Get token prices and calculate remaining values
+                all_token_addresses = set()
+                for wallet in wallets:
+                    all_token_addresses.update(wallet['tokenBalances'].keys())
+                
+                token_prices = self._fetch_token_prices(list(all_token_addresses)) if all_token_addresses else {}
+                
+                for wallet in wallets:
+                    remaining_value = 0
+                    
+                    # Update token prices and values for all tokens in the wallet
+                    for token_detail in wallet['tokens']:
+                        token_address = token_detail['tokenAddress']
+                        token_price = token_prices.get(token_address)
+                        price = token_price.price if token_price else 0
+                        token_detail['currentPrice'] = price
+                        
+                        # Calculate remaining value if there's a balance
+                        if token_detail['remainingBalance'] > 0:
+                            token_value = token_detail['remainingBalance'] * price
+                            token_detail['remainingValue'] = token_value
+                            token_detail['totalPnl'] = token_detail['realizedPnl'] + token_value
+                            remaining_value += token_value
+                    
+                    wallet['remainingValue'] = remaining_value
+                    wallet['totalPnl'] = wallet['realizedPnl'] + remaining_value
+                
+                # Apply total PNL filter if specified
+                if minTotalPnl is not None and minTotalPnl > 0:
+                    wallets = [w for w in wallets if w['totalPnl'] >= minTotalPnl]
+                
+                # Sort and limit results
+                wallets.sort(key=lambda x: x[sort_field], reverse=(sort_order == "desc"))
+                wallets = wallets[:limit]
+            
+            end_time = time.time()
+            execution_time = end_time - start_time
+            logger.info(f"Token investors PNL report generated in {execution_time:.2f} seconds")
+            
+            return {
+                'wallets': wallets,
+                'token': {
+                    'tokenId': token_id,
+                    'tokenName': token_name,
+                    'currentPrice': token_prices.get(token_id, {}).price if token_id in token_prices else None
+                },
+                'period': {
+                    'days': days,
+                    'startDate': start_date.isoformat(),
+                    'endDate': end_date.isoformat()
+                },
+                'metrics': {
+                    'executionTimeSeconds': round(execution_time, 2),
+                    'walletCount': len(wallets),
+                    'tokenCount': len(all_token_addresses)
+                }
+            }
+            
+        except Exception as e:
+            logger.error(f"Error generating token investors PNL report: {str(e)}")
+            return {
+                'wallets': [],
+                'token': {'tokenId': token_id, 'tokenName': 'Unknown'},
+                'period': {'days': days, 'startDate': '', 'endDate': datetime.now().date().isoformat()},
+                'error': str(e)
+            }
         
 def format_query(query, params):
     # Split the query by the placeholder '?'

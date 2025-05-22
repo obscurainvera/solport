@@ -138,3 +138,77 @@ def get_wallet_pnl_details(wallet_address):
         })
         response.headers.add('Access-Control-Allow-Origin', '*')
         return response, 500
+
+@smart_money_pnl_report_bp.route('/api/reports/smartmoneypnl/token/<token_id>', methods=['GET', 'OPTIONS'])
+def get_token_investors_pnl(token_id):
+    """Get PNL data for wallets that have invested in a specific token."""
+    if request.method == 'OPTIONS':
+        response = jsonify({})
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        response.headers.add('Access-Control-Allow-Methods', 'GET, OPTIONS')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type, Accept')
+        return response, 200
+        
+    try:
+        # Get query parameters with defaults
+        days = request.args.get('days', type=int, default=30)
+        limit = request.args.get('limit', type=int, default=100)
+        sortBy = request.args.get('sort_by', 'pnl')
+        sortOrder = request.args.get('sort_order', 'desc')
+        
+        # Get filter parameters
+        minTotalPnl = request.args.get('min_total_pnl', type=float, default=None)
+        minWalletPnl = request.args.get('min_wallet_pnl', type=float, default=None)
+        
+        # Validate days parameter - only allow 7, 30, or 90 days
+        if days not in [7, 30, 90]:
+            days = 30
+            logger.warning(f"Invalid days parameter: {days}, defaulting to 30")
+            
+        logger.info(f"Fetching token investors PNL data for token {token_id} over {days} days")
+        
+        with SQLitePortfolioDB() as db:
+            handler = SmartMoneyPNLReportHandler(db)
+            
+            if handler is None:
+                logger.error("Handler 'smart_money_pnl_report' not found")
+                response = jsonify({
+                    'error': 'Configuration error',
+                    'message': "Handler 'smart_money_pnl_report' not found"
+                })
+                response.headers.add('Access-Control-Allow-Origin', '*')
+                return response, 500
+                
+            # Get token investors PNL data
+            token_investors_data = handler.getTokenInvestorsPNL(
+                token_id=token_id,
+                days=days,
+                limit=limit,
+                sortBy=sortBy,
+                sortOrder=sortOrder,
+                minTotalPnl=minTotalPnl,
+                minWalletPnl=minWalletPnl
+            )
+            
+            if not token_investors_data or (token_investors_data.get('wallets', []) == [] and 'error' in token_investors_data):
+                logger.warning(f"No investors found for token {token_id} or an error occurred")
+                if 'error' in token_investors_data:
+                    response = jsonify({
+                        'error': 'Internal server error',
+                        'message': token_investors_data['error']
+                    })
+                    response.headers.add('Access-Control-Allow-Origin', '*')
+                    return response, 500
+            
+            response = jsonify(token_investors_data)
+            response.headers.add('Access-Control-Allow-Origin', '*')
+            return response
+            
+    except Exception as e:
+        logger.error(f"Error fetching token investors PNL data: {str(e)}")
+        response = jsonify({
+            'error': 'Internal server error',
+            'message': str(e)
+        })
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        return response, 500
