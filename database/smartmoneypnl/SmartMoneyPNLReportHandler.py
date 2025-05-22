@@ -524,19 +524,22 @@ class SmartMoneyPNLReportHandler(BaseSQLiteHandler):
                     """
                     cursor.execute(wallet_info_query, wallet_addresses_list)
                     wallet_info = {row['walletaddress']: row for row in cursor.fetchall()}
-                    
+                            
+                            
                     for wallet in wallets:
-                        info = wallet_info.get(wallet['walletAddress'], {})
+                        info = wallet_info.get(wallet['walletAddress'], {}) 
                         if not info:
                             logger.warning(f"No data found in smartmoneywallets for wallet {wallet['walletAddress']}")
                         try:
-                            wallet['walletPnl'] = float(info.get('profitandloss', 0) or 0)
-                        except (ValueError, TypeError):
+                            wallet['walletPnl'] = float(info['profitandloss'])
+                        except ValueError:
+                            logger.info(f"Invalid profitandloss value for wallet {wallet['walletAddress']}: {info.get('profitandloss')}")
                             wallet['walletPnl'] = 0
                             
                         try:
-                            wallet['tradeCount'] = int(info.get('tradecount', 0) or 0)
-                        except (ValueError, TypeError):
+                            wallet['tradeCount'] = int(info['tradecount'])
+                        except ValueError:
+                            logger.info(f"Invalid tradecount value for wallet {wallet['walletAddress']}: {info.get('tradecount')}")
                             wallet['tradeCount'] = 0
                 
                 # Apply wallet PNL filter if specified
@@ -557,7 +560,7 @@ class SmartMoneyPNLReportHandler(BaseSQLiteHandler):
                     for token_detail in wallet['tokens']:
                         token_address = token_detail['tokenAddress']
                         token_price = token_prices.get(token_address)
-                        price = token_price['price'] if token_price else 0
+                        price = token_price.price if token_price else 0
                         token_detail['currentPrice'] = price
                         
                         # Calculate remaining value if there's a balance
@@ -587,7 +590,7 @@ class SmartMoneyPNLReportHandler(BaseSQLiteHandler):
                 'token': {
                     'tokenId': token_id,
                     'tokenName': token_name,
-                    'currentPrice': token_prices.get(token_id, {})['price'] if token_id in token_prices else None
+                    'currentPrice': token_prices.get(token_id).price if token_id in token_prices else None
                 },
                 'period': {
                     'days': days,
