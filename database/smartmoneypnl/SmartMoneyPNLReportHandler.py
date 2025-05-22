@@ -400,7 +400,21 @@ class SmartMoneyPNLReportHandler(BaseSQLiteHandler):
                         }
                     }
                 
-                # Get token name from the token_name_map we already have
+                # Initialize token_name_map
+                token_name_map = {}
+                
+                # First, collect all token names
+                try:
+                    cursor.execute("""
+                        SELECT tokenid, name FROM portsummary
+                        WHERE tokenid IN (SELECT DISTINCT tokenaddress FROM smartmoneymovements)
+                    """)
+                    for row in cursor.fetchall():
+                        token_name_map[row['tokenid']] = row['name']
+                except Exception as e:
+                    logger.warning(f"Error fetching token names: {str(e)}")
+                
+                # Get token name from the token_name_map
                 token_name = token_name_map.get(token_id, 'Unknown')
                 
                 # Create placeholders for SQL IN clause
@@ -431,15 +445,6 @@ class SmartMoneyPNLReportHandler(BaseSQLiteHandler):
                 
                 # Process transaction data
                 wallet_data = {}
-                token_name_map = {}
-                
-                # First, collect all token names
-                cursor.execute("""
-                    SELECT tokenid, name FROM portsummary
-                    WHERE tokenid IN (SELECT DISTINCT tokenaddress FROM smartmoneymovements)
-                """)
-                for row in cursor.fetchall():
-                    token_name_map[row['tokenid']] = row['name']
                 
                 # Process transaction data
                 for row in results:
@@ -601,7 +606,15 @@ class SmartMoneyPNLReportHandler(BaseSQLiteHandler):
             return {
                 'wallets': [],
                 'token': {'tokenId': token_id, 'tokenName': 'Unknown'},
-                'period': {'days': days, 'startDate': '', 'endDate': datetime.now().date().isoformat()},
+                'period': {
+                    'days': days,
+                    'startDate': datetime.now().date().isoformat(),
+                    'endDate': datetime.now().date().isoformat()
+                },
+                'metrics': {
+                    'executionTimeSeconds': 0,
+                    'walletCount': 0
+                },
                 'error': str(e)
             }
         
