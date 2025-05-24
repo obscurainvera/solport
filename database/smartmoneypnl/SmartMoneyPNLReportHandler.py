@@ -407,22 +407,8 @@ class SmartMoneyPNLReportHandler(BaseSQLiteHandler):
                         }
                     }
                 
-                # Initialize token_name_map
-                token_name_map = {}
-                
-                # First, collect all token names
-                try:
-                    cursor.execute("""
-                        SELECT tokenid, name FROM portsummary
-                        WHERE tokenid IN (SELECT DISTINCT tokenaddress FROM smartmoneymovements)
-                    """)
-                    for row in cursor.fetchall():
-                        token_name_map[row['tokenid']] = row['name']
-                except Exception as e:
-                    logger.warning(f"Error fetching token names: {str(e)}")
-                
-                # Get token name from the token_name_map
-                token_name = token_name_map.get(token_id, 'Unknown')
+                # We'll get the token name from the query results
+                token_name = 'Unknown'  # Default value, will be updated when processing results
                 
                 # Create placeholders for SQL IN clause
                 placeholders = ','.join(['?' for _ in wallet_addresses])
@@ -432,6 +418,7 @@ class SmartMoneyPNLReportHandler(BaseSQLiteHandler):
                 SELECT 
                     walletaddress,
                     tokenaddress,
+                    COALESCE(MAX(buytokenname), MAX(selltokenname), 'Unknown') AS token_name,
                     SUM(buytokenchange) AS total_buytoken,
                     SUM(selltokenchange) AS total_selltoken,
                     SUM(buyusdchange) AS total_buyusd,
@@ -482,7 +469,7 @@ class SmartMoneyPNLReportHandler(BaseSQLiteHandler):
                     
                     # Create token detail entry
                     token_realized_pnl = total_sellusd - total_buyusd
-                    token_name = token_name_map.get(token_address, 'Unknown')
+                    token_name = row['token_name'] or 'Unknown'
                     
                     token_detail = {
                         'tokenAddress': token_address,
