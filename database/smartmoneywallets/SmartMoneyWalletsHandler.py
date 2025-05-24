@@ -229,3 +229,21 @@ class SmartMoneyWalletsHandler(BaseSQLiteHandler):
             logger.error(f"Failed to get profit and loss for wallets: {str(e)}")
             
         return result 
+    
+    def getActiveSmartMoneyWallets(self) -> List[Dict]:
+        """
+        Get all smart money wallets
+        
+        Returns:
+            List[Dict]: List of smart money wallets records
+        """
+        try:
+            with self.conn_manager.transaction() as cursor:
+                cursor.execute("""
+                    SELECT * FROM smartmoneywallets
+                    WHERE status = 1
+                """)
+                return [dict(row) for row in cursor.fetchall()]
+        except Exception as e:
+            logger.error(f"Failed to get smart money wallets: {str(e)}")
+            return []

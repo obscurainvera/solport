@@ -37,7 +37,7 @@ class SmartMoneyMovementsScheduler:
         logger.info(f"Starting smart money movements update for wallets with PnL > {pnl_threshold}")
         
         # Get all wallets from the database
-        allSmartMoneyWallets = self.wallets_handler.getAllSmartMoneyWallets()
+        allSmartMoneyWallets = self.wallets_handler.getActiveSmartMoneyWallets()
         
         # Filter wallets with PnL > threshold
         highPNLWallets = []
