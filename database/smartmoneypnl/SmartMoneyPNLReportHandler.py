@@ -174,8 +174,10 @@ class SmartMoneyPNLReportHandler(BaseSQLiteHandler):
                     remaining_value = 0
                     for token, balance in wallet['tokenBalances'].items():
                         token_price = token_prices.get(token)
-                        price = token_price.price if token_price else 0
-                        remaining_value += balance * price
+                        price = token_price.price if token_price and token_price.marketCap > 10000 else 0
+                        current_remaining_value = balance * price
+                        if token_price and token_price.marketCap > current_remaining_value:
+                            remaining_value += current_remaining_value
                     wallet['remainingValue'] = remaining_value
                     wallet['totalPnl'] = wallet['realizedPnl'] + remaining_value
 
@@ -313,9 +315,14 @@ class SmartMoneyPNLReportHandler(BaseSQLiteHandler):
                     token_address = token['tokenAddress']
                     token_price = token_prices.get(token_address)
                     if token_price and token['remainingBalance'] > 0:
-                        price = token_price.price
-                        token['currentPrice'] = price
-                        token['remainingValue'] = token['remainingBalance'] * price
+                        price = token_price.price if token_price.marketCap > 10000 else 0
+                        current_remaining_value = token['remainingBalance'] * price
+                        if token_price and token_price.marketCap > current_remaining_value:
+                            token['currentPrice'] = price
+                            token['remainingValue'] = current_remaining_value
+                        else:
+                            token['currentPrice'] = 0
+                            token['remainingValue'] = 0
                         token['totalPnl'] = token['realizedPnl'] + token['remainingValue']
 
             remaining_value = sum(token['remainingValue'] for token in tokens)
@@ -560,15 +567,19 @@ class SmartMoneyPNLReportHandler(BaseSQLiteHandler):
                     for token_detail in wallet['tokens']:
                         token_address = token_detail['tokenAddress']
                         token_price = token_prices.get(token_address)
-                        price = token_price.price if token_price else 0
+                        price = token_price.price if token_price and token_price.marketCap > 10000 else 0
                         token_detail['currentPrice'] = price
                         
                         # Calculate remaining value if there's a balance
                         if token_detail['remainingBalance'] > 0:
-                            token_value = token_detail['remainingBalance'] * price
-                            token_detail['remainingValue'] = token_value
-                            token_detail['totalPnl'] = token_detail['realizedPnl'] + token_value
-                            remaining_value += token_value
+                            current_remaining_value = token_detail['remainingBalance'] * price
+                            if token_price and token_price.marketCap > current_remaining_value:
+                                token_detail['remainingValue'] = current_remaining_value
+                            else:
+                                token_detail['currentPrice'] = 0
+                                token_detail['remainingValue'] = 0
+                            token_detail['totalPnl'] = token_detail['realizedPnl'] + token_detail['remainingValue']
+                            remaining_value += token_detail['remainingValue']
                     
                     wallet['remainingValue'] = remaining_value
                     wallet['totalPnl'] = wallet['realizedPnl'] + remaining_value
