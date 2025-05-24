@@ -81,6 +81,7 @@ class SmartMoneyMovementsAction:
         """
         allTransactions = []
         startFrom = None
+        apiCount = 0
         
         while True:
             api_key_data = self.db.credentials.getNextValidApiKey(
@@ -92,6 +93,7 @@ class SmartMoneyMovementsAction:
                 return None
                 
             # Get page of transactions
+            logger.info(f"Fetching transactions from Cielo API for wallet {walletAddress}")
             result = self.getTransactionsPage(
                 api_key=api_key_data['apikey'],
                 walletAddress=walletAddress,
@@ -99,6 +101,9 @@ class SmartMoneyMovementsAction:
                 toTimestamp=toTimestamp,
                 startFrom=startFrom
             )
+            apiCount += 1
+            logger.info(f"Completed network call to Cielo API for wallet {walletAddress} and call count {apiCount}")
+            
             
             if not result:
                 break
