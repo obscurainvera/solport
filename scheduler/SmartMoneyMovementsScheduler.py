@@ -39,25 +39,14 @@ class SmartMoneyMovementsScheduler:
         # Get all wallets from the database
         allSmartMoneyWallets = self.wallets_handler.getActiveSmartMoneyWallets()
         
-        # Filter wallets with PnL > threshold
-        highPNLWallets = []
-        for wallet in allSmartMoneyWallets:
-            try:
-                pnl = Decimal(wallet['profitandloss'])
-                if pnl > Decimal(str(pnl_threshold)):
-                    highPNLWallets.append(wallet)
-            except (ValueError, TypeError, KeyError) as e:
-                logger.error(f"Error processing wallet PnL: {e}")
-                continue
-        
-        logger.info(f"Found {len(highPNLWallets)} wallets with PnL > {pnl_threshold}")
+        logger.info(f"Found {len(allSmartMoneyWallets)} wallets")
         
         # Process each wallet
         processed_count = 0
         success_count = 0
         failed_count = 0
         
-        for wallet in highPNLWallets:
+        for wallet in allSmartMoneyWallets:
             walletAddress = wallet['walletaddress']
             try:
                 logger.info(f"Processing wallet {walletAddress} with PnL {wallet['profitandloss']}")
