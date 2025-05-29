@@ -91,6 +91,8 @@ class ExecutionState:
     amounttakenout: Optional[Decimal] = None
     realizedpnl: Optional[Decimal] = None
     realizedpnlpercent: Optional[Decimal] = None
+    recordedtokenage: Optional[int] = None
+    completedtokenage: Optional[int] = None
     notes: Optional[str] = None
     createdat: datetime = field(default_factory=datetime.now)
     updatedat: datetime = field(default_factory=datetime.now)
