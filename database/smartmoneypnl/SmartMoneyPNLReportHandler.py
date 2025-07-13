@@ -10,6 +10,8 @@ logger = get_logger(__name__)
 
 # Configurable excluded token IDs (can be loaded from config file or database in production)
 EXCLUDED_TOKEN_IDS = [
+    "3NZ9JMVBmGAqocybic2c7LQCJScmgsAZ6vQqTDzcqmJh",
+    "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB",
     "native",
     "So11111111111111111111111111111111111111112",  # Wrapped SOL
     "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"  # USDC
