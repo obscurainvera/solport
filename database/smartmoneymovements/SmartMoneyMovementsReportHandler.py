@@ -7,6 +7,16 @@ from actions.DexscrennerAction import DexScreenerAction
 
 logger = get_logger(__name__)
 
+# Configurable excluded token IDs (can be loaded from config file or database in production)
+EXCLUDED_TOKEN_IDS = [
+    "3NZ9JMVBmGAqocybic2c7LQCJScmgsAZ6vQqTDzcqmJh",
+    "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB",
+    "native",
+    "So11111111111111111111111111111111111111112",  # Wrapped SOL
+    "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"  # USDC
+]
+SQL_EXCLUDED_TOKENS = "(" + ",".join([f"'{token}'" for token in EXCLUDED_TOKEN_IDS]) + ")"
+
 class SmartMoneyMovementsReportHandler(BaseSQLiteHandler):
     """
     Handler for smart money movements report operations.
@@ -78,7 +88,7 @@ class SmartMoneyMovementsReportHandler(BaseSQLiteHandler):
             start_date = end_date - timedelta(days=days)
             
             # Query to get token movements for the wallet within date range
-            query = """
+            query = f"""
             SELECT 
                 tokenaddress,
                 CASE 
@@ -94,6 +104,7 @@ class SmartMoneyMovementsReportHandler(BaseSQLiteHandler):
             WHERE walletaddress = ?
             AND date >= ?
             AND date <= ?
+            AND tokenaddress NOT IN {SQL_EXCLUDED_TOKENS}
             GROUP BY tokenaddress
             """
             
@@ -258,7 +269,7 @@ class SmartMoneyMovementsReportHandler(BaseSQLiteHandler):
             start_date = end_date - timedelta(days=days)
             
             # Query to get all daily movements directly
-            query = """
+            query = f"""
             SELECT 
                 date,
                 tokenaddress,
@@ -272,6 +283,7 @@ class SmartMoneyMovementsReportHandler(BaseSQLiteHandler):
             AND tokenaddress = ?
             AND date >= ?
             AND date <= ?
+            AND tokenaddress NOT IN {SQL_EXCLUDED_TOKENS}
             ORDER BY date DESC
             """
             
