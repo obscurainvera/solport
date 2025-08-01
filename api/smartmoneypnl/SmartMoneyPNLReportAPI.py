@@ -91,6 +91,8 @@ def get_wallet_pnl_details(wallet_address):
     try:
         # Get query parameters with defaults
         days = request.args.get('days', type=int, default=30)
+        sort_by = request.args.get('sort_by', 'totalPnl')
+        sort_order = request.args.get('sort_order', 'desc')
         
         # Validate days parameter - only allow 7, 30, or 90 days
         if days not in [7, 30, 90]:
@@ -114,7 +116,9 @@ def get_wallet_pnl_details(wallet_address):
             # Get wallet details
             wallet_details = handler.getWalletPNLDetails(
                 wallet_address=wallet_address,
-                days=days
+                days=days,
+                sort_by=sort_by,
+                sort_order=sort_order
             )
             
             if not wallet_details:
@@ -206,6 +210,98 @@ def get_token_investors_pnl(token_id):
             
     except Exception as e:
         logger.error(f"Error fetching token investors PNL data: {str(e)}")
+        response = jsonify({
+            'error': 'Internal server error',
+            'message': str(e)
+        })
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        return response, 500
+
+@smart_money_pnl_report_bp.route('/api/reports/smartmoneypnl/wallet/<wallet_address>/token/<token_address>', methods=['GET', 'OPTIONS'])
+def get_wallet_token_details(wallet_address, token_address):
+    """Get detailed token movement data for a specific token in a wallet (similar to SmartMoneyMovements API)."""
+    if request.method == 'OPTIONS':
+        response = jsonify({})
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        response.headers.add('Access-Control-Allow-Methods', 'GET, OPTIONS')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type, Accept')
+        return response, 200
+        
+    try:
+        # Get query parameters with defaults
+        days = request.args.get('days', type=int, default=30)
+        
+        # Validate days parameter - only allow 7, 30, or 90 days
+        if days not in [7, 30, 90]:
+            days = 30
+            logger.warning(f"Invalid days parameter: {days}, defaulting to 30")
+            
+        logger.info(f"Fetching token details for wallet {wallet_address} and token {token_address} over {days} days")
+        
+        with SQLitePortfolioDB() as db:
+            handler = SmartMoneyPNLReportHandler(db)
+            
+            if handler is None:
+                logger.error("Handler 'smart_money_pnl_report' not found")
+                response = jsonify({
+                    'error': 'Configuration error',
+                    'message': "Handler 'smart_money_pnl_report' not found"
+                })
+                response.headers.add('Access-Control-Allow-Origin', '*')
+                return response, 500
+                
+            # Get wallet details first
+            wallet_details = handler.getWalletPNLDetails(
+                wallet_address=wallet_address,
+                days=days
+            )
+            
+            if not wallet_details or not wallet_details.get('tokens'):
+                logger.warning(f"No PNL details found for wallet {wallet_address}")
+                response = jsonify({
+                    'error': 'Not found', 
+                    'message': f"No token data found for wallet {wallet_address}"
+                })
+                response.headers.add('Access-Control-Allow-Origin', '*')
+                return response, 404
+            
+            # Filter for the specific token
+            token_data = None
+            for token in wallet_details['tokens']:
+                if token['tokenAddress'].lower() == token_address.lower():
+                    token_data = token
+                    break
+            
+            if not token_data:
+                response = jsonify({
+                    'error': 'Not found',
+                    'message': f"Token {token_address} not found in wallet {wallet_address} for the specified period"
+                })
+                response.headers.add('Access-Control-Allow-Origin', '*')
+                return response, 404
+            
+            # Format response similar to SmartMoneyMovements API
+            result = {
+                'wallet': {
+                    'walletAddress': wallet_address,
+                    'totalInvested': wallet_details['wallet']['totalInvested'],
+                    'totalTakenOut': wallet_details['wallet']['totalTakenOut'],
+                    'totalRemainingValue': wallet_details['wallet']['totalRemainingValue'],
+                    'totalRealizedPnl': wallet_details['wallet']['totalRealizedPnl'],
+                    'totalPnl': wallet_details['wallet']['totalPnl'],
+                    'totalPnlPercentage': wallet_details['wallet']['totalPnlPercentage']
+                },
+                'token': token_data,
+                'period': wallet_details['period'],
+                'metrics': wallet_details['metrics']
+            }
+            
+            response = jsonify(result)
+            response.headers.add('Access-Control-Allow-Origin', '*')
+            return response
+            
+    except Exception as e:
+        logger.error(f"Error fetching wallet token details: {str(e)}")
         response = jsonify({
             'error': 'Internal server error',
             'message': str(e)

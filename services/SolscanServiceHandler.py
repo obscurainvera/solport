@@ -194,13 +194,13 @@ class SolscanServiceHandler:
             'origin': 'https://solscan.io',
             'priority': 'u=1, i',
             'referer': 'https://solscan.io/',
-            'sec-ch-ua': '"Chromium";v="136", "Not:A-Brand";v="99", "Microsoft Edge";v="136"',
+            'sec-ch-ua': '"Not)A;Brand";v="8", "Chromium";v="138", "Microsoft Edge";v="138"',
             'sec-ch-ua-mobile': '?0',
             'sec-ch-ua-platform': '"macOS"',
             'sec-fetch-dest': 'empty',
             'sec-fetch-mode': 'cors',
             'sec-fetch-site': 'same-site',
             'sol-aut': 'nNPCWE-R1pKs3lXD-gEYB9dls0fKXyejk2orpTni',
-            'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36 Edg/136.0.0.0',
+            'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36 Edg/138.0.0.0',
             'cookie': cookie
         } 
