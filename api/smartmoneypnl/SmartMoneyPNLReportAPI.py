@@ -27,6 +27,7 @@ def get_smart_money_pnl_report():
         # Get filter parameters
         minTotalPnl = request.args.get('min_total_pnl', type=float, default=None)
         minWalletPnl = request.args.get('min_wallet_pnl', type=float, default=None)
+        winRateThreshold = request.args.get('win_rate_threshold', type=float, default=None)
         
         # Validate days parameter - only allow 7, 30, or 90 days
         if days not in [7, 30, 90]:
@@ -58,7 +59,8 @@ def get_smart_money_pnl_report():
                 sortBy=sortBy,
                 sortOrder=sortOrder,
                 minTotalPnl=minTotalPnl,
-                minWalletPnl=minWalletPnl
+                minWalletPnl=minWalletPnl,
+                winRateThreshold=winRateThreshold
             )
             
             end_time = time.time()

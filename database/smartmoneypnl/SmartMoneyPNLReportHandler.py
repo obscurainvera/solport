@@ -91,7 +91,7 @@ class SmartMoneyPNLReportHandler(BaseSQLiteHandler):
         
         return cache_manager.get_token_prices(token_addresses, fetch_function)
 
-    def getTopPNLWallets(self, days: int = 30, limit: int = 100, sortBy: str = "pnl", sortOrder: str = "desc", minTotalPnl: float = None, minWalletPnl: float = None) -> Dict[str, Any]:
+    def getTopPNLWallets(self, days: int = 30, limit: int = 100, sortBy: str = "pnl", sortOrder: str = "desc", minTotalPnl: float = None, minWalletPnl: float = None, winRateThreshold: float = None) -> Dict[str, Any]:
         """
         Get top PNL wallets for the specified period with optimized data fetching and processing.
 
@@ -102,9 +102,10 @@ class SmartMoneyPNLReportHandler(BaseSQLiteHandler):
             sortOrder: Sort order (asc or desc).
             minTotalPnl: Minimum total PNL filter.
             minWalletPnl: Minimum wallet PNL filter.
+            winRateThreshold: Minimum investment threshold for win rate calculation.
 
         Returns:
-            Dictionary with wallet PNL metrics and metadata.
+            Dictionary with wallet PNL metrics, metadata, and win rate statistics.
         """
         # Cache key parameters
         cache_params = {
@@ -114,7 +115,8 @@ class SmartMoneyPNLReportHandler(BaseSQLiteHandler):
             "sortBy": sortBy,
             "sortOrder": sortOrder,
             "minTotalPnl": minTotalPnl,
-            "minWalletPnl": minWalletPnl
+            "minWalletPnl": minWalletPnl,
+            "winRateThreshold": winRateThreshold
         }
         
         def generate_report():
@@ -266,6 +268,26 @@ class SmartMoneyPNLReportHandler(BaseSQLiteHandler):
                 end_time = time.time()
                 logger.info(f"Report generated in {end_time - start_time:.2f} seconds")
 
+                # Calculate win rate metrics if threshold is provided
+                win_rate_metrics = {}
+                if winRateThreshold is not None and winRateThreshold > 0:
+                    # Find all wallets that meet the investment threshold
+                    threshold_wallets = [w for w in wallets if w['totalInvested'] >= winRateThreshold]
+                    threshold_count = len(threshold_wallets)
+                    
+                    # Count how many of those had positive PNL (wins)
+                    win_rate_count = len([w for w in threshold_wallets if w['totalPnl'] > 0])
+                    
+                    # Calculate win rate percentage
+                    win_rate = (win_rate_count / threshold_count * 100) if threshold_count > 0 else 0
+                    
+                    win_rate_metrics = {
+                        'winRate': round(win_rate, 2),
+                        'thresholdCount': threshold_count,
+                        'winRateCount': win_rate_count,
+                        'threshold': winRateThreshold
+                    }
+
                 result = {
                     'wallets': wallets,
                     'period': {
@@ -276,7 +298,8 @@ class SmartMoneyPNLReportHandler(BaseSQLiteHandler):
                     'metrics': {
                         'executionTimeSeconds': round(end_time - start_time, 2),
                         'walletCount': len(wallets),
-                        'tokenCount': len(all_token_addresses)
+                        'tokenCount': len(all_token_addresses),
+                        **win_rate_metrics
                     }
                 }
                 
