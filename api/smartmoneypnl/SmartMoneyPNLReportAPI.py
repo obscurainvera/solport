@@ -2,6 +2,7 @@ from flask import Blueprint, jsonify, request
 from database.operations.sqlite_handler import SQLitePortfolioDB
 from database.smartmoneypnl.SmartMoneyPNLReportHandler import SmartMoneyPNLReportHandler
 from logs.logger import get_logger
+from cache.cache_manager import cache_manager
 import time
 
 logger = get_logger(__name__)
@@ -95,6 +96,7 @@ def get_wallet_pnl_details(wallet_address):
         days = request.args.get('days', type=int, default=30)
         sort_by = request.args.get('sort_by', 'totalPnl')
         sort_order = request.args.get('sort_order', 'desc')
+        winRateThreshold = request.args.get('win_rate_threshold', type=float, default=None)
         
         # Validate days parameter - only allow 7, 30, or 90 days
         if days not in [7, 30, 90]:
@@ -120,7 +122,8 @@ def get_wallet_pnl_details(wallet_address):
                 wallet_address=wallet_address,
                 days=days,
                 sort_by=sort_by,
-                sort_order=sort_order
+                sort_order=sort_order,
+                winRateThreshold=winRateThreshold
             )
             
             if not wallet_details:
@@ -305,6 +308,64 @@ def get_wallet_token_details(wallet_address, token_address):
     except Exception as e:
         logger.error(f"Error fetching wallet token details: {str(e)}")
         response = jsonify({
+            'error': 'Internal server error',
+            'message': str(e)
+        })
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        return response, 500
+
+@smart_money_pnl_report_bp.route('/api/reports/smartmoneypnl/cache/clear', methods=['POST', 'OPTIONS'])
+def clear_pnl_cache():
+    """
+    Clear the PNL report cache.
+    
+    CACHE CLEAR ENDPOINT:
+    • Purpose: Allow frontend to manually clear cached report and token price data
+    • Types: 'all' (default), 'report', 'token'
+    • Result: Fresh data retrieval on next API call
+    • Use case: When users need latest data or cache contains stale information
+    """
+    if request.method == 'OPTIONS':
+        response = jsonify({})
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        response.headers.add('Access-Control-Allow-Methods', 'POST, OPTIONS')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type, Accept')
+        return response, 200
+        
+    try:
+        # Get cache type from request body (optional)
+        cache_type = "all"  # Default to clearing all cache
+        if request.is_json and request.json:
+            cache_type = request.json.get('cache_type', 'all')
+        
+        # Validate cache type
+        valid_types = ['all', 'token', 'report']
+        if cache_type not in valid_types:
+            cache_type = 'all'
+            
+        logger.info(f"Clearing cache: {cache_type}")
+        
+        # Clear the cache
+        cache_manager.clear_cache(cache_type)
+        
+        # Get updated cache metrics
+        metrics = cache_manager.get_metrics()
+        
+        response_data = {
+            'success': True,
+            'message': f'Cache cleared successfully: {cache_type}',
+            'cache_type': cache_type,
+            'metrics': metrics
+        }
+        
+        response = jsonify(response_data)
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        return response
+        
+    except Exception as e:
+        logger.error(f"Error clearing cache: {str(e)}")
+        response = jsonify({
+            'success': False,
             'error': 'Internal server error',
             'message': str(e)
         })

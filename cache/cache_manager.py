@@ -4,8 +4,17 @@ Enterprise-grade caching system for Smart Money PNL Reports.
 This module provides a production-ready, thread-safe, configurable caching layer
 with metrics, monitoring, and graceful degradation capabilities.
 
+RECENT UPDATES:
+• Fixed cache key generation to properly differentiate filter parameters
+• Added parameter normalization (None → "null", consistent data type handling)
+• Enhanced logging and debugging capabilities
+• Automatic cache clearing on initialization due to key format changes
+• Replaced cachetools dependency with built-in SimpleTTLCache implementation
+• Added cache clear API endpoint for manual cache management
+• Result: Different API filter combinations now create unique cache entries
+
 Author: Smart Money Analytics Team
-Version: 1.0.0
+Version: 1.1.0
 """
 
 import time
@@ -15,10 +24,88 @@ import json
 import logging
 from typing import Any, Dict, List, Optional, Union, Callable
 from datetime import datetime, timedelta
-from cachetools import TTLCache, LRUCache
 from dataclasses import dataclass
 from enum import Enum
 import os
+
+
+class SimpleTTLCache:
+    """Simple TTL Cache implementation without external dependencies."""
+    
+    def __init__(self, maxsize: int, ttl: int):
+        self.maxsize = maxsize
+        self.ttl = ttl
+        self._cache = {}
+        self._timestamps = {}
+        self._lock = threading.RLock()
+    
+    def _is_expired(self, key: str) -> bool:
+        """Check if a cache entry is expired."""
+        if key not in self._timestamps:
+            return True
+        return time.time() - self._timestamps[key] > self.ttl
+    
+    def _cleanup_expired(self):
+        """Remove expired entries."""
+        current_time = time.time()
+        expired_keys = [
+            key for key, timestamp in self._timestamps.items()
+            if current_time - timestamp > self.ttl
+        ]
+        for key in expired_keys:
+            self._cache.pop(key, None)
+            self._timestamps.pop(key, None)
+    
+    def _enforce_size_limit(self):
+        """Remove oldest entries if cache exceeds size limit."""
+        while len(self._cache) > self.maxsize:
+            # Remove oldest entry
+            oldest_key = min(self._timestamps.keys(), key=self._timestamps.get)
+            self._cache.pop(oldest_key, None)
+            self._timestamps.pop(oldest_key, None)
+    
+    def get(self, key: str) -> Any:
+        """Get value from cache."""
+        with self._lock:
+            if key not in self._cache or self._is_expired(key):
+                return None
+            return self._cache[key]
+    
+    def __setitem__(self, key: str, value: Any):
+        """Set value in cache."""
+        with self._lock:
+            self._cleanup_expired()
+            self._cache[key] = value
+            self._timestamps[key] = time.time()
+            self._enforce_size_limit()
+    
+    def __getitem__(self, key: str) -> Any:
+        """Get item using bracket notation."""
+        return self.get(key)
+    
+    def __len__(self) -> int:
+        """Get cache size."""
+        with self._lock:
+            self._cleanup_expired()
+            return len(self._cache)
+    
+    def clear(self):
+        """Clear all cache entries."""
+        with self._lock:
+            self._cache.clear()
+            self._timestamps.clear()
+    
+    def keys(self) -> List[str]:
+        """Get all cache keys."""
+        with self._lock:
+            self._cleanup_expired()
+            return list(self._cache.keys())
+    
+    def pop(self, key: str, default=None) -> Any:
+        """Remove and return value from cache."""
+        with self._lock:
+            self._timestamps.pop(key, None)
+            return self._cache.pop(key, default)
 
 
 class CacheType(Enum):
@@ -51,8 +138,8 @@ class CacheConfig:
         return cls(
             token_cache_size=int(os.getenv('CACHE_TOKEN_SIZE', '10000')),
             token_cache_ttl=int(os.getenv('CACHE_TOKEN_TTL', '3600')),
-            report_cache_size=int(os.getenv('CACHE_REPORT_SIZE', '1000')),
-            report_cache_ttl=int(os.getenv('CACHE_REPORT_TTL', '3600')),
+            report_cache_size=int(os.getenv('CACHE_REPORT_SIZE', '10000')),
+            report_cache_ttl=int(os.getenv('CACHE_REPORT_TTL', '36000')),
             enable_metrics=os.getenv('CACHE_ENABLE_METRICS', 'true').lower() == 'true',
             enable_compression=os.getenv('CACHE_ENABLE_COMPRESSION', 'false').lower() == 'true'
         )
@@ -124,12 +211,12 @@ class CacheManager:
         self.config = config or CacheConfig.from_env()
         self.logger = logging.getLogger(__name__)
         
-        # Initialize caches
-        self._token_cache = TTLCache(
+        # Initialize caches with simple TTL implementation
+        self._token_cache = SimpleTTLCache(
             maxsize=self.config.token_cache_size,
             ttl=self.config.token_cache_ttl
         )
-        self._report_cache = TTLCache(
+        self._report_cache = SimpleTTLCache(
             maxsize=self.config.report_cache_size,
             ttl=self.config.report_cache_ttl
         )
@@ -143,28 +230,73 @@ class CacheManager:
         
         self._initialized = True
         self.logger.info(f"CacheManager initialized with config: {self.config}")
+        
+        # Clear cache on initialization due to updated key format
+        self.logger.info("Clearing cache due to updated cache key format")
+        self.clear_cache("all")
     
     def _generate_cache_key(self, prefix: str, **kwargs) -> str:
         """
         Generate a deterministic cache key from parameters.
+        
+        CACHE KEY FIX IMPLEMENTED:
+        • Problem: Same cache key generated for different filter combinations
+        • Root cause: None values and parameter variations not properly differentiated
+        • Solution implemented:
+          1. Convert None to explicit "null" string (not empty/missing)
+          2. Normalize all data types (bool, int, float, str) to consistent strings
+          3. Create detailed parameter string with key=value pairs
+          4. Sort parameters alphabetically for consistency
+          5. Generate filesystem-safe cache key with all parameter info
+        • Result: Different API calls with different filters now create unique cache entries
+        • Examples:
+          - No filters: report_days_30_minTotalPnl_null_winRateThreshold_null
+          - With filters: report_days_30_minTotalPnl_1000.0_winRateThreshold_10000.0
         
         Args:
             prefix: Cache key prefix (e.g., 'token_price', 'report_pnl')
             **kwargs: Key-value pairs to include in the key
             
         Returns:
-            str: Generated cache key
+            str: Generated cache key with all parameters properly differentiated
         """
-        # Sort kwargs for consistent key generation
-        sorted_params = sorted(kwargs.items())
-        key_data = f"{prefix}_{json.dumps(sorted_params, sort_keys=True)}"
+        # Clean and normalize parameters for consistent key generation
+        normalized_params = {}
+        for key, value in kwargs.items():
+            # Convert None to a string representation to differentiate from missing keys
+            if value is None:
+                normalized_params[key] = "null"
+            # Convert boolean values to consistent strings
+            elif isinstance(value, bool):
+                normalized_params[key] = "true" if value else "false"
+            # Convert numeric values to strings with consistent formatting
+            elif isinstance(value, (int, float)):
+                normalized_params[key] = str(value)
+            # Keep strings as-is but ensure they're clean
+            elif isinstance(value, str):
+                normalized_params[key] = value.strip()
+            else:
+                # For other types, convert to string
+                normalized_params[key] = str(value)
+        
+        # Sort parameters for consistent key generation
+        sorted_params = sorted(normalized_params.items())
+        
+        # Create a more detailed key that includes all parameter information
+        param_string = "&".join([f"{k}={v}" for k, v in sorted_params])
+        key_data = f"{prefix}#{param_string}"
         
         # Use hash for long keys to prevent key length issues
         if len(key_data) > self.config.max_key_length:
             key_hash = hashlib.md5(key_data.encode()).hexdigest()
-            return f"{prefix}_{key_hash}"
+            final_key = f"{prefix}_{key_hash}"
+            self.logger.debug(f"Generated hashed cache key: {final_key} (original: {key_data[:100]}...)")
+            return final_key
         
-        return key_data.replace(' ', '').replace(',', '_').replace(':', '_')
+        # Make key filesystem/cache-safe
+        final_key = key_data.replace(' ', '').replace(',', '_').replace(':', '_').replace('#', '_').replace('&', '_').replace('=', '_')
+        self.logger.debug(f"Generated cache key: {final_key}")
+        return final_key
     
     def _update_metrics(self, metrics: CacheMetrics, hit: bool, response_time_ms: float):
         """Update cache metrics."""
@@ -269,6 +401,9 @@ class CacheManager:
         start_time = time.time()
         cache_key = self._generate_cache_key("report", **cache_key_params)
         
+        # Log the parameters being used for cache key generation
+        self.logger.info(f"Report cache lookup with params: {cache_key_params}")
+        
         try:
             with self._cache_lock:
                 cached_report = self._report_cache.get(cache_key)
@@ -276,15 +411,19 @@ class CacheManager:
                 if cached_report is not None:
                     response_time = (time.time() - start_time) * 1000
                     self._update_metrics(self._report_metrics, hit=True, response_time_ms=response_time)
-                    self.logger.info(f"Report cache HIT: {cache_key} ({response_time:.1f}ms)")
+                    self.logger.info(f"Report cache HIT: {cache_key[:50]}... ({response_time:.1f}ms)")
                     return cached_report
                 
                 # Generate new report
-                self.logger.info(f"Report cache MISS: {cache_key}")
+                self.logger.info(f"Report cache MISS: {cache_key[:50]}... - Generating new report")
                 report_data = generate_func()
                 
-                # Cache the result
-                self._report_cache[cache_key] = report_data
+                # Cache the result (but only if it's valid)
+                if report_data and not report_data.get('error'):
+                    self._report_cache[cache_key] = report_data
+                    self.logger.info(f"Report cached successfully: {cache_key[:50]}...")
+                else:
+                    self.logger.warning(f"Report not cached due to error: {report_data.get('error', 'Unknown error')}")
                 
                 response_time = (time.time() - start_time) * 1000
                 self._update_metrics(self._report_metrics, hit=False, response_time_ms=response_time)
@@ -355,6 +494,24 @@ class CacheManager:
                 }
             }
     
+    def get_cache_keys(self, cache_type: str = "report") -> List[str]:
+        """
+        Get all cache keys for debugging purposes.
+        
+        Args:
+            cache_type: "token" or "report"
+            
+        Returns:
+            List[str]: List of cache keys
+        """
+        with self._cache_lock:
+            if cache_type == "token":
+                return self._token_cache.keys()
+            elif cache_type == "report":
+                return self._report_cache.keys()
+            else:
+                return []
+    
     def health_check(self) -> Dict[str, Any]:
         """Perform cache health check."""
         try:
@@ -379,6 +536,10 @@ class CacheManager:
                     "status": "healthy" if (token_test and report_test) else "degraded",
                     "token_cache_operational": token_test,
                     "report_cache_operational": report_test,
+                    "cache_keys_count": {
+                        "token_cache": len(self._token_cache),
+                        "report_cache": len(self._report_cache)
+                    },
                     "timestamp": datetime.now().isoformat()
                 }
         except Exception as e:
