@@ -173,7 +173,8 @@ class SmartMoneyPNLReportHandler(BaseSQLiteHandler):
                                 'total_invested': 0,
                                 'total_taken_out': 0,
                                 'unique_tokens': set(),
-                                'token_balances': {}
+                                'token_balances': {},
+                                'token_investments': []  # Store individual token investment data
                             }
 
                         wallet = wallet_data[wallet_address]
@@ -182,6 +183,14 @@ class SmartMoneyPNLReportHandler(BaseSQLiteHandler):
                         wallet['unique_tokens'].add(token_address)
                         if remaining_balance > 0:
                             wallet['token_balances'][token_address] = remaining_balance
+                        
+                        # Store individual token investment data for win rate calculation
+                        token_pnl = total_sellusd - total_buyusd
+                        wallet['token_investments'].append({
+                            'token_address': token_address,
+                            'invested': total_buyusd,
+                            'pnl': token_pnl
+                        })
 
                     wallets = []
                     for wallet_address, data in wallet_data.items():
@@ -190,6 +199,23 @@ class SmartMoneyPNLReportHandler(BaseSQLiteHandler):
                         # but sold within it would show incorrect positive PNL
                         if data['total_invested'] > 0 and data['token_balances']:
                             realized_pnl = data['total_taken_out'] - data['total_invested']
+                            
+                            # Calculate per-wallet win rate if threshold is provided
+                            wallet_win_rate = 0
+                            wallet_threshold_count = 0
+                            wallet_win_count = 0
+                            
+                            if winRateThreshold is not None and winRateThreshold > 0:
+                                # Find tokens where investment >= threshold
+                                threshold_tokens = [t for t in data['token_investments'] if t['invested'] >= winRateThreshold]
+                                wallet_threshold_count = len(threshold_tokens)
+                                
+                                # Count winning tokens (positive PNL)
+                                wallet_win_count = len([t for t in threshold_tokens if t['pnl'] > 0])
+                                
+                                # Calculate win rate percentage
+                                wallet_win_rate = (wallet_win_count / wallet_threshold_count * 100) if wallet_threshold_count > 0 else 0
+                            
                             wallets.append({
                                 'walletAddress': wallet_address,
                                 'totalInvested': data['total_invested'],
@@ -200,7 +226,10 @@ class SmartMoneyPNLReportHandler(BaseSQLiteHandler):
                                 'remainingValue': 0,
                                 'totalPnl': realized_pnl,
                                 'tradeCount': 0,
-                                'walletPnl': 0
+                                'walletPnl': 0,
+                                'winRate': round(wallet_win_rate, 2),
+                                'thresholdCount': wallet_threshold_count,
+                                'winCount': wallet_win_count
                             })
 
                     if wallets:
@@ -268,25 +297,7 @@ class SmartMoneyPNLReportHandler(BaseSQLiteHandler):
                 end_time = time.time()
                 logger.info(f"Report generated in {end_time - start_time:.2f} seconds")
 
-                # Calculate win rate metrics if threshold is provided
-                win_rate_metrics = {}
-                if winRateThreshold is not None and winRateThreshold > 0:
-                    # Find all wallets that meet the investment threshold
-                    threshold_wallets = [w for w in wallets if w['totalInvested'] >= winRateThreshold]
-                    threshold_count = len(threshold_wallets)
-                    
-                    # Count how many of those had positive PNL (wins)
-                    win_rate_count = len([w for w in threshold_wallets if w['totalPnl'] > 0])
-                    
-                    # Calculate win rate percentage
-                    win_rate = (win_rate_count / threshold_count * 100) if threshold_count > 0 else 0
-                    
-                    win_rate_metrics = {
-                        'winRate': round(win_rate, 2),
-                        'thresholdCount': threshold_count,
-                        'winRateCount': win_rate_count,
-                        'threshold': winRateThreshold
-                    }
+                # No global win rate calculation - now calculated per wallet
 
                 result = {
                     'wallets': wallets,
@@ -298,8 +309,7 @@ class SmartMoneyPNLReportHandler(BaseSQLiteHandler):
                     'metrics': {
                         'executionTimeSeconds': round(end_time - start_time, 2),
                         'walletCount': len(wallets),
-                        'tokenCount': len(all_token_addresses),
-                        **win_rate_metrics
+                        'tokenCount': len(all_token_addresses)
                     }
                 }
                 
@@ -316,7 +326,7 @@ class SmartMoneyPNLReportHandler(BaseSQLiteHandler):
         # Use cache manager for report caching
         return cache_manager.get_report(cache_params, generate_report)
 
-    def getWalletPNLDetails(self, wallet_address: str, days: int = 30, sort_by: str = "totalPnl", sort_order: str = "desc") -> Dict[str, Any]:
+    def getWalletPNLDetails(self, wallet_address: str, days: int = 30, sort_by: str = "totalPnl", sort_order: str = "desc", winRateThreshold: float = None) -> Dict[str, Any]:
         """
         Get detailed PNL information for a specific wallet, including token-level breakdown.
 
@@ -325,9 +335,10 @@ class SmartMoneyPNLReportHandler(BaseSQLiteHandler):
             days: Number of days to look back.
             sort_by: Field to sort tokens by (totalPnl, pnlPercentage, totalInvested, etc.).
             sort_order: Sort order (asc or desc).
+            winRateThreshold: Minimum investment threshold for win rate calculation.
 
         Returns:
-            Dictionary with detailed wallet PNL data, including token details.
+            Dictionary with detailed wallet PNL data, including token details and win rate metrics.
         """
         # Normalize input wallet address
         wallet_address = wallet_address.strip().lower()
@@ -338,7 +349,8 @@ class SmartMoneyPNLReportHandler(BaseSQLiteHandler):
             "wallet_address": wallet_address,
             "days": days,
             "sort_by": sort_by,
-            "sort_order": sort_order
+            "sort_order": sort_order,
+            "winRateThreshold": winRateThreshold
         }
         
         def generate_wallet_report():
@@ -388,6 +400,11 @@ class SmartMoneyPNLReportHandler(BaseSQLiteHandler):
                         sell_usd_change = float(row['sell_usd_change'] or 0)
                         remaining_balance = buy_token_change - sell_token_change
                         token_realized_pnl = sell_usd_change - buy_usd_change
+
+                        # CRITICAL FIX: Only include tokens where there was actual investment in the time range
+                        # Skip tokens with zero buyusdchange (bought before period but sold during period)
+                        if buy_usd_change <= 0:
+                            continue
 
                         total_invested += buy_usd_change
                         total_taken_out += sell_usd_change
@@ -482,6 +499,22 @@ class SmartMoneyPNLReportHandler(BaseSQLiteHandler):
                     logger.warning(f"Error sorting tokens by {sort_field}: {e}. Using default sort.")
                     tokens = sorted(tokens, key=lambda x: x.get("totalPnl", 0), reverse=True)
                 
+                # Calculate per-wallet win rate if threshold is provided
+                wallet_win_rate = 0
+                wallet_threshold_count = 0
+                wallet_win_count = 0
+                
+                if winRateThreshold is not None and winRateThreshold > 0:
+                    # Find tokens where investment >= threshold
+                    threshold_tokens = [t for t in tokens if t['totalInvested'] >= winRateThreshold]
+                    wallet_threshold_count = len(threshold_tokens)
+                    
+                    # Count winning tokens (positive PNL)
+                    wallet_win_count = len([t for t in threshold_tokens if t['totalPnl'] > 0])
+                    
+                    # Calculate win rate percentage
+                    wallet_win_rate = (wallet_win_count / wallet_threshold_count * 100) if wallet_threshold_count > 0 else 0
+                
                 result = {
                     'wallet': {
                         'walletAddress': wallet_address,
@@ -493,7 +526,10 @@ class SmartMoneyPNLReportHandler(BaseSQLiteHandler):
                         'totalPnlPercentage': total_pnl_percentage,
                         'uniqueTokenCount': len(unique_tokens),
                         'tradeCount': trade_count,
-                        'walletPnl': wallet_pnl
+                        'walletPnl': wallet_pnl,
+                        'winRate': round(wallet_win_rate, 2),
+                        'thresholdCount': wallet_threshold_count,
+                        'winCount': wallet_win_count
                     },
                     'tokens': tokens,  # Include detailed token information
                     'period': {
